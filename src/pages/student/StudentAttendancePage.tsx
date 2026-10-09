@@ -10,13 +10,14 @@ import {
 import {
   DEMO_STUDENT, MONTHLY_ATTENDANCE, ATTENDANCE_CALENDAR_OCT, DAY_LECTURES
 } from '../../data/portalData';
+import { useCurrentStudent } from '../../context/CampusDataContext';
 
 const CHART_STYLE = {
   tooltip: { contentStyle: { background: '#0b1226', border: '1px solid #14224a', borderRadius: 8, color: '#e2e8f0' } }
 };
 
 export function StudentAttendancePage() {
-  const s = DEMO_STUDENT;
+  const s = useCurrentStudent();
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [targetAttendance, setTargetAttendance] = useState<number>(75);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);

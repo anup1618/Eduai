@@ -11,6 +11,7 @@ import {
   DEMO_STUDENT, MONTHLY_MARKS, MONTHLY_ATTENDANCE,
   ASSESSMENT_HISTORY, ATTENDANCE_CALENDAR_OCT, DAY_LECTURES
 } from '../../data/portalData';
+import { useCurrentStudent } from '../../context/CampusDataContext';
 
 // ─── Shared mini helpers ──────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ export function StudentDashboardPage() {
   const [calMonth] = useState('October 2025');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const s = DEMO_STUDENT;
+  const s = useCurrentStudent();
   const bestSem  = s.sgpa_history.reduce((a, b) => a.sgpa > b.sgpa ? a : b);
   const worstSem = s.sgpa_history.reduce((a, b) => a.sgpa < b.sgpa ? a : b);
   const strongSub = [...s.subjects].sort((a, b) => b.internal_pct - a.internal_pct)[0];
@@ -267,7 +268,7 @@ export function StudentDashboardPage() {
 // ─── Analytics ───────────────────────────────────────────────────────────────
 
 export function StudentAnalyticsPage() {
-  const s = DEMO_STUDENT;
+  const s = useCurrentStudent();
   const [semFilter, setSemFilter] = useState('All');
 
   const subjectComparison = s.subjects.map(sub => ({
@@ -385,9 +386,9 @@ export function StudentAnalyticsPage() {
 // ─── Performance ─────────────────────────────────────────────────────────────
 
 export function StudentPerformancePage() {
-  const s = DEMO_STUDENT;
-  const [selSem, setSelSem] = useState('Sem 5');
-  const curSgpa = s.sgpa_history.find(h => h.semester === selSem)?.sgpa ?? 0;
+  const s = useCurrentStudent();
+  const [selSem, setSelSem] = useState(s.semester || 'Sem 5');
+  const curSgpa = s.sgpa_history.find(h => h.semester === selSem)?.sgpa ?? s.cgpa;
 
   return (
     <div className="space-y-6">

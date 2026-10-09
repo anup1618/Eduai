@@ -11,6 +11,7 @@ import {
 import {
   DEMO_FACULTY, FACULTY_STUDENTS, DEMO_PROBLEMS, DEMO_STUDENT, ATTENDANCE_CALENDAR_OCT
 } from '../data/portalData';
+import { useCampusData } from '../context/CampusDataContext';
 
 export type FacultyPage =
   | 'dashboard'
@@ -42,8 +43,9 @@ const navItems: { id: FacultyPage; label: string; icon: React.ReactNode }[] = [
 ];
 
 export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
+  const { loggedInFacultyIdx, setLoggedInFacultyIdx } = useCampusData();
   const [currentPage, setCurrentPage] = useState<FacultyPage>('dashboard');
-  const [selectedFacultyIdx, setSelectedFacultyIdx] = useState(0);
+  const [selectedFacultyIdx, setSelectedFacultyIdx] = useState(loggedInFacultyIdx || 0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -176,7 +178,11 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
             <span className="text-xs text-slate-400 hidden sm:inline">Logged in as:</span>
             <select
               value={selectedFacultyIdx}
-              onChange={e => setSelectedFacultyIdx(Number(e.target.value))}
+              onChange={e => {
+                const idx = Number(e.target.value);
+                setSelectedFacultyIdx(idx);
+                setLoggedInFacultyIdx(idx);
+              }}
               className="bg-[#0b1226] border border-[#14224a] text-xs font-bold text-cyan-400 rounded-lg px-3 py-1.5 focus:border-cyan-400 outline-none cursor-pointer"
             >
               {DEMO_FACULTY.map((f, idx) => (

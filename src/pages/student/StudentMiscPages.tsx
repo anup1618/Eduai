@@ -4,14 +4,16 @@ import {
   User, Shield, Mail, Phone, MapPin, Camera, Moon, Sun, Lock
 } from 'lucide-react';
 import { DEMO_STUDENT, DEMO_PROBLEMS } from '../../data/portalData';
+import { useCurrentStudent } from '../../context/CampusDataContext';
 
 // ─── 1. MY PROBLEM REQUESTS PAGE ──────────────────────────────────────────────
 
 export function StudentMyProblemPage() {
+  const s = useCurrentStudent();
   const [requests, setRequests] = useState(DEMO_PROBLEMS);
-  const [subject, setSubject] = useState(DEMO_STUDENT.subjects[0].name);
+  const [subject, setSubject] = useState(s.subjects[0]?.name || 'Machine Learning');
   const [topic, setTopic] = useState('');
-  const [faculty, setFaculty] = useState(DEMO_STUDENT.subjects[0].faculty);
+  const [faculty, setFaculty] = useState(s.subjects[0]?.faculty || 'Dr. Priya Menon');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<'Normal' | 'Important'>('Normal');
   const [submittedAlert, setSubmittedAlert] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export function StudentMyProblemPage() {
   // Sync faculty when subject changes
   const handleSubjectChange = (newSub: string) => {
     setSubject(newSub);
-    const match = DEMO_STUDENT.subjects.find(s => s.name === newSub);
+    const match = s.subjects.find(sub => sub.name === newSub);
     if (match) setFaculty(match.faculty);
   };
 
@@ -30,8 +32,8 @@ export function StudentMyProblemPage() {
     const newId = `REQ-00${requests.length + 1}`;
     const newReq = {
       id: newId,
-      student: DEMO_STUDENT.name,
-      roll: DEMO_STUDENT.roll_no,
+      student: s.name,
+      roll: s.roll_no,
       subject,
       topic: topic.trim() || 'General Query',
       faculty,
@@ -80,8 +82,8 @@ export function StudentMyProblemPage() {
                 onChange={e => handleSubjectChange(e.target.value)}
                 className="w-full bg-[#0b1226] border border-[#14224a] rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-cyan-400 outline-none"
               >
-                {DEMO_STUDENT.subjects.map(s => (
-                  <option key={s.name} value={s.name}>{s.name} ({s.faculty})</option>
+                {s.subjects.map(sub => (
+                  <option key={sub.name} value={sub.name}>{sub.name} ({sub.faculty})</option>
                 ))}
               </select>
             </div>
@@ -221,7 +223,7 @@ export function StudentMyProblemPage() {
 // ─── 2. STUDENT PROFILE & SETTINGS ────────────────────────────────────────────
 
 export function StudentProfilePage() {
-  const s = DEMO_STUDENT;
+  const s = useCurrentStudent();
 
   return (
     <div className="space-y-6 max-w-4xl">

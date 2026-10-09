@@ -5,6 +5,7 @@ import { AcademicRiskThresholds, PlacementRiskThresholds } from '../types/risk';
 import { FilterState, INITIAL_FILTERS } from '../types/filter';
 import { InterventionItem, InterventionStatus } from '../types/intervention';
 import { INITIAL_STUDENTS } from '../data/initialStudents';
+import { getStudentPortalData, StudentPortalProfile } from '../data/portalData';
 import { DEFAULT_WEIGHTS } from '../engine/scoringEngine';
 import { DEFAULT_ACADEMIC_THRESHOLDS } from '../engine/academicRiskEngine';
 import { DEFAULT_PLACEMENT_THRESHOLDS } from '../engine/placementRiskEngine';
@@ -25,6 +26,12 @@ interface CampusDataContextType {
   resetFilters: () => void;
   selectedStudent: UnifiedStudent | null;
   setSelectedStudent: (student: UnifiedStudent | null) => void;
+  loggedInStudent: UnifiedStudent | null;
+  setLoggedInStudent: (student: UnifiedStudent | null) => void;
+  loggedInFacultyIdx: number;
+  setLoggedInFacultyIdx: (idx: number) => void;
+  currentStudentProfile: StudentPortalProfile;
+  selectStudentForPortal: (studentOrId: UnifiedStudent | string) => void;
   addIntervention: (item: {
     student_id: string;
     student_name: string;
@@ -127,6 +134,59 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const [filters, setFiltersState] = useState<FilterState>(INITIAL_FILTERS);
   const [selectedStudent, setSelectedStudent] = useState<UnifiedStudent | null>(null);
+
+  const [loggedInStudent, setLoggedInStudent] = useState<UnifiedStudent | null>(() => {
+    try {
+      const saved = localStorage.getItem('edupulse_logged_in_student_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return INITIAL_STUDENTS[0];
+  });
+
+  const [loggedInFacultyIdx, setLoggedInFacultyIdx] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('edupulse_logged_in_faculty_v1');
+      if (saved !== null) return Number(saved);
+    } catch (e) {}
+    return 0;
+  });
+
+  useEffect(() => {
+    try {
+      if (loggedInStudent) {
+        localStorage.setItem('edupulse_logged_in_student_v1', JSON.stringify(loggedInStudent));
+      }
+    } catch (e) {}
+  }, [loggedInStudent]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('edupulse_logged_in_faculty_v1', String(loggedInFacultyIdx));
+    } catch (e) {}
+  }, [loggedInFacultyIdx]);
+
+  const selectStudentForPortal = (studentOrId: UnifiedStudent | string) => {
+    if (typeof studentOrId === 'object' && studentOrId !== null) {
+      setLoggedInStudent(studentOrId);
+      setSelectedStudent(studentOrId);
+    } else if (typeof studentOrId === 'string') {
+      const q = studentOrId.trim().toLowerCase();
+      const found = students.find(s =>
+        s.student_id.toLowerCase() === q ||
+        s.email.toLowerCase() === q ||
+        s.name.toLowerCase() === q ||
+        s.name.toLowerCase().includes(q)
+      );
+      if (found) {
+        setLoggedInStudent(found);
+        setSelectedStudent(found);
+      }
+    }
+  };
+
+  const currentStudentProfile = useMemo(() => {
+    return getStudentPortalData(loggedInStudent || students[0] || INITIAL_STUDENTS[0]);
+  }, [loggedInStudent, students]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -372,6 +432,12 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         resetFilters,
         selectedStudent,
         setSelectedStudent,
+        loggedInStudent,
+        setLoggedInStudent,
+        loggedInFacultyIdx,
+        setLoggedInFacultyIdx,
+        currentStudentProfile,
+        selectStudentForPortal,
         addIntervention,
         updateInterventionStatus,
         updateWeights,
@@ -392,4 +458,9 @@ export const useCampusData = () => {
     throw new Error('useCampusData must be used within a CampusDataProvider');
   }
   return context;
+};
+
+export const useCurrentStudent = (): StudentPortalProfile => {
+  const context = useCampusData();
+  return context.currentStudentProfile;
 };

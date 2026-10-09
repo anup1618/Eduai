@@ -1,14 +1,13 @@
-/**
- * Portal Data — shared demo student/faculty data for Student and Faculty portals.
- * All data is synthetic demo data. No real student information.
- */
+import { INITIAL_STUDENTS } from './initialStudents';
+import { UnifiedStudent } from '../types/student';
 
 export type PortalRole = 'login' | 'student' | 'faculty' | 'admin';
 
 // ─── Demo Credentials ──────────────────────────────────────────────────────────
-// Used by the LoginPage to authenticate demo users.
 export interface DemoCredential {
   role: Exclude<PortalRole, 'login'>;
+  studentId?: string;
+  facultyIdx?: number;
   label: string;
   email: string;
   password: string;
@@ -18,11 +17,182 @@ export interface DemoCredential {
   color: string;        // Tailwind gradient classes
   accentColor: string;  // Tailwind text color class for badge
   badgeBg: string;      // Tailwind bg class for badge
+  risk?: 'Low' | 'Medium' | 'High' | 'Moderate';
 }
 
+// ─── Featured Demo Students for Quick Login & Testing ─────────────────────────
+export const FEATURED_DEMO_STUDENTS = [
+  {
+    id: 'STU001',
+    name: 'Arjun Sharma',
+    email: 'arjun.sharma@edupulse.edu',
+    altEmail: 'aarav.sharma019@example.com',
+    password: 'student@123',
+    department: 'Computer Science',
+    course: 'B Tech CSE',
+    yearSem: '3rd Year · Sem 5',
+    rollNo: 'CS21B021',
+    risk: 'Medium' as const,
+    cgpa: 7.8,
+    attendance: 78,
+    backlogs: 0,
+    initials: 'AS',
+    badge: 'Standard Track (Medium)',
+    color: 'from-blue-600 to-cyan-500',
+  },
+  {
+    id: 'STU002',
+    name: 'Priya Singh',
+    email: 'priya.singh@edupulse.edu',
+    altEmail: 'priya.singh02@example.com',
+    password: 'student@123',
+    department: 'Information Technology',
+    course: 'B Sc IT',
+    yearSem: '2nd Year · Sem 4',
+    rollNo: 'IT22B002',
+    risk: 'Low' as const,
+    cgpa: 7.9,
+    attendance: 68,
+    backlogs: 1,
+    initials: 'PS',
+    badge: 'Watchlist / 1 Backlog',
+    color: 'from-pink-600 to-rose-500',
+  },
+  {
+    id: 'STU003',
+    name: 'Rohan Verma',
+    email: 'rohan.verma@edupulse.edu',
+    altEmail: 'rohan.verma03@example.com',
+    password: 'student@123',
+    department: 'Mechanical Eng.',
+    course: 'B Com',
+    yearSem: '3rd Year · Sem 5',
+    rollNo: 'ME21B003',
+    risk: 'Low' as const,
+    cgpa: 7.6,
+    attendance: 79,
+    backlogs: 0,
+    initials: 'RV',
+    badge: 'Consistent Performer',
+    color: 'from-emerald-600 to-teal-500',
+  },
+  {
+    id: 'STU006',
+    name: 'Sneha Joshi',
+    email: 'sneha.joshi@edupulse.edu',
+    altEmail: 'sneha.joshi06@example.com',
+    password: 'student@123',
+    department: 'Computer Science',
+    course: 'B Tech CSE',
+    yearSem: '4th Year · Sem 7',
+    rollNo: 'CS19B006',
+    risk: 'Low' as const,
+    cgpa: 8.8,
+    attendance: 82,
+    backlogs: 0,
+    initials: 'SJ',
+    badge: "Dean's Honor List (8.8 CGPA)",
+    color: 'from-amber-500 to-orange-500',
+  },
+  {
+    id: 'STU007',
+    name: 'Aditya Shah',
+    email: 'aditya.shah@edupulse.edu',
+    altEmail: 'aditya.shah07@example.com',
+    password: 'student@123',
+    department: 'Information Technology',
+    course: 'B Sc IT',
+    yearSem: '1st Year · Sem 1',
+    rollNo: 'IT25B007',
+    risk: 'High' as const,
+    cgpa: 5.8,
+    attendance: 50,
+    backlogs: 0,
+    initials: 'AS',
+    badge: 'Critical High Risk (50% Attd)',
+    color: 'from-red-600 to-rose-600',
+  },
+  {
+    id: 'STU017',
+    name: 'Dev Chavan',
+    email: 'dev.chavan@edupulse.edu',
+    altEmail: 'dev.chavan17@example.com',
+    password: 'student@123',
+    department: 'Computer Science',
+    course: 'B Sc Computer Science',
+    yearSem: '3rd Year · Sem 5',
+    rollNo: 'CS21B017',
+    risk: 'Medium' as const,
+    cgpa: 6.4,
+    attendance: 66,
+    backlogs: 2,
+    initials: 'DC',
+    badge: '2 Backlogs Alert',
+    color: 'from-purple-600 to-indigo-500',
+  },
+];
+
+// ─── Featured Demo Faculty ────────────────────────────────────────────────────
+export const FEATURED_DEMO_FACULTY = [
+  {
+    id: 'FAC-01',
+    idx: 0,
+    name: 'Dr. Priya Menon',
+    email: 'priya.menon@edupulse.edu',
+    password: 'faculty@123',
+    department: 'Computer Science',
+    designation: 'Associate Professor & ML Lead',
+    subjects: ['Machine Learning', 'Database Systems'],
+    students_count: 54,
+    avatar_initials: 'PM',
+    color: 'from-violet-600 to-purple-500',
+  },
+  {
+    id: 'FAC-02',
+    idx: 1,
+    name: 'Prof. Suresh Kumar',
+    email: 'suresh.kumar@edupulse.edu',
+    password: 'faculty@123',
+    department: 'Computer Science',
+    designation: 'Assistant Professor · Networks',
+    subjects: ['Computer Networks', 'Software Engineering'],
+    students_count: 48,
+    avatar_initials: 'SK',
+    color: 'from-blue-600 to-indigo-500',
+  },
+  {
+    id: 'FAC-03',
+    idx: 2,
+    name: 'Dr. Anita Bose',
+    email: 'anita.bose@edupulse.edu',
+    password: 'faculty@123',
+    department: 'Computer Science',
+    designation: 'Professor · Systems & OS',
+    subjects: ['Operating Systems', 'Algorithm Design'],
+    students_count: 52,
+    avatar_initials: 'AB',
+    color: 'from-emerald-600 to-teal-500',
+  },
+  {
+    id: 'FAC-04',
+    idx: 3,
+    name: 'Dr. Rajesh Verma',
+    email: 'rajesh.verma@edupulse.edu',
+    password: 'faculty@123',
+    department: 'Computer Science',
+    designation: 'Professor · AI Systems',
+    subjects: ['Artificial Intelligence', 'Data Science'],
+    students_count: 60,
+    avatar_initials: 'RV',
+    color: 'from-cyan-600 to-blue-500',
+  },
+];
+
 export const DEMO_CREDENTIALS: DemoCredential[] = [
+  // Primary Student: Arjun Sharma
   {
     role: 'student',
+    studentId: 'STU001',
     label: 'Student',
     email: 'arjun.sharma@edupulse.edu',
     password: 'student@123',
@@ -32,19 +202,82 @@ export const DEMO_CREDENTIALS: DemoCredential[] = [
     color: 'from-blue-600 to-cyan-500',
     accentColor: 'text-cyan-400',
     badgeBg: 'bg-cyan-500/10 border-cyan-500/30',
+    risk: 'Medium',
   },
+  // Second Student: Priya Singh (Watchlist)
+  {
+    role: 'student',
+    studentId: 'STU002',
+    label: 'Student',
+    email: 'priya.singh@edupulse.edu',
+    password: 'student@123',
+    name: 'Priya Singh',
+    subtitle: 'B Sc IT · 2nd Year · STU002',
+    avatarInitials: 'PS',
+    color: 'from-pink-600 to-rose-500',
+    accentColor: 'text-rose-400',
+    badgeBg: 'bg-rose-500/10 border-rose-500/30',
+    risk: 'Low',
+  },
+  // Third Student: Aditya Shah (Critical High Risk)
+  {
+    role: 'student',
+    studentId: 'STU007',
+    label: 'Student',
+    email: 'aditya.shah@edupulse.edu',
+    password: 'student@123',
+    name: 'Aditya Shah',
+    subtitle: 'B Sc IT · 1st Year · High Risk',
+    avatarInitials: 'AS',
+    color: 'from-red-600 to-rose-600',
+    accentColor: 'text-red-400',
+    badgeBg: 'bg-red-500/10 border-red-500/30',
+    risk: 'High',
+  },
+  // Fourth Student: Sneha Joshi (Honor List)
+  {
+    role: 'student',
+    studentId: 'STU006',
+    label: 'Student',
+    email: 'sneha.joshi@edupulse.edu',
+    password: 'student@123',
+    name: 'Sneha Joshi',
+    subtitle: 'B Tech CSE · 4th Year · 8.8 CGPA',
+    avatarInitials: 'SJ',
+    color: 'from-amber-500 to-orange-500',
+    accentColor: 'text-amber-400',
+    badgeBg: 'bg-amber-500/10 border-amber-500/30',
+    risk: 'Low',
+  },
+  // Faculty 1: Dr. Priya Menon
   {
     role: 'faculty',
+    facultyIdx: 0,
     label: 'Faculty',
     email: 'priya.menon@edupulse.edu',
     password: 'faculty@123',
     name: 'Dr. Priya Menon',
-    subtitle: 'Computer Science · Machine Learning',
+    subtitle: 'Computer Science · ML & DB Systems',
     avatarInitials: 'PM',
     color: 'from-violet-600 to-purple-500',
     accentColor: 'text-violet-400',
     badgeBg: 'bg-violet-500/10 border-violet-500/30',
   },
+  // Faculty 2: Prof. Suresh Kumar
+  {
+    role: 'faculty',
+    facultyIdx: 1,
+    label: 'Faculty',
+    email: 'suresh.kumar@edupulse.edu',
+    password: 'faculty@123',
+    name: 'Prof. Suresh Kumar',
+    subtitle: 'Computer Science · Networks & Software Eng',
+    avatarInitials: 'SK',
+    color: 'from-blue-600 to-indigo-500',
+    accentColor: 'text-blue-400',
+    badgeBg: 'bg-blue-500/10 border-blue-500/30',
+  },
+  // Admin
   {
     role: 'admin',
     label: 'Admin',
@@ -137,6 +370,174 @@ export const DEMO_STUDENT = {
   placement_risk: 'Moderate' as const,
 };
 
+export type StudentPortalProfile = typeof DEMO_STUDENT;
+
+// Converts ANY student record (from 100 campus students) into full student portal profile
+export function getStudentPortalData(input?: string | UnifiedStudent | null): StudentPortalProfile {
+  if (!input) return DEMO_STUDENT;
+
+  let st: UnifiedStudent | undefined;
+  if (typeof input === 'object' && input !== null && 'student_id' in input) {
+    st = input;
+  } else if (typeof input === 'string') {
+    const q = input.trim().toLowerCase();
+    st = INITIAL_STUDENTS.find(s =>
+      s.student_id.toLowerCase() === q ||
+      s.email.toLowerCase() === q ||
+      s.name.toLowerCase() === q ||
+      s.name.toLowerCase().includes(q)
+    );
+  }
+
+  if (!st || st.student_id === 'STU001') {
+    return DEMO_STUDENT;
+  }
+
+  // Derive department-specific subjects & faculty
+  const dept = st.department;
+  const isCS = dept === 'Computer Science';
+  const isIT = dept === 'Information Technology';
+  const isEC = dept === 'Electronics & Comm.';
+
+  const subjectTemplates = isCS ? [
+    { code: 'CS501', name: 'Machine Learning', faculty: 'Dr. Priya Menon' },
+    { code: 'CS502', name: 'Computer Networks', faculty: 'Prof. Suresh Kumar' },
+    { code: 'CS503', name: 'Operating Systems', faculty: 'Dr. Anita Bose' },
+    { code: 'CS504', name: 'Database Systems', faculty: 'Dr. Priya Menon' },
+    { code: 'CS505', name: 'Software Engineering', faculty: 'Prof. Suresh Kumar' },
+  ] : isIT ? [
+    { code: 'IT401', name: 'Cloud Computing', faculty: 'Prof. Suresh Kumar' },
+    { code: 'IT402', name: 'Web Architecture', faculty: 'Dr. Priya Menon' },
+    { code: 'IT403', name: 'Database Engineering', faculty: 'Dr. Priya Menon' },
+    { code: 'IT404', name: 'Network Security', faculty: 'Dr. Anita Bose' },
+    { code: 'IT405', name: 'DevOps Pipelines', faculty: 'Prof. Suresh Kumar' },
+  ] : isEC ? [
+    { code: 'EC501', name: 'Digital Signal Processing', faculty: 'Dr. Anita Bose' },
+    { code: 'EC502', name: 'Embedded Systems', faculty: 'Prof. Suresh Kumar' },
+    { code: 'EC503', name: 'VLSI Design', faculty: 'Dr. Priya Menon' },
+    { code: 'EC504', name: 'Microcontrollers', faculty: 'Prof. Suresh Kumar' },
+    { code: 'EC505', name: 'Communication Networks', faculty: 'Dr. Anita Bose' },
+  ] : [
+    { code: 'ME301', name: 'Applied Mechanics', faculty: 'Dr. Anita Bose' },
+    { code: 'ME302', name: 'Thermodynamics', faculty: 'Prof. Suresh Kumar' },
+    { code: 'ME303', name: 'Manufacturing Systems', faculty: 'Dr. Priya Menon' },
+    { code: 'ME304', name: 'Fluid Mechanics', faculty: 'Prof. Suresh Kumar' },
+    { code: 'ME305', name: 'Engineering Design', faculty: 'Dr. Anita Bose' },
+  ];
+
+  const baseInternal = st.academic?.internal_marks ?? 72;
+  const baseAttendance = st.attendance?.overall_attendance ?? 75;
+  const cgpa = st.academic?.cgpa ?? 7.5;
+  const backlogs = st.academic?.backlogs ?? 0;
+
+  // Build subject scores based on actual student performance
+  const subjects = subjectTemplates.map((sub, idx) => {
+    const variance = (idx % 2 === 0 ? 1 : -1) * (idx * 3);
+    const internalPct = Math.max(35, Math.min(98, Math.round(baseInternal + variance)));
+    const test1 = Math.max(8, Math.min(20, Math.round((internalPct / 100) * 20)));
+    const test2 = Math.max(8, Math.min(20, Math.round((internalPct / 100) * 19) + (idx % 2 === 0 ? 1 : 0)));
+    const assignment = Math.max(4, Math.min(10, Math.round((internalPct / 100) * 10)));
+    const practical = Math.max(10, Math.min(25, Math.round((internalPct / 100) * 25)));
+
+    const grade = internalPct >= 85 ? 'A+' : internalPct >= 75 ? 'A' : internalPct >= 65 ? 'B+' : internalPct >= 55 ? 'B' : 'C';
+    const status: 'Safe' | 'Watch' | 'Critical' = internalPct >= 75 ? 'Safe' : internalPct >= 60 ? 'Watch' : 'Critical';
+
+    return {
+      ...sub,
+      test1,
+      test2,
+      assignment,
+      practical,
+      internal_pct: internalPct,
+      grade,
+      status,
+    };
+  });
+
+  const subjectAttendance = subjects.map((sub, idx) => {
+    const variance = (idx % 2 === 0 ? 3 : -4) * (idx + 1);
+    const pct = Math.max(30, Math.min(100, Math.round(baseAttendance + variance)));
+    const conducted = 24;
+    const attended = Math.round((pct / 100) * conducted);
+    return {
+      subject: sub.name,
+      pct,
+      conducted,
+      attended,
+      status: pct >= 75 ? ('Safe' as const) : ('Low' as const),
+    };
+  });
+
+  // Calculate initials
+  const initials = st.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ST';
+  const rollNo = (isCS ? 'CS' : isIT ? 'IT' : isEC ? 'EC' : 'ME') +
+    '2' + (st.academic_year.includes('1') ? '5' : st.academic_year.includes('2') ? '4' : st.academic_year.includes('3') ? '3' : '2') +
+    'B0' + st.student_id.replace('STU', '').padStart(2, '0');
+
+  // SGPA history
+  const semNum = parseInt(st.semester.replace('Sem ', '')) || 5;
+  const sgpaHistory = Array.from({ length: semNum }, (_, i) => {
+    const factor = (i === semNum - 1) ? 0 : (i % 2 === 0 ? 0.2 : -0.2);
+    const sgpa = Math.max(4.0, Math.min(10.0, parseFloat((cgpa + factor).toFixed(2))));
+    return {
+      semester: `Sem ${i + 1}`,
+      sgpa,
+    };
+  });
+
+  const conducted = 120;
+  const attended = Math.round((baseAttendance / 100) * conducted);
+
+  return {
+    id: st.student_id,
+    name: st.name,
+    department: st.department,
+    academic_year: st.academic_year,
+    semester: st.semester,
+    email: st.email,
+    roll_no: rollNo,
+    phone: `+91 90000 000${st.student_id.replace('STU', '').padStart(2, '0')}`,
+    dob: '2003-08-20',
+    address: 'Campus Hostel Block 4, Mumbai',
+    guardian: `${st.name.split(' ').pop()} Family`,
+    avatar_initials: initials,
+
+    cgpa,
+    sgpa_history: sgpaHistory,
+    backlogs,
+    internal_marks: baseInternal,
+
+    subjects,
+    overall_attendance: baseAttendance,
+    classes_conducted: conducted,
+    classes_attended: attended,
+    subject_attendance: subjectAttendance,
+
+    lms_logins: st.lms?.lms_logins ?? 16,
+    assignment_completion: Math.round(st.lms?.assignment_completion ?? 78),
+
+    events_participated: st.engagement?.events_participated ?? 2,
+    club_participation: st.engagement?.club_participation ?? 1,
+    hackathons: st.engagement?.hackathons ?? 0,
+    certifications: st.engagement?.certifications ?? 1,
+
+    aptitude_score: st.placement?.aptitude_score ?? 65,
+    coding_score: st.placement?.coding_score ?? 58,
+    mock_interview_score: st.placement?.mock_interview_score ?? 62,
+    placement_prep: st.placement?.placement_preparation_participation ?? true,
+
+    technical_skill_score: st.skills?.technical_skill_score ?? 68,
+    soft_skill_score: st.skills?.soft_skill_score ?? 70,
+
+    student_satisfaction: st.feedback?.student_satisfaction ?? 4.0,
+    faculty_feedback: (st.feedback?.faculty_feedback as any) || 'Good',
+
+    success_score: Math.max(45, Math.min(99, Math.round(cgpa * 9.5 + (baseAttendance > 75 ? 3 : -4)))),
+    academic_risk: (backlogs > 0 || baseAttendance < 65 || cgpa < 5.8 ? 'High' : (baseAttendance < 75 || cgpa < 6.8) ? 'Moderate' : 'Low') as any,
+    placement_risk: (cgpa < 6.0 || (st.placement?.coding_score && st.placement.coding_score < 50) ? 'High' : cgpa < 7.2 ? 'Moderate' : 'Low') as any,
+  };
+}
+
 // Monthly internal marks trend (for analytics)
 export const MONTHLY_MARKS = [
   { month: 'Jun', marks: 68 },
@@ -203,9 +604,10 @@ export const DAY_LECTURES: Record<string, Array<{subject: string; time: string; 
 
 // --- Faculty Demo Data ---
 export const DEMO_FACULTY = [
-  { id: 'FAC-01', name: 'Dr. Priya Menon',    department: 'Computer Science', subjects: ['Machine Learning', 'Database Systems'], students_count: 54, avatar_initials: 'PM' },
-  { id: 'FAC-02', name: 'Prof. Suresh Kumar', department: 'Computer Science', subjects: ['Computer Networks', 'Software Engineering'], students_count: 54, avatar_initials: 'SK' },
-  { id: 'FAC-03', name: 'Dr. Anita Bose',     department: 'Computer Science', subjects: ['Operating Systems', 'Algorithm Design'], students_count: 54, avatar_initials: 'AB' },
+  { id: 'FAC-01', name: 'Dr. Priya Menon',    department: 'Computer Science', designation: 'Associate Professor & ML Lead', subjects: ['Machine Learning', 'Database Systems'], students_count: 54, avatar_initials: 'PM' },
+  { id: 'FAC-02', name: 'Prof. Suresh Kumar', department: 'Computer Science', designation: 'Assistant Professor · Networks', subjects: ['Computer Networks', 'Software Engineering'], students_count: 48, avatar_initials: 'SK' },
+  { id: 'FAC-03', name: 'Dr. Anita Bose',     department: 'Computer Science', designation: 'Professor · Systems & OS', subjects: ['Operating Systems', 'Algorithm Design'], students_count: 52, avatar_initials: 'AB' },
+  { id: 'FAC-04', name: 'Dr. Rajesh Verma',   department: 'Computer Science', designation: 'Professor · AI Systems', subjects: ['Artificial Intelligence', 'Data Science'], students_count: 60, avatar_initials: 'RV' },
 ];
 
 export const DEMO_FACULTY_CURRENT = DEMO_FACULTY[0];

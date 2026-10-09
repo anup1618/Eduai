@@ -4,9 +4,13 @@ import {
   Sparkles, GraduationCap, Users, Shield,
   CheckCircle2, AlertCircle, Quote, ChevronLeft, ChevronRight,
   TrendingUp, BarChart3, Award, BookOpen, Building2,
-  Clock, Check
+  Clock, Check, Search, ArrowRight, UserCheck, Layers
 } from 'lucide-react';
-import { DEMO_CREDENTIALS, type PortalRole, type DemoCredential } from '../data/portalData';
+import {
+  DEMO_CREDENTIALS, FEATURED_DEMO_STUDENTS, FEATURED_DEMO_FACULTY,
+  type PortalRole, type DemoCredential
+} from '../data/portalData';
+import { useCampusData } from '../context/CampusDataContext';
 
 interface LoginPageProps {
   onSelectRole: (role: PortalRole) => void;
@@ -101,6 +105,8 @@ const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
 
 // ─── Main Landing & Login Page Component ───────────────────────────────────────
 export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
+  const { students, selectStudentForPortal, setLoggedInFacultyIdx } = useCampusData();
+
   // State for quote carousel
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
   const [isQuotePaused, setIsQuotePaused] = useState(false);
@@ -116,6 +122,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
   const [shake, setShake] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState<DemoCredential | null>(null);
   const [showForgotNotice, setShowForgotNotice] = useState(false);
+  const [showStudentDirectoryModal, setShowStudentDirectoryModal] = useState(false);
+  const [studentDirectorySearch, setStudentDirectorySearch] = useState('');
 
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -142,7 +150,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
   const handleRoleTabSelect = (role: 'student' | 'faculty' | 'admin') => {
     setSelectedRole(role);
     setError('');
-    // Optionally autofill demo email for easy testing if field is empty or user is toggling
     const matchingCred = DEMO_CREDENTIALS.find(c => c.role === role);
     if (matchingCred && (!email || email.includes('@edupulse.edu'))) {
       setEmail(matchingCred.email);
@@ -150,18 +157,38 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
     }
   };
 
-  const handleLogin = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleSelectFeaturedStudent = (st: typeof FEATURED_DEMO_STUDENTS[0], autoLogin = false) => {
+    setEmail(st.email);
+    setPassword(st.password);
+    setSelectedRole('student');
+    setError('');
+    if (autoLogin) {
+      executeLogin(st.email, st.password, 'student', st.id);
+    }
+  };
 
-    const trimEmail = email.trim().toLowerCase();
-    const trimPass = password.trim();
+  const handleSelectFeaturedFaculty = (fac: typeof FEATURED_DEMO_FACULTY[0], autoLogin = false) => {
+    setEmail(fac.email);
+    setPassword(fac.password);
+    setSelectedRole('faculty');
+    setError('');
+    if (autoLogin) {
+      executeLogin(fac.email, fac.password, 'faculty', undefined, fac.idx);
+    }
+  };
+
+  const executeLogin = async (
+    targetEmail: string,
+    targetPass: string,
+    enforcedRole?: PortalRole,
+    specificStudentId?: string,
+    specificFacultyIdx?: number
+  ) => {
+    const trimEmail = targetEmail.trim().toLowerCase();
+    const trimPass = targetPass.trim();
 
     if (!trimEmail) {
-      triggerShake('Please enter your institutional email address.');
-      return;
-    }
-    if (!trimPass) {
-      triggerShake('Please enter your password.');
+      triggerShake('Please enter your institutional email address or student ID.');
       return;
     }
 
@@ -169,38 +196,89 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
     setError('');
 
     // Simulate enterprise auth handshake
-    await new Promise(res => setTimeout(res, 850));
+    await new Promise(res => setTimeout(res, 600));
 
-    // Check against configured institutional credentials
-    const directMatch = DEMO_CREDENTIALS.find(
-      c => c.email.toLowerCase() === trimEmail && c.password === trimPass
+    // 1. Resolve role
+    let resolvedRole: Exclude<PortalRole, 'login'> = enforcedRole as any || selectedRole;
+
+    // Check if matches a student in DEMO_CREDENTIALS or students dataset
+    const matchedStudentInDataset = students.find(s =>
+      s.student_id.toLowerCase() === (specificStudentId || trimEmail).toLowerCase() ||
+      s.email.toLowerCase() === trimEmail ||
+      s.name.toLowerCase() === trimEmail ||
+      trimEmail.includes(s.student_id.toLowerCase())
     );
 
+    const matchedFaculty = FEATURED_DEMO_FACULTY.find(f =>
+      (specificFacultyIdx !== undefined && f.idx === specificFacultyIdx) ||
+      f.email.toLowerCase() === trimEmail ||
+      f.name.toLowerCase().includes(trimEmail)
+    );
+
+    if (matchedFaculty) {
+      resolvedRole = 'faculty';
+    } else if (matchedStudentInDataset || trimEmail.includes('stu') || specificStudentId) {
+      resolvedRole = 'student';
+    } else if (trimEmail.includes('admin')) {
+      resolvedRole = 'admin';
+    } else if (trimEmail.includes('faculty') || trimEmail.includes('prof') || trimEmail.includes('dr.')) {
+      resolvedRole = 'faculty';
+    }
+
+    // 2. Build resolved credential for UI banner
     let resolvedCred: DemoCredential;
 
-    if (directMatch) {
-      resolvedCred = directMatch;
+    if (resolvedRole === 'student') {
+      const studentToLoad = matchedStudentInDataset || students[0];
+      selectStudentForPortal(studentToLoad);
+
+      resolvedCred = {
+        role: 'student',
+        studentId: studentToLoad.student_id,
+        label: 'Student',
+        email: studentToLoad.email,
+        password: 'student@123',
+        name: studentToLoad.name,
+        subtitle: `${studentToLoad.department} · ${studentToLoad.academic_year}`,
+        avatarInitials: studentToLoad.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+        color: 'from-blue-600 to-cyan-500',
+        accentColor: 'text-cyan-400',
+        badgeBg: 'bg-cyan-500/10 border-cyan-500/30',
+        risk: ((studentToLoad.academic?.backlogs ?? 0) > 0 || (studentToLoad.attendance?.overall_attendance ?? 100) < 65) ? 'High' : (studentToLoad.attendance?.overall_attendance ?? 100) < 75 ? 'Medium' : 'Low',
+      };
+    } else if (resolvedRole === 'faculty') {
+      const fIdx = specificFacultyIdx !== undefined ? specificFacultyIdx : (matchedFaculty ? matchedFaculty.idx : 0);
+      setLoggedInFacultyIdx(fIdx);
+      const facObj = FEATURED_DEMO_FACULTY[fIdx] || FEATURED_DEMO_FACULTY[0];
+
+      resolvedCred = {
+        role: 'faculty',
+        facultyIdx: fIdx,
+        label: 'Faculty',
+        email: facObj.email,
+        password: 'faculty@123',
+        name: facObj.name,
+        subtitle: `${facObj.department} · ${facObj.designation}`,
+        avatarInitials: facObj.avatar_initials,
+        color: facObj.color,
+        accentColor: 'text-violet-400',
+        badgeBg: 'bg-violet-500/10 border-violet-500/30',
+      };
     } else {
-      // Smart Fallback for Institutional Demo users:
-      // If user typed any valid institutional pattern or selected a role tab, resolve smoothly
-      const fallbackForRole = DEMO_CREDENTIALS.find(c => c.role === selectedRole) || DEMO_CREDENTIALS[0];
-      
-      // If the email is clearly another role, match that role
-      if (trimEmail.includes('faculty') || trimEmail.includes('prof') || trimEmail.includes('dr.')) {
-        resolvedCred = DEMO_CREDENTIALS.find(c => c.role === 'faculty') || fallbackForRole;
-      } else if (trimEmail.includes('admin')) {
-        resolvedCred = DEMO_CREDENTIALS.find(c => c.role === 'admin') || fallbackForRole;
-      } else {
-        resolvedCred = fallbackForRole;
-      }
+      resolvedCred = DEMO_CREDENTIALS.find(c => c.role === 'admin') || DEMO_CREDENTIALS[DEMO_CREDENTIALS.length - 1];
     }
 
     setIsLoading(false);
     setLoginSuccess(resolvedCred);
 
     // Brief celebration flash before routing
-    await new Promise(res => setTimeout(res, 850));
-    onSelectRole(resolvedCred.role);
+    await new Promise(res => setTimeout(res, 750));
+    onSelectRole(resolvedRole);
+  };
+
+  const handleLogin = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    executeLogin(email, password);
   };
 
   const isSuccess = !!loginSuccess;
@@ -537,6 +615,158 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                       <span>Admin</span>
                     </button>
                   </div>
+
+                  {/* ── DEMO QUICK-SELECT ACCOUNTS ACCORDION / PILLS ───────────────── */}
+                  <div className="mt-4 pt-4 border-t border-white/[0.08]">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                        Quick Demo Accounts (1-Click Login)
+                      </span>
+                      {selectedRole === 'student' && (
+                        <button
+                          type="button"
+                          onClick={() => setShowStudentDirectoryModal(true)}
+                          className="text-[11px] text-cyan-300 hover:text-cyan-200 underline font-semibold flex items-center gap-1"
+                        >
+                          <Search className="w-3 h-3" />
+                          All 100 Students
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Student Quick Cards */}
+                    {selectedRole === 'student' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {FEATURED_DEMO_STUDENTS.map(st => {
+                          const isSelected = email.toLowerCase() === st.email.toLowerCase() || email.toLowerCase() === st.id.toLowerCase();
+                          return (
+                            <div
+                              key={st.id}
+                              onClick={() => handleSelectFeaturedStudent(st, false)}
+                              className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1.5 ${
+                                isSelected
+                                  ? 'bg-blue-600/20 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
+                                  : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/15'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${st.color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0`}>
+                                    {st.initials}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold text-white truncate">{st.name}</div>
+                                    <div className="text-[9px] text-slate-400 font-mono truncate">{st.rollNo}</div>
+                                  </div>
+                                </div>
+                                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
+                                  st.risk === 'High'
+                                    ? 'bg-red-500/20 text-red-300'
+                                    : st.risk === 'Medium'
+                                    ? 'bg-amber-500/20 text-amber-300'
+                                    : 'bg-emerald-500/20 text-emerald-300'
+                                }`}>
+                                  {st.risk}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1 border-t border-white/[0.06] text-[10px]">
+                                <span className="text-slate-400 font-mono">{st.cgpa} CGPA · {st.attendance}%</span>
+                                <button
+                                  type="button"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    handleSelectFeaturedStudent(st, true);
+                                  }}
+                                  className="text-[10px] font-bold text-cyan-400 hover:text-cyan-200"
+                                >
+                                  Login →
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Faculty Quick Cards */}
+                    {selectedRole === 'faculty' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {FEATURED_DEMO_FACULTY.map(fac => {
+                          const isSelected = email.toLowerCase() === fac.email.toLowerCase();
+                          return (
+                            <div
+                              key={fac.id}
+                              onClick={() => handleSelectFeaturedFaculty(fac, false)}
+                              className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1.5 ${
+                                isSelected
+                                  ? 'bg-purple-600/20 border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.25)]'
+                                  : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/15'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className={`w-7 h-7 rounded-md bg-gradient-to-br ${fac.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                                  {fac.avatar_initials}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-bold text-white truncate">{fac.name}</div>
+                                  <div className="text-[10px] text-purple-300 truncate">{fac.subjects[0]}</div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1 border-t border-white/[0.06] text-[10px]">
+                                <span className="text-slate-400 truncate">{fac.students_count} Students</span>
+                                <button
+                                  type="button"
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                    handleSelectFeaturedFaculty(fac, true);
+                                  }}
+                                  className="text-[10px] font-bold text-purple-300 hover:text-purple-200"
+                                >
+                                  Login →
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Admin Quick Card */}
+                    {selectedRole === 'admin' && (
+                      <div
+                        onClick={() => {
+                          const adminCred = DEMO_CREDENTIALS.find(c => c.role === 'admin')!;
+                          setEmail(adminCred.email);
+                          setPassword(adminCred.password);
+                        }}
+                        className="p-3 rounded-xl border bg-teal-500/10 border-teal-500/30 flex items-center justify-between cursor-pointer hover:bg-teal-500/15 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-600 to-emerald-500 flex items-center justify-center text-white text-xs font-bold">
+                            CA
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white">Campus Administrator</div>
+                            <div className="text-[10px] text-teal-300">Executive Analytics · Data Pipelines · Full System Access</div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            const adminCred = DEMO_CREDENTIALS.find(c => c.role === 'admin')!;
+                            executeLogin(adminCred.email, adminCred.password, 'admin');
+                          }}
+                          className="text-xs font-bold text-teal-400 hover:text-teal-200 px-2.5 py-1 rounded-lg bg-teal-500/20"
+                        >
+                          Login →
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Login Form */}
@@ -545,20 +775,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                   {/* Email Field */}
                   <div className="flex flex-col gap-1.5">
                     <label htmlFor="landing-email" className="text-xs font-semibold text-slate-300">
-                      Campus Email Address
+                      {selectedRole === 'student' ? 'Campus Email or Student ID' : 'Campus Email Address'}
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                       <input
                         id="landing-email"
                         ref={emailRef}
-                        type="email"
+                        type="text"
                         autoComplete="username"
                         placeholder={
                           selectedRole === 'student' 
-                            ? 'student@edupulse.edu' 
+                            ? 'STU002 or priya.singh@edupulse.edu' 
                             : selectedRole === 'faculty' 
-                            ? 'faculty@edupulse.edu' 
+                            ? 'priya.menon@edupulse.edu' 
                             : 'admin@edupulse.edu'
                         }
                         value={email}
@@ -704,6 +934,113 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
         </div>
 
       </main>
+
+      {/* ── ALL 100 STUDENTS DIRECTORY MODAL ─────────────────────────────────── */}
+      {showStudentDirectoryModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-[#0b1226] border border-[#14224a] rounded-2xl shadow-2xl p-6 flex flex-col max-h-[85vh] space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#14224a]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-cyan-400 flex items-center justify-center">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Institutional Student Directory</h3>
+                  <p className="text-xs text-slate-400">Select any student from the 100 campus profiles to test login</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStudentDirectoryModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by student name, ID (e.g. STU015), or department..."
+                value={studentDirectorySearch}
+                onChange={e => setStudentDirectorySearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-sm text-white placeholder-slate-500 outline-none focus:border-cyan-400"
+              />
+            </div>
+
+            {/* Student List */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {students
+                .filter(st => {
+                  const q = studentDirectorySearch.trim().toLowerCase();
+                  if (!q) return true;
+                  return (
+                    st.name.toLowerCase().includes(q) ||
+                    st.student_id.toLowerCase().includes(q) ||
+                    st.department.toLowerCase().includes(q) ||
+                    st.email.toLowerCase().includes(q)
+                  );
+                })
+                .map(st => (
+                  <div
+                    key={st.student_id}
+                    onClick={() => {
+                      selectStudentForPortal(st);
+                      setEmail(st.email);
+                      setPassword('student@123');
+                      setShowStudentDirectoryModal(false);
+                      setSelectedRole('student');
+                      executeLogin(st.email, 'student@123', 'student', st.student_id);
+                    }}
+                    className="p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.07] hover:border-cyan-500/40 cursor-pointer transition-all flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-600/30 text-cyan-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        {st.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-white truncate flex items-center gap-2">
+                          <span>{st.name}</span>
+                          <span className="font-mono text-[10px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.2 rounded">
+                            {st.student_id}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate">
+                          {st.department} · {st.academic_year} · {st.semester}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex-shrink-0 flex items-center gap-3">
+                      <div>
+                        <div className="text-xs font-mono text-white">
+                          {st.academic?.cgpa ?? 7.0} CGPA · {st.attendance?.overall_attendance ?? 75}%
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          (st.academic?.backlogs ?? 0) > 0 || (st.attendance?.overall_attendance ?? 100) < 65
+                            ? 'bg-red-500/20 text-red-300'
+                            : (st.attendance?.overall_attendance ?? 100) < 75
+                            ? 'bg-amber-500/20 text-amber-300'
+                            : 'bg-emerald-500/20 text-emerald-300'
+                        }`}>
+                          {(st.academic?.backlogs ?? 0) > 0 || (st.attendance?.overall_attendance ?? 100) < 65 ? 'High' : (st.attendance?.overall_attendance ?? 100) < 75 ? 'Medium' : 'Low'} Risk
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30"
+                      >
+                        Sign In →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── LANDING PAGE BOTTOM FOOTER ───────────────────────────────────────── */}
       <footer className="relative z-20 border-t border-white/[0.06] bg-black/50 py-3.5 px-4 text-xs text-slate-500">

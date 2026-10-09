@@ -4,22 +4,30 @@ import {
   Calendar, Mail, ShieldAlert, Award, ArrowUpRight
 } from 'lucide-react';
 import { DEMO_STUDENT, RECOMMENDATIONS } from '../../data/portalData';
+import { useCurrentStudent } from '../../context/CampusDataContext';
 
 export function StudentProgressTrackerPage() {
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'recommendations' | 'history' | 'email'>('weekly');
   const [weeklyEmailEnabled, setWeeklyEmailEnabled] = useState(true);
   const [monthlyEmailEnabled, setMonthlyEmailEnabled] = useState(false);
 
-  const s = DEMO_STUDENT;
+  const s = useCurrentStudent();
+
+  const acadScore = Math.min(100, Math.round((s.cgpa / 10) * 100));
+  const attScore = s.overall_attendance;
+  const placeScore = Math.round((s.coding_score + s.aptitude_score + s.mock_interview_score) / 3);
+  const lmsScore = s.assignment_completion;
+  const skillsScore = Math.round((s.technical_skill_score + s.soft_skill_score) / 2);
+  const engagScore = Math.min(100, (s.events_participated * 20) + (s.certifications * 25));
 
   // Breakdown weights (UI_SPEC): Academic 30%, Attendance 20%, LMS 15%, Placement 20%, Skills 10%, Engagement 5%
   const scoreBreakdown = [
-    { component: 'Academic Performance', score: 76, weight: 30, contribution: 22.8, notes: 'CGPA 7.8, Internals 72%' },
-    { component: 'Attendance Record', score: 78, weight: 20, contribution: 15.6, notes: '78% overall attendance' },
-    { component: 'Placement Readiness', score: 62, weight: 20, contribution: 12.4, notes: 'Coding 58, Aptitude 65, Interview 62' },
-    { component: 'LMS Engagement', score: 80, weight: 15, contribution: 12.0, notes: '18 logins/mo, 80% assignments' },
-    { component: 'Skills Assessment', score: 70, weight: 10, contribution: 7.0, notes: 'Technical 68, Soft Skills 72' },
-    { component: 'Extracurricular Engagement', score: 65, weight: 5, contribution: 3.2, notes: '1 club, 1 hackathon, 2 certs' },
+    { component: 'Academic Performance', score: acadScore, weight: 30, contribution: Number(((acadScore * 0.3)).toFixed(1)), notes: `CGPA ${s.cgpa}, Internals ${s.internal_marks}%` },
+    { component: 'Attendance Record', score: attScore, weight: 20, contribution: Number(((attScore * 0.2)).toFixed(1)), notes: `${s.overall_attendance}% overall attendance` },
+    { component: 'Placement Readiness', score: placeScore, weight: 20, contribution: Number(((placeScore * 0.2)).toFixed(1)), notes: `Coding ${s.coding_score}, Aptitude ${s.aptitude_score}, Interview ${s.mock_interview_score}` },
+    { component: 'LMS Engagement', score: lmsScore, weight: 15, contribution: Number(((lmsScore * 0.15)).toFixed(1)), notes: `${s.lms_logins} logins/mo, ${s.assignment_completion}% assignments` },
+    { component: 'Skills Assessment', score: skillsScore, weight: 10, contribution: Number(((skillsScore * 0.1)).toFixed(1)), notes: `Technical ${s.technical_skill_score}, Soft Skills ${s.soft_skill_score}` },
+    { component: 'Extracurricular Engagement', score: engagScore, weight: 5, contribution: Number(((engagScore * 0.05)).toFixed(1)), notes: `${s.club_participation} clubs, ${s.hackathons} hackathons, ${s.certifications} certs` },
   ];
 
   const totalCalculated = Math.round(scoreBreakdown.reduce((sum, item) => sum + item.contribution, 0));
