@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Activity, Eye, EyeOff, Mail, Lock, LogIn,
+  Activity, Eye, EyeOff, Lock, LogIn,
   Sparkles, GraduationCap, Users, Shield,
   CheckCircle2, AlertCircle, Quote, ChevronLeft, ChevronRight,
   TrendingUp, BarChart3, Award, BookOpen, Building2,
-  Clock, Check, Search, ArrowRight, UserCheck, Layers
+  Clock, Check, Search, ArrowRight, X, User, ChevronDown
 } from 'lucide-react';
 import {
-  DEMO_CREDENTIALS, FEATURED_DEMO_STUDENTS, FEATURED_DEMO_FACULTY,
-  type PortalRole, type DemoCredential
+  FEATURED_DEMO_FACULTY,
+  type PortalRole
 } from '../data/portalData';
 import { useCampusData } from '../context/CampusDataContext';
 
@@ -60,39 +60,7 @@ const INSPIRATIONAL_QUOTES = [
   },
 ];
 
-// ─── Campus Dummy Metrics (Header Statistics) ──────────────────────────────────
-const DUMMY_CAMPUS_METRICS = [
-  {
-    label: "Active Students Monitored",
-    value: "52,480+",
-    change: "+14.2% YoY",
-    icon: <GraduationCap className="w-4 h-4 text-cyan-400" />,
-    badgeBg: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20",
-  },
-  {
-    label: "Placement & Graduation Rate",
-    value: "94.8%",
-    change: "Tier-1 Benchmark",
-    icon: <TrendingUp className="w-4 h-4 text-emerald-400" />,
-    badgeBg: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-  },
-  {
-    label: "Early Dropout Risk Radar",
-    value: "18 Days",
-    change: "Early Intervention",
-    icon: <Award className="w-4 h-4 text-purple-400" />,
-    badgeBg: "bg-purple-500/10 text-purple-300 border-purple-500/20",
-  },
-  {
-    label: "Departments & Labs Integrated",
-    value: "140+",
-    change: "Unified Data Mesh",
-    icon: <Building2 className="w-4 h-4 text-blue-400" />,
-    badgeBg: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-  },
-];
-
-// ─── Background Ambient Particles ──────────────────────────────────────────────
+// ─── Background Ambient Floating Particles ─────────────────────────────────────
 const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   id: i,
   left: `${(i * 17 + 5) % 100}%`,
@@ -103,211 +71,266 @@ const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   opacity: 0.05 + (i % 4) * 0.03,
 }));
 
-// ─── Main Landing & Login Page Component ───────────────────────────────────────
 export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
   const { students, selectStudentForPortal, setLoggedInFacultyIdx } = useCampusData();
 
-  // State for quote carousel
+  // Quote carousel state
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
   const [isQuotePaused, setIsQuotePaused] = useState(false);
 
-  // Form states
-  const [selectedRole, setSelectedRole] = useState<'student' | 'faculty' | 'admin'>('student');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Modal State
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [modalRole, setModalRole] = useState<'student' | 'faculty' | 'admin'>('student');
+
+  // Input states inside modal
+  const [studentInput, setStudentInput] = useState('');
+  const [facultyInput, setFacultyInput] = useState('');
+  const [adminEmail, setAdminEmail] = useState('admin@edupulse.edu');
+  const [password, setPassword] = useState('student@123');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+
+  // Status & feedback
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [shake, setShake] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState<DemoCredential | null>(null);
-  const [showForgotNotice, setShowForgotNotice] = useState(false);
-  const [showStudentDirectoryModal, setShowStudentDirectoryModal] = useState(false);
-  const [studentDirectorySearch, setStudentDirectorySearch] = useState('');
+  const [successInfo, setSuccessInfo] = useState<{
+    name: string;
+    roleName: string;
+    subtext: string;
+    avatarInitials: string;
+    gradient: string;
+  } | null>(null);
 
-  const emailRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto rotate quotes every 5 seconds (pausable on hover)
+  // Auto rotate quotes every 5.5s unless paused
   useEffect(() => {
     if (isQuotePaused) return;
     const interval = setInterval(() => {
       setActiveQuoteIndex(prev => (prev + 1) % INSPIRATIONAL_QUOTES.length);
-    }, 5200);
+    }, 5500);
     return () => clearInterval(interval);
   }, [isQuotePaused]);
 
-  // Initial focus
+  // Focus input when modal opens
   useEffect(() => {
-    setTimeout(() => emailRef.current?.focus(), 400);
-  }, []);
+    if (isLoginModalOpen) {
+      setErrorMessage('');
+      setSuccessInfo(null);
+      setTimeout(() => inputRef.current?.focus(), 150);
+    }
+  }, [isLoginModalOpen, modalRole]);
+
+  // Close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isLoginModalOpen) {
+        setIsLoginModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLoginModalOpen]);
+
+  const openLoginModal = (role: 'student' | 'faculty' | 'admin' = 'student') => {
+    setModalRole(role);
+    setErrorMessage('');
+    setSuccessInfo(null);
+    if (role === 'student') {
+      setPassword('student@123');
+    } else if (role === 'faculty') {
+      setPassword('faculty@123');
+    } else {
+      setPassword('admin@123');
+    }
+    setIsLoginModalOpen(true);
+  };
 
   const triggerShake = (msg: string) => {
-    setError(msg);
+    setErrorMessage(msg);
     setShake(true);
     setTimeout(() => setShake(false), 600);
   };
 
-  const handleRoleTabSelect = (role: 'student' | 'faculty' | 'admin') => {
-    setSelectedRole(role);
-    setError('');
-    const matchingCred = DEMO_CREDENTIALS.find(c => c.role === role);
-    if (matchingCred && (!email || email.includes('@edupulse.edu'))) {
-      setEmail(matchingCred.email);
-      setPassword(matchingCred.password);
-    }
-  };
-
-  const handleSelectFeaturedStudent = (st: typeof FEATURED_DEMO_STUDENTS[0], autoLogin = false) => {
-    setEmail(st.email);
-    setPassword(st.password);
-    setSelectedRole('student');
-    setError('');
-    if (autoLogin) {
-      executeLogin(st.email, st.password, 'student', st.id);
-    }
-  };
-
-  const handleSelectFeaturedFaculty = (fac: typeof FEATURED_DEMO_FACULTY[0], autoLogin = false) => {
-    setEmail(fac.email);
-    setPassword(fac.password);
-    setSelectedRole('faculty');
-    setError('');
-    if (autoLogin) {
-      executeLogin(fac.email, fac.password, 'faculty', undefined, fac.idx);
-    }
-  };
-
-  const executeLogin = async (
-    targetEmail: string,
-    targetPass: string,
-    enforcedRole?: PortalRole,
-    specificStudentId?: string,
-    specificFacultyIdx?: number
-  ) => {
-    const trimEmail = targetEmail.trim().toLowerCase();
-    const trimPass = targetPass.trim();
-
-    if (!trimEmail) {
-      triggerShake('Please enter your institutional email address or student ID.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-
-    // Simulate enterprise auth handshake
-    await new Promise(res => setTimeout(res, 600));
-
-    // 1. Resolve role
-    let resolvedRole: Exclude<PortalRole, 'login'> = enforcedRole as any || selectedRole;
-
-    // Check if matches a student in DEMO_CREDENTIALS or students dataset
-    const matchedStudentInDataset = students.find(s =>
-      s.student_id.toLowerCase() === (specificStudentId || trimEmail).toLowerCase() ||
-      s.email.toLowerCase() === trimEmail ||
-      s.name.toLowerCase() === trimEmail ||
-      trimEmail.includes(s.student_id.toLowerCase())
-    );
-
-    const matchedFaculty = FEATURED_DEMO_FACULTY.find(f =>
-      (specificFacultyIdx !== undefined && f.idx === specificFacultyIdx) ||
-      f.email.toLowerCase() === trimEmail ||
-      f.name.toLowerCase().includes(trimEmail)
-    );
-
-    if (matchedFaculty) {
-      resolvedRole = 'faculty';
-    } else if (matchedStudentInDataset || trimEmail.includes('stu') || specificStudentId) {
-      resolvedRole = 'student';
-    } else if (trimEmail.includes('admin')) {
-      resolvedRole = 'admin';
-    } else if (trimEmail.includes('faculty') || trimEmail.includes('prof') || trimEmail.includes('dr.')) {
-      resolvedRole = 'faculty';
-    }
-
-    // 2. Build resolved credential for UI banner
-    let resolvedCred: DemoCredential;
-
-    if (resolvedRole === 'student') {
-      const studentToLoad = matchedStudentInDataset || students[0];
-      selectStudentForPortal(studentToLoad);
-
-      resolvedCred = {
-        role: 'student',
-        studentId: studentToLoad.student_id,
-        label: 'Student',
-        email: studentToLoad.email,
-        password: 'student@123',
-        name: studentToLoad.name,
-        subtitle: `${studentToLoad.department} · ${studentToLoad.academic_year}`,
-        avatarInitials: studentToLoad.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
-        color: 'from-blue-600 to-cyan-500',
-        accentColor: 'text-cyan-400',
-        badgeBg: 'bg-cyan-500/10 border-cyan-500/30',
-        risk: ((studentToLoad.academic?.backlogs ?? 0) > 0 || (studentToLoad.attendance?.overall_attendance ?? 100) < 65) ? 'High' : (studentToLoad.attendance?.overall_attendance ?? 100) < 75 ? 'Medium' : 'Low',
-      };
-    } else if (resolvedRole === 'faculty') {
-      const fIdx = specificFacultyIdx !== undefined ? specificFacultyIdx : (matchedFaculty ? matchedFaculty.idx : 0);
-      setLoggedInFacultyIdx(fIdx);
-      const facObj = FEATURED_DEMO_FACULTY[fIdx] || FEATURED_DEMO_FACULTY[0];
-
-      resolvedCred = {
-        role: 'faculty',
-        facultyIdx: fIdx,
-        label: 'Faculty',
-        email: facObj.email,
-        password: 'faculty@123',
-        name: facObj.name,
-        subtitle: `${facObj.department} · ${facObj.designation}`,
-        avatarInitials: facObj.avatar_initials,
-        color: facObj.color,
-        accentColor: 'text-violet-400',
-        badgeBg: 'bg-violet-500/10 border-violet-500/30',
-      };
-    } else {
-      resolvedCred = DEMO_CREDENTIALS.find(c => c.role === 'admin') || DEMO_CREDENTIALS[DEMO_CREDENTIALS.length - 1];
-    }
-
-    setIsLoading(false);
-    setLoginSuccess(resolvedCred);
-
-    // Brief celebration flash before routing
-    await new Promise(res => setTimeout(res, 750));
-    onSelectRole(resolvedRole);
-  };
-
-  const handleLogin = (e?: React.FormEvent) => {
+  // ─── Core Authentication & Dataset Lookup ──────────────────────────────────────
+  const handleModalSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    executeLogin(email, password);
+    setErrorMessage('');
+
+    if (modalRole === 'student') {
+      const query = studentInput.trim();
+      if (!query) {
+        triggerShake('Please enter a student name or ID (e.g., Arjun Sharma, Priya Singh, Sneha Joshi, STU001).');
+        return;
+      }
+
+      const q = query.toLowerCase();
+
+      // Search backend dataset `students` (100 UnifiedStudent records)
+      const matchedStudent = students.find(s => {
+        const nameLower = s.name.toLowerCase();
+        const idLower = s.student_id.toLowerCase();
+        const emailLower = s.email.toLowerCase();
+
+        // Exact match by ID, Email, or Full Name
+        if (idLower === q || emailLower === q || nameLower === q) return true;
+
+        // Prefix match or sub-string match on Name
+        if (nameLower.startsWith(q) || nameLower.includes(q)) return true;
+
+        // Multi-word token match (e.g., "Arjun" matches "Arjun Sharma")
+        const tokens = q.split(/\s+/).filter(Boolean);
+        if (tokens.length > 0 && tokens.every(token => nameLower.includes(token))) {
+          return true;
+        }
+
+        return false;
+      });
+
+      // Strict validation: if student is NOT present in our dataset, show clear error
+      if (!matchedStudent) {
+        triggerShake(
+          `Student "${query}" was not found in our campus database. Please enter a valid registered student name or ID (e.g. Arjun Sharma, Priya Singh, Sneha Joshi, Dev Chavan, or STU001).`
+        );
+        return;
+      }
+
+      // Found in dataset! Log in as this specific student
+      setIsLoading(true);
+      await new Promise(r => setTimeout(r, 450));
+
+      selectStudentForPortal(matchedStudent);
+
+      const initials = matchedStudent.name
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+
+      setSuccessInfo({
+        name: matchedStudent.name,
+        roleName: 'Student Portal',
+        subtext: `${matchedStudent.department} · ${matchedStudent.student_id} · ${matchedStudent.academic_year}`,
+        avatarInitials: initials,
+        gradient: 'from-blue-600 to-cyan-500',
+      });
+
+      setIsLoading(false);
+
+      // Brief confirmation animation before navigating
+      setTimeout(() => {
+        setIsLoginModalOpen(false);
+        onSelectRole('student');
+      }, 700);
+
+    } else if (modalRole === 'faculty') {
+      const query = facultyInput.trim();
+      if (!query) {
+        triggerShake('Please enter a faculty member name or ID (e.g., Dr. Priya Menon, Prof. Suresh Kumar, Dr. Anita Bose, Dr. Rajesh Verma).');
+        return;
+      }
+
+      const q = query.toLowerCase();
+
+      // Search faculty list
+      const matchedFaculty = FEATURED_DEMO_FACULTY.find(f => {
+        const nameLower = f.name.toLowerCase();
+        const emailLower = f.email.toLowerCase();
+        const idLower = f.id.toLowerCase();
+
+        if (idLower === q || emailLower === q || nameLower === q) return true;
+        if (nameLower.includes(q)) return true;
+
+        const tokens = q.split(/\s+/).filter(Boolean);
+        if (tokens.length > 0 && tokens.every(t => nameLower.includes(t))) return true;
+
+        return false;
+      });
+
+      if (!matchedFaculty) {
+        triggerShake(
+          `Faculty member "${query}" not found in institutional directory. Registered faculty include Dr. Priya Menon, Prof. Suresh Kumar, Dr. Anita Bose, Dr. Rajesh Verma.`
+        );
+        return;
+      }
+
+      setIsLoading(true);
+      await new Promise(r => setTimeout(r, 450));
+
+      setLoggedInFacultyIdx(matchedFaculty.idx);
+
+      setSuccessInfo({
+        name: matchedFaculty.name,
+        roleName: 'Faculty Hub',
+        subtext: `${matchedFaculty.department} · ${matchedFaculty.designation}`,
+        avatarInitials: matchedFaculty.avatar_initials,
+        gradient: matchedFaculty.color,
+      });
+
+      setIsLoading(false);
+
+      setTimeout(() => {
+        setIsLoginModalOpen(false);
+        onSelectRole('faculty');
+      }, 700);
+
+    } else {
+      // Administrator Login
+      const emailQ = adminEmail.trim().toLowerCase();
+      const passQ = password.trim();
+
+      if (!emailQ.includes('admin') || passQ !== 'admin@123') {
+        triggerShake('Invalid administrator credentials. Use admin@edupulse.edu and admin@123.');
+        return;
+      }
+
+      setIsLoading(true);
+      await new Promise(r => setTimeout(r, 450));
+
+      setSuccessInfo({
+        name: 'Campus Administrator',
+        roleName: 'Governance Portal',
+        subtext: 'Executive Analytics & Campus Data Mesh',
+        avatarInitials: 'CA',
+        gradient: 'from-teal-600 to-emerald-500',
+      });
+
+      setIsLoading(false);
+
+      setTimeout(() => {
+        setIsLoginModalOpen(false);
+        onSelectRole('admin');
+      }, 700);
+    }
   };
 
-  const isSuccess = !!loginSuccess;
   const currentQuote = INSPIRATIONAL_QUOTES[activeQuoteIndex];
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans">
-      
-      {/* ── Ambient Background Glows ─────────────────────────────────────────── */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[650px] h-[650px] rounded-full bg-blue-600/10 blur-[140px]" />
-        <div className="absolute top-1/3 right-0 w-[550px] h-[550px] rounded-full bg-indigo-600/10 blur-[140px]" />
-        <div className="absolute -bottom-32 left-1/3 w-[600px] h-[600px] rounded-full bg-teal-600/10 blur-[150px]" />
+    <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans selection:bg-cyan-500 selection:text-black">
 
-        {/* Subtle grid background */}
+      {/* ── Ambient Background Lighting ─────────────────────────────────────── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-[680px] h-[680px] rounded-full bg-blue-600/10 blur-[150px]" />
+        <div className="absolute top-1/3 right-0 w-[550px] h-[550px] rounded-full bg-indigo-600/10 blur-[150px]" />
+        <div className="absolute -bottom-40 left-1/3 w-[650px] h-[650px] rounded-full bg-cyan-600/10 blur-[160px]" />
+
+        {/* High-tech subtle dot-grid mesh */}
         <div
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0 opacity-30"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+              'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
             backgroundSize: '48px 48px',
           }}
         />
 
-        {/* Floating particles */}
+        {/* Ambient floating particles */}
         {PARTICLES.map(p => (
           <div
             key={p.id}
-            className="absolute rounded-full bg-blue-400"
+            className="absolute rounded-full bg-cyan-400"
             style={{
               left: p.left,
               top: p.top,
@@ -320,120 +343,107 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
         ))}
       </div>
 
-      {/* ── TOP HEADER & DUMMY DATA METRICS BAR ──────────────────────────────── */}
-      <header className="relative z-20 w-full border-b border-white/[0.07] bg-black/40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-            {/* Logo & Brand */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-[0_0_24px_rgba(37,99,235,0.45)]">
-                <Activity className="w-5 h-5 text-white stroke-[2.5]" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-black tracking-tight text-white">EduPulse AI</span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Enterprise
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 hidden sm:block">Campus Intelligence & Student Success System</p>
-              </div>
+      {/* ── TOP HEADER / NAVBAR ─────────────────────────────────────────────── */}
+      <header className="relative z-20 w-full border-b border-white/[0.08] bg-slate-950/70 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+          
+          {/* Logo & Platform identity */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-[0_0_24px_rgba(37,99,235,0.4)]">
+              <Activity className="w-5 h-5 text-white stroke-[2.5]" />
             </div>
-
-            {/* System Status & Institutional Badges */}
-            <div className="flex items-center gap-4 text-xs text-slate-400">
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-medium text-[11px]">System Status: 100% Operational</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black tracking-tight text-white">EduPulse AI</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  Institutional
+                </span>
               </div>
-              <div className="hidden lg:flex items-center gap-2 text-slate-400 text-[11px]">
-                <Clock className="w-3.5 h-3.5 text-slate-500" />
-                <span>Academic Year 2025-26</span>
-              </div>
-              <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-blue-400 font-medium">
-                <Shield className="w-3.5 h-3.5" />
-                <span>FERPA & NEP 2020 Compliant</span>
-              </div>
+              <p className="text-[11px] text-slate-400 hidden sm:block">Campus Intelligence & Student Success Platform</p>
             </div>
           </div>
 
-          {/* DUMMY DATA METRICS RIBBON (Above Main Content) */}
-          <div className="mt-4 pt-3 border-t border-white/[0.05] grid grid-cols-2 md:grid-cols-4 gap-3">
-            {DUMMY_CAMPUS_METRICS.map((metric, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-800/80 border border-white/10 flex items-center justify-center flex-shrink-0">
-                  {metric.icon}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-base font-extrabold text-white tracking-tight">{metric.value}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${metric.badgeBg}`}>
-                      {metric.change}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 truncate">{metric.label}</p>
-                </div>
-              </div>
-            ))}
+          {/* Navigation Links & Status */}
+          <div className="hidden md:flex items-center gap-6 text-xs text-slate-300 font-medium">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Campus Cloud: Online</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
+              <span>Academic Session 2025-26</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Shield className="w-3.5 h-3.5 text-blue-400" />
+              <span>FERPA & NEP 2020 Aligned</span>
+            </div>
           </div>
+
+          {/* Top Header Sign In Button */}
+          <button
+            type="button"
+            onClick={() => openLoginModal('student')}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white
+              bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400
+              shadow-[0_0_20px_rgba(37,99,235,0.35)] hover:shadow-[0_0_28px_rgba(37,99,235,0.55)]
+              hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Sign In</span>
+          </button>
         </div>
       </header>
 
-      {/* ── MAIN LANDING AREA (LEFT: QUOTES / RIGHT: LOGIN FORM) ─────────────── */}
-      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex flex-col lg:flex-row items-center justify-center gap-10 lg:gap-14">
-        
-        {/* ── LEFT SIDE: INSPIRATIONAL QUOTES & PLATFORM HIGHLIGHTS ──────────── */}
-        <div 
-          className="w-full lg:w-[54%] flex flex-col justify-between space-y-6"
+      {/* ── MAIN LANDING PAGE CONTENT ───────────────────────────────────────── */}
+      <main className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col items-center justify-center space-y-12">
+
+        {/* ── HERO BANNER ───────────────────────────────────────────────────── */}
+        <div className="text-center max-w-3xl space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-cyan-400 text-xs font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>AI-Driven Campus Retention & Academic Excellence</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]">
+            Transforming Campus Data into <br className="hidden sm:inline" />
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">
+              Predictive Student Achievement.
+            </span>
+          </h1>
+
+          <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            A unified institutional operating system for real-time academic analytics, attendance radar, 
+            mentorship counseling, and predictive early-warning advisories.
+          </p>
+        </div>
+
+        {/* ── MIDDLE SECTION 1: INSPIRATIONAL QUOTE CAROUSEL ─────────────────── */}
+        <section 
+          className="w-full max-w-3xl"
           onMouseEnter={() => setIsQuotePaused(true)}
           onMouseLeave={() => setIsQuotePaused(false)}
         >
-          {/* Subtle Tagline */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold w-fit">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-            <span>Empowering Campus Minds with Predictive AI</span>
-          </div>
-
-          {/* Hero Heading */}
-          <div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.15]">
-              Turning Campus Data into <br />
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">
-                Measurable Student Success.
-              </span>
-            </h1>
-            <p className="text-sm sm:text-base text-slate-400 mt-3 max-w-xl leading-relaxed">
-              Unified intelligence across academic performance, attendance, risk early warning, and career readiness. Welcome to your institutional portal.
-            </p>
-          </div>
-
-          {/* QUOTES CAROUSEL CARD */}
-          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.05] via-white/[0.02] to-transparent border border-white/10 p-6 sm:p-7 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+          <div className="relative rounded-2xl bg-gradient-to-br from-white/[0.06] via-white/[0.02] to-transparent border border-white/10 p-6 sm:p-8 backdrop-blur-xl shadow-[0_16px_40px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-300 hover:border-white/20">
             
-            {/* Top decorative badge & quotation icon */}
+            {/* Top decorative badge */}
             <div className="flex items-center justify-between mb-4">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-cyan-400">
                 <Quote className="w-4 h-4 fill-cyan-400/20 text-cyan-400" />
                 Words of Wisdom & Inspiration
               </span>
 
-              {/* Quote Category Pill */}
-              <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gradient-to-r ${currentQuote.color} text-white shadow-sm`}>
+              <span className={`text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-gradient-to-r ${currentQuote.color} text-white shadow-sm`}>
                 {currentQuote.tag}
               </span>
             </div>
 
-            {/* Quote Text */}
-            <div className="min-h-[110px] flex flex-col justify-center transition-all duration-300">
-              <p className="text-lg sm:text-xl font-medium text-slate-100 leading-snug italic tracking-normal">
+            {/* Quote Body */}
+            <div className="min-h-[105px] flex flex-col justify-center transition-all duration-300">
+              <p className="text-lg sm:text-xl md:text-2xl font-medium text-slate-100 leading-snug italic tracking-normal">
                 "{currentQuote.quote}"
               </p>
               
-              {/* Author & Designation */}
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <h4 className="text-sm sm:text-base font-bold text-white tracking-tight">
                     — {currentQuote.author}
@@ -443,7 +453,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                   </p>
                 </div>
 
-                {/* Carousel navigation buttons */}
+                {/* Arrow navigation buttons */}
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setActiveQuoteIndex(prev => (prev === 0 ? INSPIRATIONAL_QUOTES.length - 1 : prev - 1))}
@@ -463,7 +473,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
               </div>
             </div>
 
-            {/* Pagination dots & Progress */}
+            {/* Pagination dots */}
             <div className="flex items-center gap-1.5 mt-5 pt-4 border-t border-white/[0.06]">
               {INSPIRATIONAL_QUOTES.map((_, idx) => (
                 <button
@@ -480,404 +490,411 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
               </span>
             </div>
           </div>
+        </section>
 
-          {/* Academic Snapshot / Features Ribbon */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
-                <BarChart3 className="w-4 h-4" />
-              </div>
-              <div>
-                <h5 className="text-xs font-bold text-white">Continuous SGPA Tracking</h5>
-                <p className="text-[11px] text-slate-400 mt-0.5">Automated assessment insights & marks radar.</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center flex-shrink-0">
-                <Shield className="w-4 h-4" />
-              </div>
-              <div>
-                <h5 className="text-xs font-bold text-white">Dropout Risk Radar</h5>
-                <p className="text-[11px] text-slate-400 mt-0.5">Early alerts before semester exam thresholds.</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center flex-shrink-0">
-                <BookOpen className="w-4 h-4" />
-              </div>
-              <div>
-                <h5 className="text-xs font-bold text-white">Faculty Mentorship Hub</h5>
-                <p className="text-[11px] text-slate-400 mt-0.5">Direct student-to-mentor problem resolution.</p>
-              </div>
-            </div>
+        {/* ── MIDDLE SECTION 2: INSTITUTIONAL PORTAL OPTIONS ─────────────────── */}
+        <section className="w-full">
+          <div className="text-center mb-8">
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Select Your Institutional Portal
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-lg mx-auto">
+              Choose your role below to launch the dedicated workspace login panel.
+            </p>
           </div>
 
-        </div>
-
-        {/* ── RIGHT SIDE: PROFESSIONAL LOGIN FORM ───────────────────────────── */}
-        <div className="w-full lg:w-[46%] max-w-md mx-auto">
-          
-          <div
-            className={`relative p-7 sm:p-8 rounded-2xl border transition-all duration-300 backdrop-blur-xl ${
-              isSuccess
-                ? 'border-emerald-500/40 bg-emerald-500/[0.04] shadow-[0_0_50px_rgba(16,185,129,0.15)]'
-                : 'border-white/10 bg-slate-900/60 shadow-[0_24px_64px_rgba(0,0,0,0.65)] hover:border-white/15'
-            } ${shake ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
-          >
-            {/* Top glowing edge line */}
-            <div className={`absolute top-0 left-6 right-6 h-px bg-gradient-to-r ${
-              isSuccess 
-                ? 'from-transparent via-emerald-400/60 to-transparent' 
-                : 'from-transparent via-cyan-400/40 to-transparent'
-            }`} />
-
-            {/* ── SUCCESS OVERLAY ────────────────────────────────────────────── */}
-            {isSuccess && loginSuccess && (
-              <div className="flex flex-col items-center gap-4 py-8 text-center">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${loginSuccess.color} flex items-center justify-center text-white text-xl font-bold shadow-2xl`}>
-                  {loginSuccess.avatarInitials}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            {/* 1. Student Portal Card */}
+            <div
+              onClick={() => openLoginModal('student')}
+              className="group relative p-6 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 
+                hover:border-cyan-400/50 hover:bg-white/[0.06] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(6,182,212,0.15)] hover:-translate-y-1 flex flex-col justify-between"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-600/20 text-cyan-400 border border-blue-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <GraduationCap className="w-6 h-6" />
                 </div>
                 <div>
-                  <CheckCircle2 className="w-9 h-9 text-emerald-400 mx-auto mb-2.5 animate-bounce" />
-                  <h3 className="text-xl font-extrabold text-white">Welcome Back, {loginSuccess.name}!</h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Entering <span className="font-semibold text-white">{loginSuccess.label} Portal</span>…
-                  </p>
-                </div>
-                <div className="flex gap-1.5 mt-3">
-                  {[0, 1, 2].map(i => (
-                    <div 
-                      key={i} 
-                      className="w-2.5 h-2.5 rounded-full bg-emerald-400" 
-                      style={{ animation: `bounce 0.8s ${i * 0.15}s infinite` }} 
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── ACTIVE FORM ─────────────────────────────────────────────────── */}
-            {!isSuccess && (
-              <>
-                {/* Form Heading & Portal Selector */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-2xl font-black text-white tracking-tight">Portal Sign In</h2>
-                    <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-                      <Lock className="w-3 h-3 text-cyan-400" />
-                      Secure 256-bit SSO
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      Student Portal
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                      Enrolled
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Select your portal role and sign in with your campus credentials.
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Access SGPA tracking, real-time attendance thresholds, internal test breakdowns, syllabus progress, and AI study roadmaps.
                   </p>
+                </div>
+              </div>
 
-                  {/* Role Selector Tabs */}
-                  <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/5 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => handleRoleTabSelect('student')}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold transition-all ${
-                        selectedRole === 'student'
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <GraduationCap className="w-3.5 h-3.5" />
-                      <span>Student</span>
-                    </button>
+              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs font-bold text-cyan-400 group-hover:text-cyan-300">
+                <span>Launch Student Login</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleRoleTabSelect('faculty')}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold transition-all ${
-                        selectedRole === 'faculty'
-                          ? 'bg-purple-600 text-white shadow-md'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <Users className="w-3.5 h-3.5" />
-                      <span>Faculty</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRoleTabSelect('admin')}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold transition-all ${
-                        selectedRole === 'admin'
-                          ? 'bg-teal-600 text-white shadow-md'
-                          : 'text-slate-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <Shield className="w-3.5 h-3.5" />
-                      <span>Admin</span>
-                    </button>
+            {/* 2. Faculty Mentorship Hub Card */}
+            <div
+              onClick={() => openLoginModal('faculty')}
+              className="group relative p-6 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 
+                hover:border-purple-400/50 hover:bg-white/[0.06] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.15)] hover:-translate-y-1 flex flex-col justify-between"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors">
+                      Faculty Mentorship Hub
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                      Advisory
+                    </span>
                   </div>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Monitor assigned class rosters, early-risk alerts, counseling notes, subject performance matrices, and intervention advisories.
+                  </p>
+                </div>
+              </div>
 
-                  {/* ── DEMO QUICK-SELECT ACCOUNTS ACCORDION / PILLS ───────────────── */}
-                  <div className="mt-4 pt-4 border-t border-white/[0.08]">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        Quick Demo Accounts (1-Click Login)
-                      </span>
-                      {selectedRole === 'student' && (
-                        <button
-                          type="button"
-                          onClick={() => setShowStudentDirectoryModal(true)}
-                          className="text-[11px] text-cyan-300 hover:text-cyan-200 underline font-semibold flex items-center gap-1"
-                        >
-                          <Search className="w-3 h-3" />
-                          All 100 Students
-                        </button>
-                      )}
-                    </div>
+              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs font-bold text-purple-400 group-hover:text-purple-300">
+                <span>Launch Faculty Login</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
 
-                    {/* Student Quick Cards */}
-                    {selectedRole === 'student' && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {FEATURED_DEMO_STUDENTS.map(st => {
-                          const isSelected = email.toLowerCase() === st.email.toLowerCase() || email.toLowerCase() === st.id.toLowerCase();
-                          return (
-                            <div
-                              key={st.id}
-                              onClick={() => handleSelectFeaturedStudent(st, false)}
-                              className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1.5 ${
-                                isSelected
-                                  ? 'bg-blue-600/20 border-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
-                                  : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/15'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between gap-1">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${st.color} flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0`}>
-                                    {st.initials}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="text-xs font-bold text-white truncate">{st.name}</div>
-                                    <div className="text-[9px] text-slate-400 font-mono truncate">{st.rollNo}</div>
-                                  </div>
-                                </div>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${
-                                  st.risk === 'High'
-                                    ? 'bg-red-500/20 text-red-300'
-                                    : st.risk === 'Medium'
-                                    ? 'bg-amber-500/20 text-amber-300'
-                                    : 'bg-emerald-500/20 text-emerald-300'
-                                }`}>
-                                  {st.risk}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between pt-1 border-t border-white/[0.06] text-[10px]">
-                                <span className="text-slate-400 font-mono">{st.cgpa} CGPA · {st.attendance}%</span>
-                                <button
-                                  type="button"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    handleSelectFeaturedStudent(st, true);
-                                  }}
-                                  className="text-[10px] font-bold text-cyan-400 hover:text-cyan-200"
-                                >
-                                  Login →
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Faculty Quick Cards */}
-                    {selectedRole === 'faculty' && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {FEATURED_DEMO_FACULTY.map(fac => {
-                          const isSelected = email.toLowerCase() === fac.email.toLowerCase();
-                          return (
-                            <div
-                              key={fac.id}
-                              onClick={() => handleSelectFeaturedFaculty(fac, false)}
-                              className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all duration-150 flex flex-col justify-between gap-1.5 ${
-                                isSelected
-                                  ? 'bg-purple-600/20 border-purple-400 shadow-[0_0_12px_rgba(168,85,247,0.25)]'
-                                  : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/15'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className={`w-7 h-7 rounded-md bg-gradient-to-br ${fac.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                                  {fac.avatar_initials}
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-white truncate">{fac.name}</div>
-                                  <div className="text-[10px] text-purple-300 truncate">{fac.subjects[0]}</div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between pt-1 border-t border-white/[0.06] text-[10px]">
-                                <span className="text-slate-400 truncate">{fac.students_count} Students</span>
-                                <button
-                                  type="button"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    handleSelectFeaturedFaculty(fac, true);
-                                  }}
-                                  className="text-[10px] font-bold text-purple-300 hover:text-purple-200"
-                                >
-                                  Login →
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Admin Quick Card */}
-                    {selectedRole === 'admin' && (
-                      <div
-                        onClick={() => {
-                          const adminCred = DEMO_CREDENTIALS.find(c => c.role === 'admin')!;
-                          setEmail(adminCred.email);
-                          setPassword(adminCred.password);
-                        }}
-                        className="p-3 rounded-xl border bg-teal-500/10 border-teal-500/30 flex items-center justify-between cursor-pointer hover:bg-teal-500/15 transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-600 to-emerald-500 flex items-center justify-center text-white text-xs font-bold">
-                            CA
-                          </div>
-                          <div>
-                            <div className="text-xs font-bold text-white">Campus Administrator</div>
-                            <div className="text-[10px] text-teal-300">Executive Analytics · Data Pipelines · Full System Access</div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            const adminCred = DEMO_CREDENTIALS.find(c => c.role === 'admin')!;
-                            executeLogin(adminCred.email, adminCred.password, 'admin');
-                          }}
-                          className="text-xs font-bold text-teal-400 hover:text-teal-200 px-2.5 py-1 rounded-lg bg-teal-500/20"
-                        >
-                          Login →
-                        </button>
-                      </div>
-                    )}
+            {/* 3. Administrator Governance Center Card */}
+            <div
+              onClick={() => openLoginModal('admin')}
+              className="group relative p-6 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 
+                hover:border-teal-400/50 hover:bg-white/[0.06] transition-all duration-300 cursor-pointer shadow-lg hover:shadow-[0_0_30px_rgba(20,184,166,0.15)] hover:-translate-y-1 flex flex-col justify-between"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-teal-600/20 text-teal-400 border border-teal-500/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-white group-hover:text-teal-300 transition-colors">
+                      Campus Administration
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/20">
+                      Executive
+                    </span>
                   </div>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Institution-wide retention KPIs, NAAC / NIRF accreditation data, department comparison matrices, and campus governance controls.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs font-bold text-teal-400 group-hover:text-teal-300">
+                <span>Launch Admin Login</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* ── BOTTOM SECTION: ACTION CALLOUT & PRIMARY LOGIN BUTTON ──────────── */}
+        <section className="w-full max-w-3xl rounded-2xl bg-gradient-to-r from-blue-900/30 via-indigo-900/30 to-slate-900/40 border border-blue-500/20 p-8 text-center backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
+          <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+            Ready to Access Your Campus Workspace?
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl mx-auto">
+            Click below to open the secure institutional login panel. Authenticate with your enrolled student profile or campus credentials.
+          </p>
+
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => openLoginModal('student')}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl text-sm font-bold text-white
+                bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400
+                shadow-[0_0_30px_rgba(37,99,235,0.45)] hover:shadow-[0_0_40px_rgba(37,99,235,0.65)]
+                hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Sign In to Institutional Portal</span>
+            </button>
+          </div>
+
+          <div className="mt-6 pt-5 border-t border-white/[0.08] flex flex-wrap items-center justify-center gap-6 text-[11px] text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 text-cyan-400" />
+              256-Bit SSL SSO
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 text-cyan-400" />
+              Dataset Profile Lookup
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 text-cyan-400" />
+              Multi-Role Access Control
+            </span>
+          </div>
+        </section>
+
+      </main>
+
+      {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
+      <footer className="relative z-20 border-t border-white/[0.06] bg-black/60 py-4 px-4 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <p>© 2026 EduPulse AI Corporation. All rights reserved. Institutional Intelligence Platform.</p>
+          <div className="flex items-center gap-4 text-[11px]">
+            <span className="hover:text-slate-300 cursor-pointer">Security Protocol</span>
+            <span className="hover:text-slate-300 cursor-pointer">NEP 2020 Compliance</span>
+            <span className="hover:text-slate-300 cursor-pointer">Institutional Privacy</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* ── POPUP LOGIN MODAL / PANEL ────────────────────────────────────────── */}
+      {isLoginModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setIsLoginModalOpen(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className={`relative w-full max-w-md bg-[#0a1128] border border-white/15 rounded-2xl shadow-[0_25px_70px_rgba(0,0,0,0.85)] p-6 sm:p-7 backdrop-blur-2xl transition-all duration-200 ${
+              shake ? 'animate-[shake_0.5s_ease-in-out]' : ''
+            }`}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsLoginModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close login dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Glowing top line */}
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+
+            {/* Modal Header */}
+            <div className="mb-5 pr-6">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl font-black text-white">Campus Portal Login</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  Secure SSO
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Enter your campus name or roll number to access your portal profile.
+              </p>
+            </div>
+
+            {/* ── SUCCESS STATE FLASH ───────────────────────────────────────── */}
+            {successInfo ? (
+              <div className="flex flex-col items-center gap-3 py-6 text-center animate-fadeIn">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${successInfo.gradient} flex items-center justify-center text-white text-xl font-bold shadow-2xl`}>
+                  {successInfo.avatarInitials}
+                </div>
+                <div>
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-1 animate-bounce" />
+                  <h3 className="text-lg font-black text-white">Welcome, {successInfo.name}!</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{successInfo.subtext}</p>
+                </div>
+                <div className="flex items-center gap-2 mt-2 text-xs text-cyan-300 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                  <span>Loading {successInfo.roleName}…</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* ── ROLE SWITCHER TABS ─────────────────────────────────────── */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-white/[0.04] border border-white/10 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalRole('student');
+                      setErrorMessage('');
+                      setPassword('student@123');
+                    }}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold transition-all ${
+                      modalRole === 'student'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Student</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalRole('faculty');
+                      setErrorMessage('');
+                      setPassword('faculty@123');
+                    }}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold transition-all ${
+                      modalRole === 'faculty'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Faculty</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalRole('admin');
+                      setErrorMessage('');
+                      setPassword('admin@123');
+                    }}
+                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-bold transition-all ${
+                      modalRole === 'admin'
+                        ? 'bg-teal-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Admin</span>
+                  </button>
                 </div>
 
-                {/* Login Form */}
-                <form onSubmit={handleLogin} noValidate className="flex flex-col gap-4">
+                {/* ── FORM FIELDS ────────────────────────────────────────────── */}
+                <form onSubmit={handleModalSubmit} noValidate className="space-y-4">
                   
-                  {/* Email Field */}
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="landing-email" className="text-xs font-semibold text-slate-300">
-                      {selectedRole === 'student' ? 'Campus Email or Student ID' : 'Campus Email Address'}
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                      <input
-                        id="landing-email"
-                        ref={emailRef}
-                        type="text"
-                        autoComplete="username"
-                        placeholder={
-                          selectedRole === 'student' 
-                            ? 'STU002 or priya.singh@edupulse.edu' 
-                            : selectedRole === 'faculty' 
-                            ? 'priya.menon@edupulse.edu' 
-                            : 'admin@edupulse.edu'
-                        }
-                        value={email}
-                        onChange={e => { setEmail(e.target.value); setError(''); }}
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl text-sm text-white placeholder-slate-500
-                          bg-white/[0.05] border transition-all duration-200 outline-none
-                          focus:bg-white/[0.08] focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20
-                          ${error ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
-                      />
+                  {/* STUDENT ROLE INPUT */}
+                  {modalRole === 'student' && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="modal-student-name" className="text-xs font-semibold text-slate-300">
+                          Student Name or Roll Number / ID
+                        </label>
+                        <span className="text-[10px] text-cyan-400 font-mono">Backend Dataset Search</span>
+                      </div>
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                        <input
+                          id="modal-student-name"
+                          ref={inputRef}
+                          type="text"
+                          placeholder="e.g. Arjun Sharma, Priya, Sneha, Dev, STU001..."
+                          value={studentInput}
+                          onChange={e => {
+                            setStudentInput(e.target.value);
+                            setErrorMessage('');
+                          }}
+                          className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500
+                            bg-white/[0.05] border transition-all duration-200 outline-none
+                            focus:bg-white/[0.08] focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20
+                            ${errorMessage ? 'border-red-500/60' : 'border-white/10 hover:border-white/20'}`}
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-tight">
+                        Type any enrolled student name from the database (e.g., <span className="text-cyan-300 font-medium cursor-pointer hover:underline" onClick={() => setStudentInput('Arjun Sharma')}>Arjun Sharma</span>, <span className="text-cyan-300 font-medium cursor-pointer hover:underline" onClick={() => setStudentInput('Priya Singh')}>Priya Singh</span>, <span className="text-cyan-300 font-medium cursor-pointer hover:underline" onClick={() => setStudentInput('Sneha Joshi')}>Sneha Joshi</span>, <span className="text-cyan-300 font-medium cursor-pointer hover:underline" onClick={() => setStudentInput('Rohan Verma')}>Rohan Verma</span>, <span className="text-cyan-300 font-medium cursor-pointer hover:underline" onClick={() => setStudentInput('Aditya Shah')}>Aditya Shah</span>, or <span className="text-cyan-300 font-medium cursor-pointer hover:underline" onClick={() => setStudentInput('Dev Chavan')}>Dev Chavan</span>).
+                      </p>
                     </div>
-                  </div>
+                  )}
+
+                  {/* FACULTY ROLE INPUT */}
+                  {modalRole === 'faculty' && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="modal-faculty-name" className="text-xs font-semibold text-slate-300">
+                          Faculty Name or Email
+                        </label>
+                        <span className="text-[10px] text-purple-400 font-mono">Directory Match</span>
+                      </div>
+                      <div className="relative">
+                        <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                        <input
+                          id="modal-faculty-name"
+                          ref={inputRef}
+                          type="text"
+                          placeholder="e.g. Dr. Priya Menon, Prof. Suresh Kumar..."
+                          value={facultyInput}
+                          onChange={e => {
+                            setFacultyInput(e.target.value);
+                            setErrorMessage('');
+                          }}
+                          className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500
+                            bg-white/[0.05] border transition-all duration-200 outline-none
+                            focus:bg-white/[0.08] focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20
+                            ${errorMessage ? 'border-red-500/60' : 'border-white/10 hover:border-white/20'}`}
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-tight">
+                        Available faculty: <span className="text-purple-300 font-medium cursor-pointer hover:underline" onClick={() => setFacultyInput('Dr. Priya Menon')}>Dr. Priya Menon</span>, <span className="text-purple-300 font-medium cursor-pointer hover:underline" onClick={() => setFacultyInput('Prof. Suresh Kumar')}>Prof. Suresh Kumar</span>, <span className="text-purple-300 font-medium cursor-pointer hover:underline" onClick={() => setFacultyInput('Dr. Anita Bose')}>Dr. Anita Bose</span>, <span className="text-purple-300 font-medium cursor-pointer hover:underline" onClick={() => setFacultyInput('Dr. Rajesh Verma')}>Dr. Rajesh Verma</span>.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* ADMIN ROLE INPUT */}
+                  {modalRole === 'admin' && (
+                    <div className="space-y-1.5">
+                      <label htmlFor="modal-admin-email" className="text-xs font-semibold text-slate-300">
+                        Administrator Campus Email
+                      </label>
+                      <div className="relative">
+                        <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                        <input
+                          id="modal-admin-email"
+                          ref={inputRef}
+                          type="text"
+                          placeholder="admin@edupulse.edu"
+                          value={adminEmail}
+                          onChange={e => {
+                            setAdminEmail(e.target.value);
+                            setErrorMessage('');
+                          }}
+                          className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500
+                            bg-white/[0.05] border transition-all duration-200 outline-none
+                            focus:bg-white/[0.08] focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20
+                            ${errorMessage ? 'border-red-500/60' : 'border-white/10 hover:border-white/20'}`}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Password Field */}
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="landing-password" className="text-xs font-semibold text-slate-300">
-                        Password
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotNotice(true)}
-                        className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="modal-password" className="text-xs font-semibold text-slate-300">
+                      Security Password
+                    </label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                       <input
-                        id="landing-password"
+                        id="modal-password"
                         type={showPassword ? 'text' : 'password'}
-                        autoComplete="current-password"
-                        placeholder="••••••••"
                         value={password}
-                        onChange={e => { setPassword(e.target.value); setError(''); }}
-                        className={`w-full pl-10 pr-11 py-3 rounded-xl text-sm text-white placeholder-slate-500
-                          bg-white/[0.05] border transition-all duration-200 outline-none
-                          focus:bg-white/[0.08] focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20
-                          ${error ? 'border-red-500/50' : 'border-white/10 hover:border-white/20'}`}
+                        onChange={e => setPassword(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2.5 rounded-xl text-sm text-white placeholder-slate-500
+                          bg-white/[0.05] border border-white/10 hover:border-white/20 transition-all outline-none
+                          focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(v => !v)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                         tabIndex={-1}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
 
-                  {/* Remember Me Checkbox */}
-                  <div className="flex items-center justify-between pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400 hover:text-slate-300 select-none">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={e => setRememberMe(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded bg-white/10 border-white/20 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span>Keep me signed in on this workstation</span>
-                    </label>
-                  </div>
-
-                  {/* Error Notification */}
-                  {error && (
-                    <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      <span>{error}</span>
-                    </div>
-                  )}
-
-                  {/* Forgot Password Modal / Notice */}
-                  {showForgotNotice && (
-                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300 flex items-start justify-between gap-2">
+                  {/* Error Notification Alert */}
+                  {errorMessage && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs leading-relaxed animate-fadeIn">
+                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-white">Campus IT Helpdesk Assistance</p>
-                        <p className="text-[11px] text-slate-300 mt-0.5">
-                          Password resets are managed by your institution's IT department. For assistance, contact: <span className="font-mono text-cyan-300">support@edupulse.edu</span> or room 104 Admin Block.
-                        </p>
+                        <div className="font-bold text-red-200">Authentication Error</div>
+                        <span>{errorMessage}</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotNotice(false)}
-                        className="text-slate-400 hover:text-white p-0.5"
-                      >
-                        ✕
-                      </button>
                     </div>
                   )}
 
@@ -885,16 +902,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className={`relative w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-bold
-                      transition-all duration-200 overflow-hidden shadow-lg mt-1
-                      ${isLoading
+                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all shadow-lg mt-2 ${
+                      isLoading
                         ? 'bg-blue-700/50 text-blue-300 cursor-not-allowed'
-                        : selectedRole === 'student'
-                        ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-500 hover:to-cyan-400 hover:shadow-[0_0_24px_rgba(37,99,235,0.45)] hover:-translate-y-0.5 active:translate-y-0'
-                        : selectedRole === 'faculty'
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-500 text-white hover:from-purple-500 hover:to-indigo-400 hover:shadow-[0_0_24px_rgba(147,51,234,0.45)] hover:-translate-y-0.5 active:translate-y-0'
-                        : 'bg-gradient-to-r from-teal-600 to-emerald-500 text-white hover:from-teal-500 hover:to-emerald-400 hover:shadow-[0_0_24px_rgba(13,148,136,0.45)] hover:-translate-y-0.5 active:translate-y-0'
-                      }`}
+                        : modalRole === 'student'
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]'
+                        : modalRole === 'faculty'
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 text-white shadow-[0_0_20px_rgba(147,51,234,0.4)]'
+                        : 'bg-gradient-to-r from-teal-600 to-emerald-500 hover:from-teal-500 hover:to-emerald-400 text-white shadow-[0_0_20px_rgba(13,148,136,0.4)]'
+                    }`}
                   >
                     {isLoading ? (
                       <>
@@ -902,157 +918,31 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                         </svg>
-                        <span>Authenticating…</span>
+                        <span>Verifying Database…</span>
                       </>
                     ) : (
                       <>
                         <LogIn className="w-4 h-4" />
-                        <span>Sign In to {selectedRole === 'student' ? 'Student' : selectedRole === 'faculty' ? 'Faculty' : 'Admin'} Portal</span>
+                        <span>Sign In to {modalRole === 'student' ? 'Student' : modalRole === 'faculty' ? 'Faculty' : 'Admin'} Portal</span>
                       </>
                     )}
                   </button>
+
                 </form>
 
-                {/* Campus SSO & Security Footer */}
-                <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-500">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Protected by CloudFlare & AES-256</span>
-                  </div>
-                  <span className="hover:text-slate-400 transition-colors">v2.4.0-Enterprise</span>
+                <div className="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-cyan-400" />
+                    AES-256 Protected
+                  </span>
+                  <span>EduPulse AI v2.4.0</span>
                 </div>
               </>
             )}
 
           </div>
-
-          {/* Privacy & Institutional Note */}
-          <p className="text-center text-[11px] text-slate-600 mt-4 leading-relaxed">
-            By signing in, you agree to your institution's Acceptable Use Policy and Campus Data Protection Standards.
-          </p>
-
-        </div>
-
-      </main>
-
-      {/* ── ALL 100 STUDENTS DIRECTORY MODAL ─────────────────────────────────── */}
-      {showStudentDirectoryModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-[#0b1226] border border-[#14224a] rounded-2xl shadow-2xl p-6 flex flex-col max-h-[85vh] space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#14224a]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-600/20 text-cyan-400 flex items-center justify-center">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Institutional Student Directory</h3>
-                  <p className="text-xs text-slate-400">Select any student from the 100 campus profiles to test login</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowStudentDirectoryModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search by student name, ID (e.g. STU015), or department..."
-                value={studentDirectorySearch}
-                onChange={e => setStudentDirectorySearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/10 text-sm text-white placeholder-slate-500 outline-none focus:border-cyan-400"
-              />
-            </div>
-
-            {/* Student List */}
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {students
-                .filter(st => {
-                  const q = studentDirectorySearch.trim().toLowerCase();
-                  if (!q) return true;
-                  return (
-                    st.name.toLowerCase().includes(q) ||
-                    st.student_id.toLowerCase().includes(q) ||
-                    st.department.toLowerCase().includes(q) ||
-                    st.email.toLowerCase().includes(q)
-                  );
-                })
-                .map(st => (
-                  <div
-                    key={st.student_id}
-                    onClick={() => {
-                      selectStudentForPortal(st);
-                      setEmail(st.email);
-                      setPassword('student@123');
-                      setShowStudentDirectoryModal(false);
-                      setSelectedRole('student');
-                      executeLogin(st.email, 'student@123', 'student', st.student_id);
-                    }}
-                    className="p-3 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.07] hover:border-cyan-500/40 cursor-pointer transition-all flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-blue-600/30 text-cyan-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                        {st.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-white truncate flex items-center gap-2">
-                          <span>{st.name}</span>
-                          <span className="font-mono text-[10px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.2 rounded">
-                            {st.student_id}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-400 truncate">
-                          {st.department} · {st.academic_year} · {st.semester}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right flex-shrink-0 flex items-center gap-3">
-                      <div>
-                        <div className="text-xs font-mono text-white">
-                          {st.academic?.cgpa ?? 7.0} CGPA · {st.attendance?.overall_attendance ?? 75}%
-                        </div>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          (st.academic?.backlogs ?? 0) > 0 || (st.attendance?.overall_attendance ?? 100) < 65
-                            ? 'bg-red-500/20 text-red-300'
-                            : (st.attendance?.overall_attendance ?? 100) < 75
-                            ? 'bg-amber-500/20 text-amber-300'
-                            : 'bg-emerald-500/20 text-emerald-300'
-                        }`}>
-                          {(st.academic?.backlogs ?? 0) > 0 || (st.attendance?.overall_attendance ?? 100) < 65 ? 'High' : (st.attendance?.overall_attendance ?? 100) < 75 ? 'Medium' : 'Low'} Risk
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        className="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 text-xs font-bold hover:bg-cyan-500/30"
-                      >
-                        Sign In →
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
         </div>
       )}
-
-      {/* ── LANDING PAGE BOTTOM FOOTER ───────────────────────────────────────── */}
-      <footer className="relative z-20 border-t border-white/[0.06] bg-black/50 py-3.5 px-4 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
-          <p>© 2026 EduPulse AI Corporation. All rights reserved. Built for Higher Education Excellence.</p>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span className="hover:text-slate-300 cursor-pointer">Security Whitepaper</span>
-            <span className="hover:text-slate-300 cursor-pointer">NEP 2020 Compliance</span>
-            <span className="hover:text-slate-300 cursor-pointer">Institutional Privacy</span>
-          </div>
-        </div>
-      </footer>
 
       {/* ── Keyframe Animations ──────────────────────────────────────────────── */}
       <style>{`
@@ -1069,9 +959,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
           75%  { transform: translateX(-2px); }
           90%  { transform: translateX(1px); }
         }
-        @keyframes bounce {
-          0%,100% { transform: translateY(0); opacity: 1; }
-          50%      { transform: translateY(-5px); opacity: 0.6; }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.97); }
+          to   { opacity: 1; transform: scale(1); }
         }
       `}</style>
 
