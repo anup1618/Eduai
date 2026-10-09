@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased selection:bg-blue-600 selection:text-white;
+    background-color: #000000;
+    color: #e2e8f0;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #05070f;
+}
+::-webkit-scrollbar-thumb {
+  background: #14224a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2f7bff;
+}
+
+/* Glow card effect from UI_SPEC */
+.glow-card {
+  position: relative;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.glow-card:hover {
+  transform: translateY(-4px) scale(1.005);
+  border-color: #22d3ee !important;
+  box-shadow: 0 0 24px rgba(47, 123, 255, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-card:hover {
+    transform: none;
+  }
+}
+
+/* Blue glow radial that follows cursor */
+.glow-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle 120px at var(--mx, 50%) var(--my, 50%),
+    rgba(47, 123, 255, 0.08),
+    transparent 70%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+.glow-card:hover::before {
+  opacity: 1;
+}
+
+/* Panel backgrounds */
+.panel {
+  background: #05070f;
+  border: 1px solid #14224a;
+  border-radius: 0.75rem;
+}
+
+.panel-raised {
+  background: #0b1226;
+  border: 1px solid #14224a;
+  border-radius: 0.75rem;
+}
+
+/* Gradient text for page titles */
+.gradient-title {
+  background: linear-gradient(135deg, #ffffff 0%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Primary button gradient */
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #2f7bff 50%, #22d3ee 100%);
+  transition: opacity 150ms, transform 150ms;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Active sidebar item */
+.nav-active {
+  background: linear-gradient(90deg, rgba(47, 123, 255, 0.2), rgba(34, 211, 238, 0.1));
+  border-left: 2px solid #22d3ee;
+  color: #22d3ee;
+}
+
+/* Metric card top accent line */
+.metric-accent-top {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-accent-top::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #2f7bff, #22d3ee);
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: white !important; color: black !important; }
+}
