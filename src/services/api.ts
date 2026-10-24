@@ -78,8 +78,21 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      throw new Error(errBody.message || `API request failed with status ${res.status}`);
+      let errMessage = `API request failed with status ${res.status}`;
+      try {
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          if (json?.message) errMessage = json.message;
+        } catch {
+          if (res.status === 404) {
+            errMessage = 'API endpoint not found (404). Backend server is offline or unreachable.';
+          } else if (res.status === 405) {
+            errMessage = 'API method not allowed (405). Backend server is offline or unreachable.';
+          }
+        }
+      } catch (e) {}
+      throw new Error(errMessage);
     }
 
     return await res.json();

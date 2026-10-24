@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import Student from '../models/Student';
 import { generateToken, requireAuth, AuthUser } from '../middleware/auth';
 import { FEATURED_DEMO_FACULTY } from '../../src/data/portalData';
+import { INITIAL_STUDENTS } from '../../src/data/initialStudents';
 
 const router = Router();
 
@@ -95,13 +96,31 @@ router.post('/login', async (req: Request, res: Response) => {
       }
 
       // Look up student in MongoDB Atlas
-      const student = await Student.findOne({
+      let student = await Student.findOne({
         $or: [
           { student_id: { $regex: `^${queryId}$`, $options: 'i' } },
           { name: { $regex: queryId, $options: 'i' } },
           { email: { $regex: `^${queryId}$`, $options: 'i' } },
         ],
       }).lean();
+
+      // Fallback check against INITIAL_STUDENTS or demo aliases (e.g. Arjun <-> STU001 / Anup)
+      if (!student) {
+        if (queryId.toLowerCase().includes('arjun') || queryId.toLowerCase().includes('anup') || queryId.toLowerCase() === 'stu001') {
+          student = await Student.findOne({ student_id: 'STU001' }).lean();
+        }
+        if (!student) {
+          const matchedInitial = INITIAL_STUDENTS.find(
+            (s) =>
+              s.student_id.toLowerCase() === queryId.toLowerCase() ||
+              s.name.toLowerCase().includes(queryId.toLowerCase()) ||
+              s.email.toLowerCase() === queryId.toLowerCase()
+          );
+          if (matchedInitial) {
+            student = (await Student.findOne({ student_id: matchedInitial.student_id }).lean()) || (matchedInitial as any);
+          }
+        }
+      }
 
       if (!student) {
         return res.status(404).json({

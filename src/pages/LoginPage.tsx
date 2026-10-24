@@ -819,7 +819,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         />
                       </div>
                       <p className="text-[11px] text-text-muted leading-tight">
-                        Demo profiles: <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Arjun Sharma')}>Arjun Sharma</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Priya Singh')}>Priya Singh</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Sneha Joshi')}>Sneha Joshi</span>, or <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Dev Chavan')}>Dev Chavan</span>.
+                        Demo profiles: <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Anup Sharma')}>Anup Sharma</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Arjun Sharma')}>Arjun Sharma</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Priya Singh')}>Priya Singh</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Sneha Joshi')}>Sneha Joshi</span>, or <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('STU001')}>STU001</span>.
                       </p>
                     </div>
                   )}

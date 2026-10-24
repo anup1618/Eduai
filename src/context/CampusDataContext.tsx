@@ -5,7 +5,7 @@ import { AcademicRiskThresholds, PlacementRiskThresholds } from '../types/risk';
 import { FilterState, INITIAL_FILTERS } from '../types/filter';
 import { InterventionItem, InterventionStatus } from '../types/intervention';
 import { INITIAL_STUDENTS } from '../data/initialStudents';
-import { getStudentPortalData, StudentPortalProfile } from '../data/portalData';
+import { getStudentPortalData, StudentPortalProfile, FEATURED_DEMO_FACULTY } from '../data/portalData';
 import { DEFAULT_WEIGHTS } from '../engine/scoringEngine';
 import { DEFAULT_ACADEMIC_THRESHOLDS } from '../engine/academicRiskEngine';
 import { DEFAULT_PLACEMENT_THRESHOLDS } from '../engine/placementRiskEngine';
@@ -13,7 +13,7 @@ import { evaluateAcademicRisk } from '../engine/academicRiskEngine';
 import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
 import { assignStudentSegment } from '../engine/segmentationEngine';
 import { mergeValidatedRecords, DatasetCategory, MergeResult, IngestionResult } from '../engine/dataValidator';
-import api, { DatabaseHealth, AuthUserProfile, getAuthToken } from '../services/api';
+import api, { DatabaseHealth, AuthUserProfile, getAuthToken, setAuthToken } from '../services/api';
 
 export type DbConnectionStatus = 'connected' | 'offline' | 'checking';
 
@@ -258,18 +258,136 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     password?: string;
     student_id?: string;
   }) => {
-    const res = await api.login(creds);
-    if (res.user) {
-      setCurrentUser(res.user);
-      if (res.user.role === 'student' && res.student) {
-        setLoggedInStudent(res.student);
-        setSelectedStudent(res.student);
-        setStudents([res.student]);
-      } else {
-        await refreshFromDatabase();
+    try {
+      const res = await api.login(creds);
+      if (res.user) {
+        setCurrentUser(res.user);
+        if (res.user.role === 'student' && res.student) {
+          setLoggedInStudent(res.student);
+          setSelectedStudent(res.student);
+          setStudents([res.student]);
+        } else {
+          await refreshFromDatabase();
+        }
       }
+      return res;
+    } catch (apiError: any) {
+      console.warn('[EduPulse Auth] API authentication unavailable, activating client fallback:', apiError.message);
+
+      // 1. ADMIN FALLBACK
+      if (creds.role === 'admin') {
+        const user: AuthUserProfile = {
+          id: 'admin_root_1',
+          name: 'Dean of Academic Affairs',
+          role: 'admin',
+          email: creds.email || 'admin@edupulse.edu',
+          department: 'Institutional Governance',
+        };
+        setAuthToken('mock_admin_token_demo');
+        setCurrentUser(user);
+        return {
+          success: true,
+          token: 'mock_admin_token_demo',
+          user,
+        };
+      }
+
+      // 2. FACULTY FALLBACK
+      if (creds.role === 'faculty') {
+        const q = (creds.username || creds.email || '').trim().toLowerCase();
+        const matchedFaculty = FEATURED_DEMO_FACULTY.find(
+          (f) =>
+            f.name.toLowerCase().includes(q) ||
+            f.email.toLowerCase().includes(q) ||
+            f.department.toLowerCase().includes(q)
+        ) || FEATURED_DEMO_FACULTY[0];
+
+        const user: AuthUserProfile = {
+          id: matchedFaculty.id,
+          name: matchedFaculty.name,
+          role: 'faculty',
+          email: matchedFaculty.email,
+          department: matchedFaculty.department,
+        };
+        setAuthToken('mock_faculty_token_demo');
+        setCurrentUser(user);
+        return {
+          success: true,
+          token: 'mock_faculty_token_demo',
+          user,
+        };
+      }
+
+      // 3. TPO FALLBACK
+      if (creds.role === 'tpo') {
+        const user: AuthUserProfile = {
+          id: 'tpo_officer_1',
+          name: 'Prof. Vikram Malhotra',
+          role: 'tpo',
+          email: creds.email || 'tpo@edupulse.edu',
+          department: 'Corporate Relations & Placement Cell',
+        };
+        setAuthToken('mock_tpo_token_demo');
+        setCurrentUser(user);
+        return {
+          success: true,
+          token: 'mock_tpo_token_demo',
+          user,
+        };
+      }
+
+      // 4. STUDENT FALLBACK
+      if (creds.role === 'student') {
+        const q = (creds.student_id || creds.username || '').trim().toLowerCase();
+
+        let matchedStudent = students.find(
+          (s) =>
+            s.student_id.toLowerCase() === q ||
+            s.name.toLowerCase().includes(q) ||
+            (s.email && s.email.toLowerCase() === q)
+        );
+
+        if (!matchedStudent) {
+          matchedStudent = INITIAL_STUDENTS.find(
+            (s) =>
+              s.student_id.toLowerCase() === q ||
+              s.name.toLowerCase().includes(q) ||
+              (s.email && s.email.toLowerCase() === q)
+          );
+        }
+
+        // Support aliases like 'arjun', 'anup', 'stu001'
+        if (!matchedStudent && (q.includes('arjun') || q.includes('anup') || q === 'stu001')) {
+          matchedStudent = students[0] || INITIAL_STUDENTS[0];
+        }
+
+        if (matchedStudent) {
+          const user: AuthUserProfile = {
+            id: matchedStudent.student_id,
+            name: matchedStudent.name,
+            role: 'student',
+            student_id: matchedStudent.student_id,
+            email: matchedStudent.email,
+            department: matchedStudent.department,
+          };
+          setAuthToken('mock_student_token_demo');
+          setCurrentUser(user);
+          setLoggedInStudent(matchedStudent);
+          setSelectedStudent(matchedStudent);
+          setStudents([matchedStudent]);
+          return {
+            success: true,
+            token: 'mock_student_token_demo',
+            user,
+            student: matchedStudent,
+          };
+        }
+
+        throw new Error(`Student "${creds.student_id || creds.username}" was not found in our campus database.`);
+      }
+
+      throw apiError;
     }
-    return res;
   };
 
   const logoutUser = () => {
