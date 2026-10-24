@@ -7,9 +7,12 @@ import interventionRoutes from './routes/interventionRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import healthRoutes from './routes/healthRoutes';
 import studyAssistantRoutes from './routes/studyAssistantRoutes';
+import problemRoutes from './routes/problemRoutes';
 import Student from './models/Student';
 import Intervention from './models/Intervention';
 import Setting from './models/Setting';
+import Problem from './models/Problem';
+import { DEMO_PROBLEMS } from '../src/data/portalData';
 import { INITIAL_STUDENTS } from '../src/data/initialStudents';
 import { DEFAULT_WEIGHTS } from '../src/engine/scoringEngine';
 import { DEFAULT_ACADEMIC_THRESHOLDS } from '../src/engine/academicRiskEngine';
@@ -51,6 +54,7 @@ app.use('/api/students', studentRoutes);
 app.use('/api/interventions', interventionRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/study-assistant', studyAssistantRoutes);
+app.use('/api/problems', problemRoutes);
 
 // Root route
 app.get('/', (_req, res) => {
@@ -119,6 +123,12 @@ const autoSeedIfEmpty = async () => {
       console.log(`[MongoDB] Auto-seeded ${INITIAL_STUDENTS.length} students & ${initialList.length} interventions successfully!`);
     } else {
       console.log(`[MongoDB] Existing database found with ${studentCount} students.`);
+    }
+
+    const problemCount = await Problem.countDocuments();
+    if (problemCount === 0) {
+      await Problem.insertMany(DEMO_PROBLEMS);
+      console.log(`[MongoDB] Auto-seeded ${DEMO_PROBLEMS.length} problem requests successfully!`);
     }
   } catch (e: any) {
     console.error('[MongoDB] Auto-seed check error:', e.message);

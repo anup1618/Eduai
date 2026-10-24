@@ -617,10 +617,10 @@ export const DAY_LECTURES: Record<string, Array<{subject: string; time: string; 
 
 // --- Faculty Demo Data ---
 export const DEMO_FACULTY = [
-  { id: 'FAC-01', name: 'Dr. Priya Menon',    department: 'Computer Science', designation: 'Associate Professor & ML Lead', subjects: ['Machine Learning', 'Database Systems'], students_count: 54, avatar_initials: 'PM' },
-  { id: 'FAC-02', name: 'Prof. Suresh Kumar', department: 'Computer Science', designation: 'Assistant Professor · Networks', subjects: ['Computer Networks', 'Software Engineering'], students_count: 48, avatar_initials: 'SK' },
-  { id: 'FAC-03', name: 'Dr. Anita Bose',     department: 'Computer Science', designation: 'Professor · Systems & OS', subjects: ['Operating Systems', 'Algorithm Design'], students_count: 52, avatar_initials: 'AB' },
-  { id: 'FAC-04', name: 'Dr. Rajesh Verma',   department: 'Computer Science', designation: 'Professor · AI Systems', subjects: ['Artificial Intelligence', 'Data Science'], students_count: 60, avatar_initials: 'RV' },
+  { id: 'FAC-01', name: 'Dr. Priya Menon', email: 'priya.menon@edupulse.edu', department: 'Computer Science', designation: 'Associate Professor & ML Lead', subjects: ['Machine Learning', 'Database Systems'], students_count: 54, avatar_initials: 'PM' },
+  { id: 'FAC-02', name: 'Prof. Suresh Kumar', email: 'suresh.kumar@edupulse.edu', department: 'Computer Science', designation: 'Assistant Professor · Networks', subjects: ['Computer Networks', 'Software Engineering'], students_count: 48, avatar_initials: 'SK' },
+  { id: 'FAC-03', name: 'Dr. Anita Bose', email: 'anita.bose@edupulse.edu', department: 'Computer Science', designation: 'Professor · Systems & OS', subjects: ['Operating Systems', 'Algorithm Design'], students_count: 52, avatar_initials: 'AB' },
+  { id: 'FAC-04', name: 'Dr. Rajesh Verma', email: 'rajesh.verma@edupulse.edu', department: 'Computer Science', designation: 'Professor · AI Systems', subjects: ['Artificial Intelligence', 'Data Science'], students_count: 60, avatar_initials: 'RV' },
 ];
 
 export const DEMO_FACULTY_CURRENT = DEMO_FACULTY[0];

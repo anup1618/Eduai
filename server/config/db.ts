@@ -132,6 +132,8 @@ export const getDbStatus = (): DbStatus => {
   };
 };
 
+export const isDbConnected = (): boolean => mongoose.connection.readyState === 1;
+
 // Graceful process cleanup
 const handleShutdown = async () => {
   try {

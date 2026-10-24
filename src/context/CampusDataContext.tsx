@@ -5,7 +5,13 @@ import { AcademicRiskThresholds, PlacementRiskThresholds } from '../types/risk';
 import { FilterState, INITIAL_FILTERS } from '../types/filter';
 import { InterventionItem, InterventionStatus } from '../types/intervention';
 import { INITIAL_STUDENTS } from '../data/initialStudents';
-import { getStudentPortalData, StudentPortalProfile, FEATURED_DEMO_FACULTY } from '../data/portalData';
+import {
+  getStudentPortalData,
+  StudentPortalProfile,
+  FEATURED_DEMO_FACULTY,
+  ProblemRequest,
+  DEMO_PROBLEMS,
+} from '../data/portalData';
 import { DEFAULT_WEIGHTS } from '../engine/scoringEngine';
 import { DEFAULT_ACADEMIC_THRESHOLDS } from '../engine/academicRiskEngine';
 import { DEFAULT_PLACEMENT_THRESHOLDS } from '../engine/placementRiskEngine';
@@ -51,6 +57,12 @@ interface CampusDataContextType {
   updatePlacementThresholds: (newThresholds: PlacementRiskThresholds) => void;
   mergeDataRecords: (category: DatasetCategory, records: Record<string, any>[], mode?: 'merge' | 'overwrite' | 'preserve') => Promise<IngestionResult>;
   resetToDemoData: () => void;
+  // Problem Requests (Real-time student-to-faculty tickets)
+  problemRequests: ProblemRequest[];
+  addProblemRequest: (req: ProblemRequest) => Promise<ProblemRequest>;
+  replyProblemRequest: (id: string, reply: string, next_step?: string) => Promise<void>;
+  updateProblemStatus: (id: string, status: 'Pending' | 'In Progress' | 'Resolved') => void;
+  refreshProblems: () => Promise<void>;
   // Authentication & Role Scoping
   currentUser: AuthUserProfile | null;
   setCurrentUser: (user: AuthUserProfile | null) => void;
@@ -76,7 +88,6 @@ interface CampusDataContextType {
   seedToDatabase: () => Promise<boolean>;
 }
 
-
 const CampusDataContext = createContext<CampusDataContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
@@ -85,6 +96,7 @@ const STORAGE_KEYS = {
   WEIGHTS: 'edupulse_weights_v1',
   ACAD_THRESH: 'edupulse_acad_thresh_v1',
   PLACE_THRESH: 'edupulse_place_thresh_v1',
+  PROBLEMS: 'edupulse_problems_v2',
 };
 
 export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -177,6 +189,84 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (e) {}
     return 0;
   });
+
+  // Problem Requests state (shared in real-time across Student and Faculty portals)
+  const [problemRequests, setProblemRequests] = useState<ProblemRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.PROBLEMS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading saved problems:', e);
+    }
+    return DEMO_PROBLEMS;
+  });
+
+  // Save problems to localStorage on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(problemRequests));
+    } catch (e) {}
+  }, [problemRequests]);
+
+  // Fetch problem requests from backend if available
+  const refreshProblems = async () => {
+    try {
+      const res = await api.getProblems();
+      if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+        // Merge without losing locally added pending tickets
+        setProblemRequests(prev => {
+          const remoteMap = new Map(res.data.map(p => [p.id, p]));
+          const merged = [...res.data];
+          for (const localP of prev) {
+            if (!remoteMap.has(localP.id)) {
+              merged.push(localP);
+            }
+          }
+          return merged;
+        });
+      }
+    } catch (e) {
+      // Offline fallback: keep existing localStorage state
+    }
+  };
+
+  useEffect(() => {
+    refreshProblems();
+  }, []);
+
+  const addProblemRequest = async (newReq: ProblemRequest): Promise<ProblemRequest> => {
+    setProblemRequests(prev => [newReq, ...prev.filter(p => p.id !== newReq.id)]);
+    try {
+      await api.createProblem(newReq);
+    } catch (e) {
+      // Saved in state and localStorage regardless
+    }
+    return newReq;
+  };
+
+  const replyProblemRequest = async (id: string, reply: string, next_step?: string): Promise<void> => {
+    setProblemRequests(prev =>
+      prev.map(r =>
+        r.id === id
+          ? { ...r, reply, next_step: next_step || '', status: 'Resolved' as const }
+          : r
+      )
+    );
+    try {
+      await api.replyProblem(id, { reply, next_step });
+    } catch (e) {
+      // Saved in state and localStorage regardless
+    }
+  };
+
+  const updateProblemStatus = (id: string, status: 'Pending' | 'In Progress' | 'Resolved') => {
+    setProblemRequests(prev =>
+      prev.map(r => (r.id === id ? { ...r, status } : r))
+    );
+  };
 
   // Current authenticated user (Admin, Faculty, Student)
   const [currentUser, setCurrentUser] = useState<AuthUserProfile | null>(() => {
@@ -729,6 +819,10 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
     });
     setInterventions(initialList);
+    setProblemRequests(DEMO_PROBLEMS);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROBLEMS, JSON.stringify(DEMO_PROBLEMS));
+    } catch (e) {}
   };
 
   return (
@@ -758,6 +852,11 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updatePlacementThresholds,
         mergeDataRecords,
         resetToDemoData,
+        problemRequests,
+        addProblemRequest,
+        replyProblemRequest,
+        updateProblemStatus,
+        refreshProblems,
         currentUser,
         setCurrentUser,
         loginUser,

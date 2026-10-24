@@ -144,7 +144,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
     if (role === 'student') {
       setPassword('student@123');
     } else if (role === 'faculty') {
-      setPassword('faculty@123');
+      setPassword(''); // Require credential input for faculty
     } else if (role === 'tpo') {
       setPassword('tpo@123');
     } else {
@@ -219,6 +219,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
       const query = facultyInput.trim();
       if (!query) {
         triggerShake('Please enter a faculty name or email (e.g., Dr. Priya Menon, Prof. Suresh Kumar).');
+        return;
+      }
+      if (!password.trim()) {
+        triggerShake('Security credential required: Please enter faculty password (demo: faculty@123).');
         return;
       }
 
@@ -743,7 +747,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                     onClick={() => {
                       setModalRole('faculty');
                       setErrorMessage('');
-                      setPassword('faculty@123');
+                      setPassword(''); // Prompt user for credentials
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-semibold transition-all ${
                       modalRole === 'faculty'

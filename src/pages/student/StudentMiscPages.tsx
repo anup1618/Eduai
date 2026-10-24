@@ -11,7 +11,7 @@ import {
   ProblemCategory,
   PROBLEM_CATEGORIES
 } from '../../data/portalData';
-import { useCurrentStudent } from '../../context/CampusDataContext';
+import { useCampusData, useCurrentStudent } from '../../context/CampusDataContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SpecPageHeader, SpecKpiCard } from '../../components/common/SpecComponents';
 
@@ -19,7 +19,7 @@ import { SpecPageHeader, SpecKpiCard } from '../../components/common/SpecCompone
 
 export function StudentMyProblemPage() {
   const s = useCurrentStudent();
-  const [requests, setRequests] = useState<ProblemRequest[]>(DEMO_PROBLEMS);
+  const { problemRequests, addProblemRequest } = useCampusData();
   const [subject, setSubject] = useState(s.subjects[0]?.name || 'Machine Learning');
   const [category, setCategory] = useState<ProblemCategory>('Academic Doubt');
   const [priority, setPriority] = useState<ProblemPriority>('Medium');
@@ -29,6 +29,7 @@ export function StudentMyProblemPage() {
   const [submittedAlert, setSubmittedAlert] = useState<string | null>(null);
 
   // Filters for request history
+  const [scopeFilter, setScopeFilter] = useState<'mine' | 'all'>('mine');
   const [priorityFilter, setPriorityFilter] = useState<'All' | ProblemPriority>('All');
   const [categoryFilter, setCategoryFilter] = useState<'All' | ProblemCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,11 +40,11 @@ export function StudentMyProblemPage() {
     if (match) setFaculty(match.faculty);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (description.length < 10) return;
 
-    const newId = `REQ-00${requests.length + 1}`;
+    const newId = `REQ-00${problemRequests.length + 1}`;
     const newReq: ProblemRequest = {
       id: newId,
       student: s.name,
@@ -60,8 +61,8 @@ export function StudentMyProblemPage() {
       next_step: '',
     };
 
-    setRequests([newReq, ...requests]);
-    setSubmittedAlert(`Problem Request ${newId} logged with [${priority.toUpperCase()}] priority under "${category}". Ticket routed to ${faculty}.`);
+    await addProblemRequest(newReq);
+    setSubmittedAlert(`Problem Request ${newId} logged with [${priority.toUpperCase()}] priority under "${category}". Ticket dispatched directly to ${faculty}.`);
     setDescription('');
     setTopic('');
     setTimeout(() => setSubmittedAlert(null), 6000);
@@ -69,7 +70,11 @@ export function StudentMyProblemPage() {
 
   // Filtered requests
   const filteredRequests = useMemo(() => {
-    return requests.filter(req => {
+    return problemRequests.filter(req => {
+      const matchesScope =
+        scopeFilter === 'all' ||
+        req.roll === s.roll_no ||
+        req.student.toLowerCase() === s.name.toLowerCase();
       const matchesPriority = priorityFilter === 'All' || req.priority === priorityFilter;
       const matchesCategory = categoryFilter === 'All' || req.category === categoryFilter;
       const matchesSearch =
@@ -79,20 +84,23 @@ export function StudentMyProblemPage() {
         req.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
         req.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (req.category && req.category.toLowerCase().includes(searchQuery.toLowerCase()));
-      return matchesPriority && matchesCategory && matchesSearch;
+      return matchesScope && matchesPriority && matchesCategory && matchesSearch;
     });
-  }, [requests, priorityFilter, categoryFilter, searchQuery]);
+  }, [problemRequests, scopeFilter, priorityFilter, categoryFilter, searchQuery, s.name, s.roll_no]);
 
   // Priority counts for quick badges
   const counts = useMemo(() => {
+    const baseList = problemRequests.filter(req =>
+      scopeFilter === 'all' || req.roll === s.roll_no || req.student.toLowerCase() === s.name.toLowerCase()
+    );
     return {
-      total: requests.length,
-      important: requests.filter(r => r.priority === 'Important').length,
-      medium: requests.filter(r => r.priority === 'Medium').length,
-      low: requests.filter(r => r.priority === 'Low').length,
-      resolved: requests.filter(r => r.status === 'Resolved').length,
+      total: baseList.length,
+      important: baseList.filter(r => r.priority === 'Important').length,
+      medium: baseList.filter(r => r.priority === 'Medium').length,
+      low: baseList.filter(r => r.priority === 'Low').length,
+      resolved: baseList.filter(r => r.status === 'Resolved').length,
     };
-  }, [requests]);
+  }, [problemRequests, scopeFilter, s.name, s.roll_no]);
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -102,7 +110,7 @@ export function StudentMyProblemPage() {
         semesterChip={s.semester}
         subtitle="Categorize and submit academic doubts, attendance concerns, and remediation requests with Important, Medium, or Low priority"
         sessionText="Direct Mentorship"
-        standingChip={{ text: `${requests.length} Total Requests`, variant: 'accent' }}
+        standingChip={{ text: `${problemRequests.length} Total Requests`, variant: 'accent' }}
       />
 
       {/* KPI Priority Summary Bar */}
@@ -365,9 +373,33 @@ export function StudentMyProblemPage() {
                 <h2 className="title-section">Request History</h2>
                 <p className="text-xs text-text-muted">Faculty audit ledger & mentorship responses</p>
               </div>
-              <span className="label-spec text-[10px] font-mono bg-card px-2 py-0.5 rounded border border-border">
-                {filteredRequests.length} of {requests.length} SHOWN
-              </span>
+              <div className="flex items-center gap-2">
+                {/* Scope selector */}
+                <div className="flex items-center bg-card rounded-lg p-0.5 border border-border text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setScopeFilter('mine')}
+                    className={`px-2.5 py-1 rounded font-medium transition-colors ${
+                      scopeFilter === 'mine' ? 'bg-accent/20 text-accent font-bold' : 'text-text-muted hover:text-text'
+                    }`}
+                  >
+                    My Tickets ({problemRequests.filter(r => r.roll === s.roll_no || r.student.toLowerCase() === s.name.toLowerCase()).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScopeFilter('all')}
+                    className={`px-2.5 py-1 rounded font-medium transition-colors ${
+                      scopeFilter === 'all' ? 'bg-accent/20 text-accent font-bold' : 'text-text-muted hover:text-text'
+                    }`}
+                  >
+                    All Campus ({problemRequests.length})
+                  </button>
+                </div>
+
+                <span className="label-spec text-[10px] font-mono bg-card px-2 py-0.5 rounded border border-border">
+                  {filteredRequests.length} SHOWN
+                </span>
+              </div>
             </div>
 
             {/* Filters Row: Priority Tabs + Category Dropdown + Search */}
@@ -414,10 +446,10 @@ export function StudentMyProblemPage() {
                     onChange={e => setCategoryFilter(e.target.value as 'All' | ProblemCategory)}
                     className="input-spec w-full text-xs py-1.5 pl-2.5 pr-8"
                   >
-                    <option value="All">All Categories ({requests.length})</option>
+                    <option value="All">All Categories ({problemRequests.length})</option>
                     {PROBLEM_CATEGORIES.map(cat => (
                       <option key={cat.id} value={cat.id}>
-                        {cat.label} ({requests.filter(r => r.category === cat.id).length})
+                        {cat.label} ({problemRequests.filter(r => r.category === cat.id).length})
                       </option>
                     ))}
                   </select>

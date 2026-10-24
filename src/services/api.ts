@@ -2,6 +2,7 @@ import { UnifiedStudent } from '../types/student';
 import { InterventionItem, InterventionStatus } from '../types/intervention';
 import { ScoreWeights } from '../types/scoring';
 import { AcademicRiskThresholds, PlacementRiskThresholds } from '../types/risk';
+import { ProblemRequest } from '../data/portalData';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 const TOKEN_KEY = 'edupulse_auth_token_v1';
@@ -292,6 +293,39 @@ export const api = {
   async seedDatabase(): Promise<any> {
     return request('/health/seed', {
       method: 'POST',
+    });
+  },
+
+  // Problem Requests API
+  async getProblems(params?: { faculty?: string; roll?: string }): Promise<{
+    success: boolean;
+    count: number;
+    data: ProblemRequest[];
+  }> {
+    const query = new URLSearchParams();
+    if (params?.faculty) query.append('faculty', params.faculty);
+    if (params?.roll) query.append('roll', params.roll);
+    const qs = query.toString();
+    return request(`/problems${qs ? `?${qs}` : ''}`);
+  },
+
+  async createProblem(problem: ProblemRequest): Promise<{
+    success: boolean;
+    data: ProblemRequest;
+  }> {
+    return request('/problems', {
+      method: 'POST',
+      body: JSON.stringify(problem),
+    });
+  },
+
+  async replyProblem(id: string, payload: { reply: string; next_step?: string }): Promise<{
+    success: boolean;
+    data: ProblemRequest;
+  }> {
+    return request(`/problems/${encodeURIComponent(id)}/reply`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
     });
   },
 };

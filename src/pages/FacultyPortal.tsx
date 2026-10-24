@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users, BookOpen, Calendar, CheckSquare, AlertTriangle, MessageSquare,
   FileSpreadsheet, User, Bell, ChevronDown, LogOut, Menu, X, Save,
   CheckCircle2, Clock, Send, Download, Sparkles, Filter, Sun, Moon,
-  ChevronLeft, ChevronRight, Activity, ArrowRight, Shield, Tag, AlertCircle
+  ChevronLeft, ChevronRight, Activity, ArrowRight, Shield, Tag, AlertCircle,
+  Lock, KeyRound, Eye, EyeOff, ShieldCheck
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
@@ -56,7 +57,13 @@ const CHART_TOOLTIP_STYLE = {
 };
 
 export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
-  const { loggedInFacultyIdx, setLoggedInFacultyIdx } = useCampusData();
+  const {
+    loggedInFacultyIdx,
+    setLoggedInFacultyIdx,
+    problemRequests,
+    replyProblemRequest,
+    loginUser,
+  } = useCampusData();
   const { theme, toggleTheme } = useTheme();
 
   const [collapsed, setCollapsed] = useState(false);
@@ -64,6 +71,15 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
   const [selectedFacultyIdx, setSelectedFacultyIdx] = useState(loggedInFacultyIdx || 0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+
+  // Faculty ID Switching Security / Credential Modal State
+  const [pendingFacultyIdx, setPendingFacultyIdx] = useState<number | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [authSuccessToast, setAuthSuccessToast] = useState<string | null>(null);
 
   // Attendance management state
   const [selectedSubject, setSelectedSubject] = useState('Machine Learning');
@@ -77,12 +93,108 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
   });
   const [attendanceSaveMessage, setAttendanceSaveMessage] = useState<string | null>(null);
 
-  // Problem requests state
-  const [requests, setRequests] = useState(DEMO_PROBLEMS);
+  // Problem requests state & replies
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [nextStepText, setNextStepText] = useState<Record<string, string>>({});
+  const [problemScope, setProblemScope] = useState<'my' | 'all'>('my');
+  const [problemPriorityFilter, setProblemPriorityFilter] = useState<'All' | 'Important' | 'Medium' | 'Low'>('All');
+  const [problemSearch, setProblemSearch] = useState('');
 
   const faculty = DEMO_FACULTY[selectedFacultyIdx];
+
+  // Intercept faculty profile switch to enforce credential verification
+  const handleFacultySelectChange = (newIdx: number) => {
+    if (newIdx === selectedFacultyIdx) return;
+    setPendingFacultyIdx(newIdx);
+    setAuthPassword('');
+    setAuthError('');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleConfirmFacultySwitch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (pendingFacultyIdx === null) return;
+
+    const targetFaculty = DEMO_FACULTY[pendingFacultyIdx];
+    const trimmed = authPassword.trim();
+    if (!trimmed) {
+      setAuthError('Please enter faculty security password.');
+      return;
+    }
+
+    setIsAuthenticating(true);
+    try {
+      const isMaster = trimmed === 'faculty@123' || trimmed === 'admin@123';
+      let verified = isMaster;
+
+      if (!verified) {
+        try {
+          const res = await loginUser({
+            role: 'faculty',
+            username: targetFaculty.name,
+            password: trimmed,
+          });
+          if (res?.user || res?.token) {
+            verified = true;
+          }
+        } catch (err: any) {
+          // backend verify failed
+        }
+      }
+
+      if (verified) {
+        setSelectedFacultyIdx(pendingFacultyIdx);
+        setLoggedInFacultyIdx(pendingFacultyIdx);
+        setIsAuthModalOpen(false);
+        setPendingFacultyIdx(null);
+        setAuthPassword('');
+        setAuthError('');
+        setAuthSuccessToast(`Verified! Successfully switched to advisor ${targetFaculty.name}.`);
+        setTimeout(() => setAuthSuccessToast(null), 5000);
+      } else {
+        setAuthError(`Authentication failed: Incorrect password for ${targetFaculty.name}. (Default demo password: faculty@123)`);
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleCancelFacultySwitch = () => {
+    setIsAuthModalOpen(false);
+    setPendingFacultyIdx(null);
+    setAuthPassword('');
+    setAuthError('');
+  };
+
+  // Filter problem requests (assigned to this faculty or all campus requests)
+  const filteredFacultyRequests = useMemo(() => {
+    return problemRequests.filter(req => {
+      const isAssignedToMe =
+        req.faculty.toLowerCase().includes(faculty.name.toLowerCase()) ||
+        faculty.name.toLowerCase().includes(req.faculty.toLowerCase());
+      const matchesScope = problemScope === 'all' || isAssignedToMe;
+      const matchesPriority =
+        problemPriorityFilter === 'All' || req.priority === problemPriorityFilter;
+      const matchesSearch =
+        !problemSearch.trim() ||
+        req.topic.toLowerCase().includes(problemSearch.toLowerCase()) ||
+        req.description.toLowerCase().includes(problemSearch.toLowerCase()) ||
+        req.student.toLowerCase().includes(problemSearch.toLowerCase()) ||
+        req.roll.toLowerCase().includes(problemSearch.toLowerCase()) ||
+        req.subject.toLowerCase().includes(problemSearch.toLowerCase()) ||
+        req.id.toLowerCase().includes(problemSearch.toLowerCase());
+      return matchesScope && matchesPriority && matchesSearch;
+    });
+  }, [problemRequests, problemScope, problemPriorityFilter, problemSearch, faculty.name]);
+
+  const pendingMyTicketsCount = useMemo(() => {
+    return problemRequests.filter(
+      req =>
+        (req.faculty.toLowerCase().includes(faculty.name.toLowerCase()) ||
+          faculty.name.toLowerCase().includes(req.faculty.toLowerCase())) &&
+        req.status !== 'Resolved'
+    ).length;
+  }, [problemRequests, faculty.name]);
 
   const handleToggleAttendance = (roll: string) => {
     setAttendanceRecords(prev => ({
@@ -98,18 +210,12 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
     setTimeout(() => setAttendanceSaveMessage(null), 4000);
   };
 
-  const handleReplyProblem = (reqId: string) => {
+  const handleReplyProblem = async (reqId: string) => {
     const reply = replyText[reqId] || '';
     const next = nextStepText[reqId] || '';
     if (!reply.trim()) return;
 
-    setRequests(prev =>
-      prev.map(r =>
-        r.id === reqId
-          ? { ...r, reply, next_step: next, status: 'Resolved' as const }
-          : r
-      )
-    );
+    await replyProblemRequest(reqId, reply, next);
     setReplyText(prev => ({ ...prev, [reqId]: '' }));
     setNextStepText(prev => ({ ...prev, [reqId]: '' }));
   };
@@ -183,6 +289,7 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
 
           {navItems.map(item => {
             const isActive = currentPage === item.id;
+            const isProblemTab = item.id === 'problem-requests';
             return (
               <button
                 key={item.id}
@@ -198,7 +305,16 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                 title={collapsed ? item.label : undefined}
               >
                 <span className={isActive ? 'text-accent' : 'text-text-muted'}>{item.icon}</span>
-                {!collapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left truncate">{item.label}</span>
+                    {isProblemTab && pendingMyTicketsCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-status-danger/20 text-status-danger border border-status-danger/30 animate-pulse">
+                        {pendingMyTicketsCount} new
+                      </span>
+                    )}
+                  </>
+                )}
               </button>
             );
           })}
@@ -231,17 +347,17 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Faculty Profile Switcher */}
+          {/* Faculty Profile Switcher with Security Protection */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted hidden sm:inline">Active Advisor:</span>
+            <span className="text-xs text-text-muted hidden sm:inline flex items-center gap-1">
+              <Lock className="w-3 h-3 text-accent" />
+              Active Advisor:
+            </span>
             <select
               value={selectedFacultyIdx}
-              onChange={e => {
-                const idx = Number(e.target.value);
-                setSelectedFacultyIdx(idx);
-                setLoggedInFacultyIdx(idx);
-              }}
-              className="bg-card border border-border text-xs font-bold text-accent rounded-xl px-3 py-1.5 focus:border-accent outline-none cursor-pointer"
+              onChange={e => handleFacultySelectChange(Number(e.target.value))}
+              className="bg-card border border-border text-xs font-bold text-accent rounded-xl px-3 py-1.5 focus:border-accent outline-none cursor-pointer hover:border-accent/50 transition-colors"
+              title="Click to switch faculty profile (credential authentication required)"
             >
               {DEMO_FACULTY.map((f, idx) => (
                 <option key={f.id} value={idx}>{f.name} ({f.department})</option>
@@ -607,86 +723,170 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
             <div className="space-y-6 animate-fade-up">
               <SpecPageHeader
                 title="Student Problem Requests"
-                subtitle="Direct academic questions submitted by students to course faculty"
+                subtitle={`Direct academic questions submitted by students to course faculty (Active: ${faculty.name})`}
                 sessionText="Mentorship Tickets"
-                standingChip={{ text: `${requests.length} Requests`, variant: 'accent' }}
+                standingChip={{ text: `${filteredFacultyRequests.length} Requests`, variant: 'accent' }}
               />
 
-              <div className="space-y-4">
-                {requests.map(req => (
-                  <div key={req.id} className="spec-card space-y-3">
-                    <div className="flex items-start justify-between flex-wrap gap-2 border-b border-border pb-2.5">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-accent font-mono">{req.id}</span>
-                          <span className="text-xs font-bold text-text">{req.student} ({req.roll})</span>
-                          {req.category && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent border border-accent/20 flex items-center gap-1">
-                              <Tag className="w-2.5 h-2.5" />
-                              {req.category}
-                            </span>
-                          )}
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
-                            req.priority === 'Important' ? 'bg-status-danger/15 text-status-danger border border-status-danger/30' :
-                            req.priority === 'Medium' ? 'bg-status-warning/15 text-status-warning border border-status-warning/30' :
-                            'bg-status-success/15 text-status-success border border-status-success/30'
-                          }`}>
-                            {req.priority === 'Important' && <AlertCircle className="w-2.5 h-2.5" />}
-                            {req.priority === 'Medium' && <Clock className="w-2.5 h-2.5" />}
-                            {req.priority === 'Low' && <CheckCircle2 className="w-2.5 h-2.5" />}
-                            <span>{req.priority || 'Normal'} Priority</span>
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-text-muted mt-0.5">Subject: {req.subject} · Submitted: {req.submitted}</p>
-                      </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        req.status === 'Resolved' ? 'bg-status-success/15 text-status-success' : 'bg-status-warning/15 text-status-warning'
-                      }`}>
-                        {req.status}
-                      </span>
-                    </div>
-
-                    <div className="text-xs text-text bg-card-hover p-3 rounded-xl border border-border">
-                      <p className="font-semibold text-text mb-1">Topic: {req.topic}</p>
-                      <p className="text-text-muted">"{req.description}"</p>
-                    </div>
-
-                    {req.reply ? (
-                      <div className="p-3 rounded-xl bg-accent/10 border border-accent/25 text-xs space-y-1">
-                        <span className="font-bold text-accent">Your Reply: </span>
-                        <p className="text-text">{req.reply}</p>
-                        {req.next_step && (
-                          <p className="text-[11px] text-text-muted mt-1">Recommended Next Step: {req.next_step}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2 pt-2">
-                        <textarea
-                          rows={2}
-                          placeholder="Type your academic reply or guidance here..."
-                          value={replyText[req.id] || ''}
-                          onChange={e => setReplyText({ ...replyText, [req.id]: e.target.value })}
-                          className="input-spec w-full text-xs resize-none"
-                        />
-                        <div className="flex items-center justify-between">
-                          <input
-                            type="text"
-                            placeholder="Optional Next Step (e.g. attend office hours Thursday 3pm)"
-                            value={nextStepText[req.id] || ''}
-                            onChange={e => setNextStepText({ ...nextStepText, [req.id]: e.target.value })}
-                            className="input-spec text-xs flex-1 mr-3"
-                          />
-                          <button
-                            onClick={() => handleReplyProblem(req.id)}
-                            className="btn-spec-primary text-xs py-2 px-4"
-                          >
-                            <Send className="w-3.5 h-3.5" /> Send Reply
-                          </button>
-                        </div>
-                      </div>
-                    )}
+              {/* Scope & Priority Filter Controls */}
+              <div className="spec-card p-3 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  {/* Scope Selector: Assigned to Me vs All */}
+                  <div className="flex items-center gap-1.5 bg-card p-1 rounded-xl border border-border">
+                    <button
+                      type="button"
+                      onClick={() => setProblemScope('my')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        problemScope === 'my'
+                          ? 'bg-accent/20 text-accent font-bold'
+                          : 'text-text-muted hover:text-text'
+                      }`}
+                    >
+                      Assigned to Me ({problemRequests.filter(r => r.faculty.toLowerCase().includes(faculty.name.toLowerCase()) || faculty.name.toLowerCase().includes(r.faculty.toLowerCase())).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProblemScope('all')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        problemScope === 'all'
+                          ? 'bg-accent/20 text-accent font-bold'
+                          : 'text-text-muted hover:text-text'
+                      }`}
+                    >
+                      All Campus Tickets ({problemRequests.length})
+                    </button>
                   </div>
-                ))}
+
+                  {/* Priority Filter */}
+                  <div className="flex items-center gap-1 overflow-x-auto">
+                    {(['All', 'Important', 'Medium', 'Low'] as const).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setProblemPriorityFilter(p)}
+                        className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-all flex items-center gap-1 ${
+                          problemPriorityFilter === p
+                            ? p === 'Important'
+                              ? 'bg-status-danger/20 border-status-danger text-status-danger font-bold'
+                              : p === 'Medium'
+                              ? 'bg-status-warning/20 border-status-warning text-status-warning font-bold'
+                              : p === 'Low'
+                              ? 'bg-status-success/20 border-status-success text-status-success font-bold'
+                              : 'bg-accent/20 border-accent text-accent font-bold'
+                            : 'bg-card border-border text-text-muted hover:border-accent/40'
+                        }`}
+                      >
+                        {p === 'Important' && <AlertCircle className="w-2.5 h-2.5 text-status-danger" />}
+                        {p === 'Medium' && <Clock className="w-2.5 h-2.5 text-status-warning" />}
+                        {p === 'Low' && <CheckCircle2 className="w-2.5 h-2.5 text-status-success" />}
+                        <span>{p}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Keyword Search */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={problemSearch}
+                    onChange={e => setProblemSearch(e.target.value)}
+                    placeholder="Search by student name, roll number, topic, or description..."
+                    className="input-spec w-full text-xs py-1.5 px-3"
+                  />
+                </div>
+              </div>
+
+              {/* Tickets List */}
+              <div className="space-y-4">
+                {filteredFacultyRequests.length === 0 ? (
+                  <div className="spec-card text-center py-12">
+                    <CheckCircle2 className="w-10 h-10 text-status-success mx-auto mb-2 opacity-60" />
+                    <h4 className="text-sm font-bold text-text">No Problem Tickets Found</h4>
+                    <p className="text-xs text-text-muted mt-1 max-w-md mx-auto">
+                      {problemScope === 'my'
+                        ? `No problem requests currently assigned to ${faculty.name}. Switch to "All Campus Tickets" to view all student tickets.`
+                        : 'No problem requests currently match your active filters.'}
+                    </p>
+                  </div>
+                ) : (
+                  filteredFacultyRequests.map(req => (
+                    <div key={req.id} className="spec-card space-y-3">
+                      <div className="flex items-start justify-between flex-wrap gap-2 border-b border-border pb-2.5">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-accent font-mono">{req.id}</span>
+                            <span className="text-xs font-bold text-text">{req.student} ({req.roll})</span>
+                            {req.category && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent border border-accent/20 flex items-center gap-1">
+                                <Tag className="w-2.5 h-2.5" />
+                                {req.category}
+                              </span>
+                            )}
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                              req.priority === 'Important' ? 'bg-status-danger/15 text-status-danger border border-status-danger/30' :
+                              req.priority === 'Medium' ? 'bg-status-warning/15 text-status-warning border border-status-warning/30' :
+                              'bg-status-success/15 text-status-success border border-status-success/30'
+                            }`}>
+                              {req.priority === 'Important' && <AlertCircle className="w-2.5 h-2.5" />}
+                              {req.priority === 'Medium' && <Clock className="w-2.5 h-2.5" />}
+                              {req.priority === 'Low' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                              <span>{req.priority || 'Normal'} Priority</span>
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-text-muted mt-0.5">
+                            Subject: <strong className="text-text/80">{req.subject}</strong> · Assigned To: <strong className="text-accent">{req.faculty}</strong> · Submitted: {req.submitted}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          req.status === 'Resolved' ? 'bg-status-success/15 text-status-success' : 'bg-status-warning/15 text-status-warning'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-text bg-card-hover p-3 rounded-xl border border-border">
+                        <p className="font-semibold text-text mb-1">Topic: {req.topic}</p>
+                        <p className="text-text-muted italic">"{req.description}"</p>
+                      </div>
+
+                      {req.reply ? (
+                        <div className="p-3 rounded-xl bg-accent/10 border border-accent/25 text-xs space-y-1">
+                          <span className="font-bold text-accent">Faculty Reply: </span>
+                          <p className="text-text">{req.reply}</p>
+                          {req.next_step && (
+                            <p className="text-[11px] text-text-muted mt-1">Recommended Next Step: {req.next_step}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2 pt-2">
+                          <textarea
+                            rows={2}
+                            placeholder="Type your academic reply or guidance here..."
+                            value={replyText[req.id] || ''}
+                            onChange={e => setReplyText({ ...replyText, [req.id]: e.target.value })}
+                            className="input-spec w-full text-xs resize-none"
+                          />
+                          <div className="flex items-center justify-between gap-2">
+                            <input
+                              type="text"
+                              placeholder="Optional Next Step (e.g. attend office hours Thursday 3pm)"
+                              value={nextStepText[req.id] || ''}
+                              onChange={e => setNextStepText({ ...nextStepText, [req.id]: e.target.value })}
+                              className="input-spec text-xs flex-1"
+                            />
+                            <button
+                              onClick={() => handleReplyProblem(req.id)}
+                              className="btn-spec-primary text-xs py-2 px-4 shrink-0 flex items-center gap-1.5"
+                            >
+                              <Send className="w-3.5 h-3.5" /> Send Reply
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -705,6 +905,124 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
           )}
         </main>
       </div>
+
+      {/* ── FACULTY SWITCH CREDENTIAL VERIFICATION MODAL ────────────────── */}
+      {isAuthModalOpen && pendingFacultyIdx !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div
+            className="spec-card max-w-md w-full border border-border/80 shadow-2xl relative animate-scale-up"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={handleCancelFacultySwitch}
+              className="absolute top-4 right-4 text-text-muted hover:text-text p-1.5 rounded-lg hover:bg-card-hover transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-text">Authenticate Faculty Switch</h3>
+                <p className="text-xs text-text-muted">Security verification required to switch active advisor profile</p>
+              </div>
+            </div>
+
+            {/* Target Faculty Profile Preview */}
+            <div className="p-3.5 rounded-xl bg-card-hover/60 border border-border mb-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-royal to-accent flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                {DEMO_FACULTY[pendingFacultyIdx].avatar_initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h4 className="text-xs font-bold text-text truncate">{DEMO_FACULTY[pendingFacultyIdx].name}</h4>
+                <p className="text-[11px] text-accent font-medium truncate">{DEMO_FACULTY[pendingFacultyIdx].designation} · {DEMO_FACULTY[pendingFacultyIdx].department}</p>
+                <p className="text-[10px] text-text-muted font-mono truncate">{DEMO_FACULTY[pendingFacultyIdx].email}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmFacultySwitch} className="space-y-4">
+              {authError && (
+                <div className="p-3 rounded-lg bg-status-danger/15 border border-status-danger/30 text-status-danger text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="label-spec block mb-1.5 flex items-center justify-between">
+                  <span>Security Password:</span>
+                  <span className="text-[10px] text-text-muted">Credential Verification</span>
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                  <input
+                    type={showAuthPassword ? 'text' : 'password'}
+                    value={authPassword}
+                    onChange={e => {
+                      setAuthPassword(e.target.value);
+                      setAuthError('');
+                    }}
+                    placeholder="Enter password (e.g. faculty@123)..."
+                    className="input-spec w-full pl-9 pr-10 text-xs"
+                    autoFocus
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPassword(!showAuthPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text p-1"
+                  >
+                    {showAuthPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <div className="mt-2 p-2 rounded-lg bg-card-hover/40 border border-border/40 text-[11px] text-text-muted flex items-center justify-between">
+                  <span>Default Faculty Credential:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthPassword('faculty@123');
+                      setAuthError('');
+                    }}
+                    className="text-accent font-mono font-bold hover:underline"
+                  >
+                    Use "faculty@123"
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={handleCancelFacultySwitch}
+                  className="btn-spec-secondary text-xs py-2 px-4"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAuthenticating}
+                  className="btn-spec-primary text-xs py-2 px-5 flex items-center gap-2"
+                >
+                  {isAuthenticating ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Verify & Switch</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
