@@ -235,6 +235,72 @@ export function queryCampusAnalyst(
     };
   }
 
+  // Question 6: Academic & Concept Queries (DBMS, Normalization, Binary Search)
+  if (q.includes('what is dbms') || (q.includes('dbms') && !q.includes('risk') && !q.includes('student'))) {
+    return {
+      query,
+      answerTitle: 'Database Management Systems (DBMS)',
+      answerSummary: 'A DBMS is specialized software that enables users and applications to create, maintain, and securely query relational databases with ACID transaction guarantees.',
+      metrics: [
+        { label: 'Architecture', value: 'Relational/SQL' },
+        { label: 'Reliability', value: 'ACID Guarantees' },
+        { label: 'Advantage', value: 'Zero Redundancy' },
+      ],
+      detailedBreakdown: [
+        'Atomicity: All operations in a transaction succeed, or all are rolled back.',
+        'Consistency: Preserves constraints and schema rules across states.',
+        'Isolation: Concurrent transactions execute without race conditions.',
+        'Durability: Committed updates survive system crashes via WAL.',
+      ],
+      suggestedAction: 'Open the Student Study Assistant for code examples, line-by-line breakdowns, and MCQs.',
+      targetPage: 'overview',
+    };
+  }
+
+  if (q.includes('normalization') || q.includes('normal form') || q.includes('1nf') || q.includes('2nf') || q.includes('3nf')) {
+    return {
+      query,
+      answerTitle: 'Relational Database Normalization',
+      answerSummary: 'Normalization decomposes tables to eliminate data redundancy and prevent insertion, update, and deletion anomalies while preserving functional dependencies.',
+      metrics: [
+        { label: '1NF', value: 'Atomic Values' },
+        { label: '2NF', value: 'No Partial Dependency' },
+        { label: '3NF', value: 'No Transitive Dependency' },
+        { label: 'BCNF', value: 'Determinant is SuperKey' },
+      ],
+      detailedBreakdown: [
+        '1NF: Eliminates repeating groups and composite attributes; all domains atomic.',
+        '2NF: Every non-prime attribute is fully dependent on the complete primary key.',
+        '3NF: Eliminates transitive dependencies (A -> B -> C).',
+        'BCNF: Strict 3NF where every determinant X in X -> Y must be a Super Key.',
+      ],
+      suggestedAction: 'For full table illustrations or 5 practice MCQs, open the Study Assistant.',
+      targetPage: 'overview',
+    };
+  }
+
+  if (q.includes('binary search') || q.includes('search algorithm')) {
+    return {
+      query,
+      answerTitle: 'Binary Search Algorithm (O(log n))',
+      answerSummary: 'Binary Search is an efficient divide-and-conquer algorithm that finds a target in a sorted collection by repeatedly dividing the search interval in half.',
+      metrics: [
+        { label: 'Time Complexity', value: 'O(log n)' },
+        { label: 'Best Case', value: 'O(1)' },
+        { label: 'Aux Space', value: 'O(1) Iterative' },
+      ],
+      detailedBreakdown: [
+        'Prerequisite: The input array MUST be sorted beforehand.',
+        'Midpoint calculation: mid = low + (high - low) // 2 prevents integer overflow.',
+        'If target == arr[mid]: Element found!',
+        'If target < arr[mid]: Discard right half by setting high = mid - 1.',
+        'If target > arr[mid]: Discard left half by setting low = mid + 1.',
+      ],
+      suggestedAction: 'For working Python code with line-by-line breakdown, open the Study Assistant.',
+      targetPage: 'overview',
+    };
+  }
+
   // Default intelligent match: calculate average success score and summary of current cohort
   const scores = students
     .map(s => calculateStudentSuccessScore(s).final_score)

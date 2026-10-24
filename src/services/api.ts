@@ -245,6 +245,49 @@ export const api = {
     });
   },
 
+  // Study Assistant API
+  async sendStudyMessage(payload: {
+    message: string;
+    subject?: string;
+    conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[];
+    studentId?: string;
+    studentName?: string;
+  }): Promise<{
+    success: boolean;
+    requestId: string;
+    reply: string;
+    subject: string;
+    aiProvider: {
+      configured: boolean;
+      provider: 'gemini' | 'openai' | 'none';
+      model: string;
+      mode: 'live-generative-ai' | 'offline-academic-engine';
+      setupInstructions?: string;
+    };
+    contextUsed: {
+      historyLength: number;
+      subject: string;
+      followUpDetected: boolean;
+    };
+    timestamp: string;
+  }> {
+    return request('/study-assistant/chat', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async getStudyAiStatus(): Promise<{
+    success: boolean;
+    configured: boolean;
+    provider: string;
+    model: string;
+    mode: string;
+    setupInstructions?: string;
+  }> {
+    return request('/study-assistant/status');
+  },
+
   // Database Seed API
   async seedDatabase(): Promise<any> {
     return request('/health/seed', {

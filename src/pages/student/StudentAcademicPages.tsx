@@ -143,6 +143,33 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
         />
       </div>
 
+      {/* AI Study Assistant Callout Banner */}
+      <div className="p-4 rounded-2xl bg-card border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-spec hover:border-accent transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0">
+            <Sparkles className="w-5 h-5 text-accent animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-text">AI Study Assistant</h3>
+              <span className="text-[10px] uppercase font-bold tracking-spec-label px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                Engineering Tutor
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">
+              Ask questions on DBMS, Normalization, DAA Binary Search, Network Protocols, or request 5 practice MCQs and line-by-line code breakdowns.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => onNavigateTab && onNavigateTab('study-assistant')}
+          className="btn-spec-primary text-xs py-2 px-4 flex items-center gap-1.5 shrink-0"
+        >
+          <span>Ask Study Assistant</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
       {/* 12-COLUMN BENTO GRID: ROW 2 - Performance Trend (8 cols) & Attendance Calendar (4 cols) */}
       <div className="grid grid-cols-12 gap-4">
         {/* Performance Trend Chart (8 cols) */}

@@ -6,6 +6,7 @@ import studentRoutes from './routes/studentRoutes';
 import interventionRoutes from './routes/interventionRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import healthRoutes from './routes/healthRoutes';
+import studyAssistantRoutes from './routes/studyAssistantRoutes';
 import Student from './models/Student';
 import Intervention from './models/Intervention';
 import Setting from './models/Setting';
@@ -49,6 +50,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/interventions', interventionRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/study-assistant', studyAssistantRoutes);
 
 // Root route
 app.get('/', (_req, res) => {

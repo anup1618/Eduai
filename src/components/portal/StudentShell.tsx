@@ -10,7 +10,7 @@ import { useCurrentStudent, useCampusData } from '../../context/CampusDataContex
 import { useTheme } from '../../context/ThemeContext';
 
 export type StudentPage =
-  | 'dashboard' | 'analytics' | 'performance' | 'attendance'
+  | 'dashboard' | 'study-assistant' | 'analytics' | 'performance' | 'attendance'
   | 'ai-progress' | 'my-problem' | 'profile' | 'settings';
 
 interface StudentShellProps {
@@ -57,6 +57,12 @@ export const StudentShell: React.FC<StudentShellProps> = ({
       label: 'Dashboard',
       icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />,
       badge: { text: 'Live', variant: 'live' }
+    },
+    {
+      id: 'study-assistant',
+      label: 'Study Assistant',
+      icon: <Sparkles className="w-5 h-5 flex-shrink-0 text-accent" />,
+      badge: { text: 'AI Bot', variant: 'live' }
     },
     {
       id: 'analytics',
