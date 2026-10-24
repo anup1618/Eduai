@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  MessageSquare, Send, CheckCircle2, Clock, AlertCircle,
-  User, Shield, Mail, Phone, MapPin, Camera, Moon, Sun, Lock, Sparkles
+  MessageSquare, Send, CheckCircle2, Clock, AlertCircle, AlertTriangle,
+  User, Shield, Mail, Phone, MapPin, Camera, Moon, Sun, Lock, Sparkles,
+  Tag, Filter, Layers, Search, BookOpen, ChevronRight, HelpCircle
 } from 'lucide-react';
-import { DEMO_PROBLEMS } from '../../data/portalData';
+import {
+  DEMO_PROBLEMS,
+  ProblemRequest,
+  ProblemPriority,
+  ProblemCategory,
+  PROBLEM_CATEGORIES
+} from '../../data/portalData';
 import { useCurrentStudent } from '../../context/CampusDataContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SpecPageHeader, SpecKpiCard } from '../../components/common/SpecComponents';
@@ -12,13 +19,19 @@ import { SpecPageHeader, SpecKpiCard } from '../../components/common/SpecCompone
 
 export function StudentMyProblemPage() {
   const s = useCurrentStudent();
-  const [requests, setRequests] = useState(DEMO_PROBLEMS);
+  const [requests, setRequests] = useState<ProblemRequest[]>(DEMO_PROBLEMS);
   const [subject, setSubject] = useState(s.subjects[0]?.name || 'Machine Learning');
+  const [category, setCategory] = useState<ProblemCategory>('Academic Doubt');
+  const [priority, setPriority] = useState<ProblemPriority>('Medium');
   const [topic, setTopic] = useState('');
   const [faculty, setFaculty] = useState(s.subjects[0]?.faculty || 'Dr. Priya Menon');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'Normal' | 'Important'>('Normal');
   const [submittedAlert, setSubmittedAlert] = useState<string | null>(null);
+
+  // Filters for request history
+  const [priorityFilter, setPriorityFilter] = useState<'All' | ProblemPriority>('All');
+  const [categoryFilter, setCategoryFilter] = useState<'All' | ProblemCategory>('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSubjectChange = (newSub: string) => {
     setSubject(newSub);
@@ -31,7 +44,7 @@ export function StudentMyProblemPage() {
     if (description.length < 10) return;
 
     const newId = `REQ-00${requests.length + 1}`;
-    const newReq = {
+    const newReq: ProblemRequest = {
       id: newId,
       student: s.name,
       roll: s.roll_no,
@@ -39,19 +52,47 @@ export function StudentMyProblemPage() {
       topic: topic.trim() || 'General Query',
       faculty,
       description,
+      category,
       priority,
-      status: 'Pending' as const,
+      status: 'Pending',
       submitted: new Date().toISOString().split('T')[0],
       reply: '',
       next_step: '',
     };
 
     setRequests([newReq, ...requests]);
-    setSubmittedAlert(`Request ${newId} submitted. Status: Pending`);
+    setSubmittedAlert(`Problem Request ${newId} logged with [${priority.toUpperCase()}] priority under "${category}". Ticket routed to ${faculty}.`);
     setDescription('');
     setTopic('');
-    setTimeout(() => setSubmittedAlert(null), 5000);
+    setTimeout(() => setSubmittedAlert(null), 6000);
   };
+
+  // Filtered requests
+  const filteredRequests = useMemo(() => {
+    return requests.filter(req => {
+      const matchesPriority = priorityFilter === 'All' || req.priority === priorityFilter;
+      const matchesCategory = categoryFilter === 'All' || req.category === categoryFilter;
+      const matchesSearch =
+        !searchQuery.trim() ||
+        req.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        req.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        req.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        req.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (req.category && req.category.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesPriority && matchesCategory && matchesSearch;
+    });
+  }, [requests, priorityFilter, categoryFilter, searchQuery]);
+
+  // Priority counts for quick badges
+  const counts = useMemo(() => {
+    return {
+      total: requests.length,
+      important: requests.filter(r => r.priority === 'Important').length,
+      medium: requests.filter(r => r.priority === 'Medium').length,
+      low: requests.filter(r => r.priority === 'Low').length,
+      resolved: requests.filter(r => r.status === 'Resolved').length,
+    };
+  }, [requests]);
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -59,27 +100,92 @@ export function StudentMyProblemPage() {
       <SpecPageHeader
         title="My Problem Requests"
         semesterChip={s.semester}
-        subtitle="Submit academic queries, assignment doubts, and remediation requests directly to faculty mentors"
+        subtitle="Categorize and submit academic doubts, attendance concerns, and remediation requests with Important, Medium, or Low priority"
         sessionText="Direct Mentorship"
         standingChip={{ text: `${requests.length} Total Requests`, variant: 'accent' }}
       />
 
+      {/* KPI Priority Summary Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div
+          onClick={() => setPriorityFilter('All')}
+          className={`spec-card p-3.5 cursor-pointer transition-all ${
+            priorityFilter === 'All' ? 'ring-2 ring-accent' : 'hover:border-accent/40'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="label-spec text-[10px]">TOTAL TICKETS</span>
+            <Layers className="w-3.5 h-3.5 text-accent" />
+          </div>
+          <p className="text-xl font-black text-text mt-1">{counts.total}</p>
+          <p className="text-[10px] text-text-muted mt-0.5">{counts.resolved} resolved ({Math.round((counts.resolved / (counts.total || 1)) * 100)}%)</p>
+        </div>
+
+        <div
+          onClick={() => setPriorityFilter('Important')}
+          className={`spec-card p-3.5 cursor-pointer transition-all ${
+            priorityFilter === 'Important' ? 'ring-2 ring-status-danger' : 'hover:border-status-danger/40'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="label-spec text-[10px] text-status-danger">IMPORTANT</span>
+            <AlertCircle className="w-3.5 h-3.5 text-status-danger" />
+          </div>
+          <p className="text-xl font-black text-status-danger mt-1">{counts.important}</p>
+          <p className="text-[10px] text-text-muted mt-0.5">High urgency / critical</p>
+        </div>
+
+        <div
+          onClick={() => setPriorityFilter('Medium')}
+          className={`spec-card p-3.5 cursor-pointer transition-all ${
+            priorityFilter === 'Medium' ? 'ring-2 ring-status-warning' : 'hover:border-status-warning/40'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="label-spec text-[10px] text-status-warning">MEDIUM</span>
+            <Clock className="w-3.5 h-3.5 text-status-warning" />
+          </div>
+          <p className="text-xl font-black text-status-warning mt-1">{counts.medium}</p>
+          <p className="text-[10px] text-text-muted mt-0.5">Standard review cycle</p>
+        </div>
+
+        <div
+          onClick={() => setPriorityFilter('Low')}
+          className={`spec-card p-3.5 cursor-pointer transition-all ${
+            priorityFilter === 'Low' ? 'ring-2 ring-status-success' : 'hover:border-status-success/40'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="label-spec text-[10px] text-status-success">LOW</span>
+            <CheckCircle2 className="w-3.5 h-3.5 text-status-success" />
+          </div>
+          <p className="text-xl font-black text-status-success mt-1">{counts.low}</p>
+          <p className="text-[10px] text-text-muted mt-0.5">Routine / informational</p>
+        </div>
+      </div>
+
       {submittedAlert && (
         <div className="p-4 rounded-xl bg-status-success/15 border border-status-success/30 text-status-success text-xs font-bold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" />
-          {submittedAlert}
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{submittedAlert}</span>
         </div>
       )}
 
       {/* 12-Column Bento Grid: Form (5 cols) & History (7 cols) */}
-      <div className="grid grid-cols-12 gap-4">
+      <div className="grid grid-cols-12 gap-5">
         {/* Submit Form (5 cols) */}
         <div className="spec-card col-span-12 lg:col-span-5 flex flex-col justify-between">
           <div>
-            <h2 className="title-section mb-1">New Support Request</h2>
-            <p className="text-xs text-text-muted mb-4">Direct ticket routed to course professor</p>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="title-section">New Support Request</h2>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-accent/10 text-accent font-bold">
+                TICKET DISPATCH
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mb-4">Direct ticket routed to course professor with priority triage</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Subject */}
               <div>
                 <label className="label-spec block mb-1.5">Select Subject:</label>
                 <select
@@ -95,8 +201,9 @@ export function StudentMyProblemPage() {
                 </select>
               </div>
 
+              {/* Assigned Faculty */}
               <div>
-                <label className="label-spec block mb-1.5">Assigned Faculty:</label>
+                <label className="label-spec block mb-1.5">Assigned Faculty Mentor:</label>
                 <input
                   type="text"
                   value={faculty}
@@ -105,45 +212,144 @@ export function StudentMyProblemPage() {
                 />
               </div>
 
+              {/* Problem Category */}
               <div>
-                <label className="label-spec block mb-1.5">Topic / Concept:</label>
+                <label className="label-spec block mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-accent" />
+                    Problem Category:
+                  </span>
+                  <span className="text-[10px] text-text-muted lowercase">categorize your inquiry</span>
+                </label>
+                <select
+                  value={category}
+                  onChange={e => setCategory(e.target.value as ProblemCategory)}
+                  className="input-spec w-full text-xs"
+                >
+                  {PROBLEM_CATEGORIES.map(cat => (
+                    <option key={cat.id} value={cat.id} className="bg-card text-text">
+                      {cat.label} — {cat.description}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-text-muted mt-1 italic">
+                  💡 {PROBLEM_CATEGORIES.find(c => c.id === category)?.description}
+                </p>
+              </div>
+
+              {/* Priority Selection: Important, Medium, Low */}
+              <div>
+                <label className="label-spec block mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-accent" />
+                    Select Priority Level:
+                  </span>
+                  <span className="text-[10px] font-mono text-text-muted uppercase">
+                    Current: <strong className={priority === 'Important' ? 'text-status-danger' : priority === 'Medium' ? 'text-status-warning' : 'text-status-success'}>{priority}</strong>
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Important */}
+                  <button
+                    type="button"
+                    onClick={() => setPriority('Important')}
+                    className={`p-2.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between ${
+                      priority === 'Important'
+                        ? 'bg-status-danger/15 border-status-danger text-status-danger shadow-[0_0_15px_rgba(239,68,68,0.25)] ring-1 ring-status-danger font-bold'
+                        : 'bg-card border-border text-text-muted hover:border-status-danger/40 hover:text-text'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-xs font-bold text-status-danger">
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        Important
+                      </span>
+                      {priority === 'Important' && (
+                        <span className="w-2 h-2 rounded-full bg-status-danger animate-pulse" />
+                      )}
+                    </div>
+                    <span className="text-[10px] opacity-80 mt-1 leading-tight">Urgent / critical</span>
+                  </button>
+
+                  {/* Medium */}
+                  <button
+                    type="button"
+                    onClick={() => setPriority('Medium')}
+                    className={`p-2.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between ${
+                      priority === 'Medium'
+                        ? 'bg-status-warning/15 border-status-warning text-status-warning shadow-[0_0_15px_rgba(245,158,11,0.25)] ring-1 ring-status-warning font-bold'
+                        : 'bg-card border-border text-text-muted hover:border-status-warning/40 hover:text-text'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-xs font-bold text-status-warning">
+                        <Clock className="w-3.5 h-3.5" />
+                        Medium
+                      </span>
+                      {priority === 'Medium' && (
+                        <span className="w-2 h-2 rounded-full bg-status-warning" />
+                      )}
+                    </div>
+                    <span className="text-[10px] opacity-80 mt-1 leading-tight">Standard doubt</span>
+                  </button>
+
+                  {/* Low */}
+                  <button
+                    type="button"
+                    onClick={() => setPriority('Low')}
+                    className={`p-2.5 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between ${
+                      priority === 'Low'
+                        ? 'bg-status-success/15 border-status-success text-status-success shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-status-success font-bold'
+                        : 'bg-card border-border text-text-muted hover:border-status-success/40 hover:text-text'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1 text-xs font-bold text-status-success">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Low
+                      </span>
+                      {priority === 'Low' && (
+                        <span className="w-2 h-2 rounded-full bg-status-success" />
+                      )}
+                    </div>
+                    <span className="text-[10px] opacity-80 mt-1 leading-tight">Routine query</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Topic / Concept */}
+              <div>
+                <label className="label-spec block mb-1.5">Topic / Specific Subject Matter:</label>
                 <input
                   type="text"
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
-                  placeholder="e.g. Backpropagation algorithm doubt"
+                  placeholder="e.g. Backpropagation algorithm doubt or Medical attendance reconciliation"
                   className="input-spec w-full text-xs"
                   required
                 />
               </div>
 
+              {/* Problem Details */}
               <div>
-                <label className="label-spec block mb-1.5">Problem Details:</label>
+                <label className="label-spec block mb-1.5">Problem Details & Context:</label>
                 <textarea
                   rows={4}
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  placeholder="Describe your question or difficulty in detail..."
+                  placeholder="Describe your question, difficulty, or situation in detail (minimum 10 characters)..."
                   className="input-spec w-full text-xs resize-none"
                   required
                 />
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="priorityFlag"
-                    checked={priority === 'Important'}
-                    onChange={e => setPriority(e.target.checked ? 'Important' : 'Normal')}
-                    className="accent-[var(--accent)] rounded"
-                  />
-                  <label htmlFor="priorityFlag" className="text-xs text-text-muted">
-                    Mark as Important
-                  </label>
+                <div className="text-[11px] text-text-muted">
+                  Routed with <strong className="text-accent">{priority}</strong> priority
                 </div>
 
-                <button type="submit" className="btn-spec-primary text-xs py-2 px-4">
+                <button type="submit" className="btn-spec-primary text-xs py-2 px-5 flex items-center gap-2">
                   <Send className="w-3.5 h-3.5" /> Submit Request
                 </button>
               </div>
@@ -154,46 +360,178 @@ export function StudentMyProblemPage() {
         {/* Existing Requests History (7 cols) */}
         <div className="spec-card col-span-12 lg:col-span-7 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="title-section">Request History</h2>
-              <span className="label-spec text-[10px]">FACULTY AUDIT</span>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div>
+                <h2 className="title-section">Request History</h2>
+                <p className="text-xs text-text-muted">Faculty audit ledger & mentorship responses</p>
+              </div>
+              <span className="label-spec text-[10px] font-mono bg-card px-2 py-0.5 rounded border border-border">
+                {filteredRequests.length} of {requests.length} SHOWN
+              </span>
             </div>
 
-            <div className="space-y-3">
-              {requests.map(req => (
-                <div
-                  key={req.id}
-                  className="p-4 rounded-xl bg-card border border-border hover:border-accent transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-mono text-xs font-bold text-accent">{req.id}</span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        req.status === 'Resolved'
-                          ? 'bg-status-success/15 text-status-success'
-                          : 'bg-status-warning/15 text-status-warning'
+            {/* Filters Row: Priority Tabs + Category Dropdown + Search */}
+            <div className="space-y-2.5 mb-4">
+              {/* Priority Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                {(['All', 'Important', 'Medium', 'Low'] as const).map(p => {
+                  const isActive = priorityFilter === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPriorityFilter(p)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                        isActive
+                          ? p === 'Important'
+                            ? 'bg-status-danger/20 border-status-danger text-status-danger font-bold'
+                            : p === 'Medium'
+                            ? 'bg-status-warning/20 border-status-warning text-status-warning font-bold'
+                            : p === 'Low'
+                            ? 'bg-status-success/20 border-status-success text-status-success font-bold'
+                            : 'bg-accent/20 border-accent text-accent font-bold'
+                          : 'bg-card border-border text-text-muted hover:border-accent/40 hover:text-text'
                       }`}
                     >
-                      {req.status}
-                    </span>
-                  </div>
+                      {p === 'Important' && <AlertCircle className="w-3 h-3 text-status-danger" />}
+                      {p === 'Medium' && <Clock className="w-3 h-3 text-status-warning" />}
+                      {p === 'Low' && <CheckCircle2 className="w-3 h-3 text-status-success" />}
+                      {p === 'All' && <Layers className="w-3 h-3" />}
+                      <span>{p}</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-card-hover/80 font-mono">
+                        {p === 'All' ? counts.total : counts[p.toLowerCase() as keyof typeof counts]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <h4 className="text-xs font-bold text-text">{req.topic}</h4>
-                  <p className="text-[11px] text-text-muted mt-0.5">
-                    {req.subject} · To: {req.faculty} · {req.submitted}
-                  </p>
-                  <p className="text-xs text-text-muted mt-2 bg-card-hover/40 p-2.5 rounded-lg border border-border/40">
-                    "{req.description}"
-                  </p>
-
-                  {req.reply && (
-                    <div className="mt-2.5 p-2.5 rounded-lg bg-accent/10 border border-accent/20 text-xs">
-                      <span className="font-bold text-accent">Faculty Response: </span>
-                      <span className="text-text">{req.reply}</span>
-                    </div>
-                  )}
+              {/* Category Dropdown and Search */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="relative">
+                  <select
+                    value={categoryFilter}
+                    onChange={e => setCategoryFilter(e.target.value as 'All' | ProblemCategory)}
+                    className="input-spec w-full text-xs py-1.5 pl-2.5 pr-8"
+                  >
+                    <option value="All">All Categories ({requests.length})</option>
+                    {PROBLEM_CATEGORIES.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.label} ({requests.filter(r => r.category === cat.id).length})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
+
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search requests by keyword..."
+                    className="input-spec w-full text-xs py-1.5 pl-8 pr-3"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Requests List */}
+            <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
+              {filteredRequests.length === 0 ? (
+                <div className="text-center py-10 px-4 rounded-xl border border-dashed border-border bg-card/50">
+                  <HelpCircle className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-50" />
+                  <p className="text-xs font-semibold text-text">No problem requests match this filter</p>
+                  <p className="text-[11px] text-text-muted mt-1">
+                    Try switching priority tabs or changing the category filter.
+                  </p>
+                  <button
+                    onClick={() => { setPriorityFilter('All'); setCategoryFilter('All'); setSearchQuery(''); }}
+                    className="btn-spec-secondary text-xs py-1.5 px-3 mt-3"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              ) : (
+                filteredRequests.map(req => (
+                  <div
+                    key={req.id}
+                    className="p-4 rounded-xl bg-card border border-border hover:border-accent/60 transition-all space-y-2.5"
+                  >
+                    {/* Top Row: ID, Category, Priority, Status */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs font-bold text-accent">{req.id}</span>
+
+                        {/* Category Badge */}
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent border border-accent/25 flex items-center gap-1">
+                          <Tag className="w-2.5 h-2.5" />
+                          {req.category || 'Academic Doubt'}
+                        </span>
+
+                        {/* Priority Badge */}
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            req.priority === 'Important'
+                              ? 'bg-status-danger/15 text-status-danger border border-status-danger/30'
+                              : req.priority === 'Medium'
+                              ? 'bg-status-warning/15 text-status-warning border border-status-warning/30'
+                              : 'bg-status-success/15 text-status-success border border-status-success/30'
+                          }`}
+                        >
+                          {req.priority === 'Important' && <AlertCircle className="w-2.5 h-2.5" />}
+                          {req.priority === 'Medium' && <Clock className="w-2.5 h-2.5" />}
+                          {req.priority === 'Low' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                          <span>{req.priority || 'Normal'} Priority</span>
+                        </span>
+                      </div>
+
+                      {/* Status */}
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          req.status === 'Resolved'
+                            ? 'bg-status-success/15 text-status-success border border-status-success/30'
+                            : req.status === 'In Progress'
+                            ? 'bg-accent/15 text-accent border border-accent/30'
+                            : 'bg-status-warning/15 text-status-warning border border-status-warning/30'
+                        }`}
+                      >
+                        {req.status}
+                      </span>
+                    </div>
+
+                    {/* Topic */}
+                    <h4 className="text-xs font-bold text-text">{req.topic}</h4>
+
+                    {/* Meta line */}
+                    <p className="text-[11px] text-text-muted">
+                      <strong className="text-text/80">{req.subject}</strong> · To: {req.faculty} · Submitted: {req.submitted}
+                    </p>
+
+                    {/* Description quote */}
+                    <p className="text-xs text-text-muted bg-card-hover/50 p-2.5 rounded-lg border border-border/50 italic">
+                      "{req.description}"
+                    </p>
+
+                    {/* Faculty Response if present */}
+                    {req.reply && (
+                      <div className="p-2.5 rounded-lg bg-accent/10 border border-accent/25 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-accent" />
+                          <span className="font-bold text-accent">Faculty Response:</span>
+                        </div>
+                        <p className="text-text">{req.reply}</p>
+                        {req.next_step && (
+                          <div className="mt-1 text-[11px] text-text-muted flex items-center gap-1">
+                            <span className="font-semibold text-accent">Action Step:</span>
+                            <span>{req.next_step}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

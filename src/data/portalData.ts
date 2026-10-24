@@ -659,6 +659,27 @@ export const FACULTY_STUDENTS = Array.from({ length: 32 }, (_, i) => {
   };
 });
 
+export type ProblemPriority = 'Important' | 'Medium' | 'Low';
+
+export type ProblemCategory =
+  | 'Academic Doubt'
+  | 'Attendance Shortage'
+  | 'Lab & Practical'
+  | 'Exam & Marks'
+  | 'Assignment Submission'
+  | 'Career & Placement'
+  | 'General Query';
+
+export const PROBLEM_CATEGORIES: { id: ProblemCategory; label: string; description: string }[] = [
+  { id: 'Academic Doubt', label: 'Academic Doubt', description: 'Concept, theory, or syllabus doubts' },
+  { id: 'Attendance Shortage', label: 'Attendance Shortage', description: 'Attendance deficit, medical leave reconciliation' },
+  { id: 'Lab & Practical', label: 'Lab & Practical', description: 'Code debugging, lab experiments, viva queries' },
+  { id: 'Exam & Marks', label: 'Exam & Marks', description: 'Mid-term, internal marks review, exam doubts' },
+  { id: 'Assignment Submission', label: 'Assignment Submission', description: 'Extensions, problem statements, portal upload' },
+  { id: 'Career & Placement', label: 'Career & Placement', description: 'Internship NOC, placement drive preparation' },
+  { id: 'General Query', label: 'General Query', description: 'Campus facilities, timetable, administrative queries' },
+];
+
 export interface ProblemRequest {
   id: string;
   student: string;
@@ -667,7 +688,8 @@ export interface ProblemRequest {
   topic: string;
   faculty: string;
   description: string;
-  priority: 'Normal' | 'Important';
+  category: ProblemCategory;
+  priority: ProblemPriority;
   status: 'Pending' | 'In Progress' | 'Resolved';
   submitted: string;
   reply: string;
@@ -681,11 +703,12 @@ export const DEMO_PROBLEMS: ProblemRequest[] = [
     student: 'Arjun Sharma',
     roll: 'CS21B021',
     subject: 'Computer Networks',
-    topic: 'Subnetting confusion',
+    topic: 'Subnetting & VLSM confusion',
     faculty: 'Prof. Suresh Kumar',
-    description: 'I am struggling to understand variable-length subnet masking (VLSM) and how to correctly allocate IP addresses across multiple subnets.',
-    priority: 'Important' as const,
-    status: 'In Progress' as const,
+    description: 'I am struggling to understand variable-length subnet masking (VLSM) and how to correctly allocate IP addresses across multiple subnets for next week\'s lab exam.',
+    category: 'Academic Doubt',
+    priority: 'Important',
+    status: 'In Progress',
     submitted: '2025-10-05',
     reply: 'I will schedule an extra session on Thursday at 4pm. Please review the first 3 chapters before then.',
     next_step: 'Attend extra session on 2025-10-10',
@@ -695,11 +718,12 @@ export const DEMO_PROBLEMS: ProblemRequest[] = [
     student: 'Ananya Verma',
     roll: 'CS21B002',
     subject: 'Machine Learning',
-    topic: 'Gradient descent implementation',
+    topic: 'Gradient descent implementation failing',
     faculty: 'Dr. Priya Menon',
-    description: 'My implementation of gradient descent is not converging for the assignment. I have checked the code multiple times but the loss keeps increasing.',
-    priority: 'Important' as const,
-    status: 'Pending' as const,
+    description: 'My implementation of gradient descent is not converging for the assignment. I have checked the learning rate multiple times but the cost function oscillates.',
+    category: 'Lab & Practical',
+    priority: 'Medium',
+    status: 'Pending',
     submitted: '2025-10-07',
     reply: '',
     next_step: '',
@@ -709,14 +733,45 @@ export const DEMO_PROBLEMS: ProblemRequest[] = [
     student: 'Rohan Patel',
     roll: 'CS21B003',
     subject: 'Operating Systems',
-    topic: 'Process scheduling',
+    topic: 'Process scheduling preemptive examples',
     faculty: 'Dr. Anita Bose',
-    description: 'I do not understand the difference between preemptive and non-preemptive scheduling with regard to the examples in lecture 8.',
-    priority: 'Normal' as const,
-    status: 'Resolved' as const,
+    description: 'I do not understand the difference between preemptive and non-preemptive scheduling with regard to the Gantt chart examples shown in lecture 8.',
+    category: 'Academic Doubt',
+    priority: 'Low',
+    status: 'Resolved',
     submitted: '2025-09-28',
     reply: 'Great question. Preemptive means the OS can interrupt a running process. Check lecture 9 slides for the diagram — it should clarify things.',
     next_step: 'Resolved. Check lecture 9.',
+  },
+  {
+    id: 'REQ-004',
+    student: 'Arjun Sharma',
+    roll: 'CS21B021',
+    subject: 'Computer Networks',
+    topic: 'Attendance reconciliation for medical leave',
+    faculty: 'Prof. Suresh Kumar',
+    description: 'I was on certified medical leave from Oct 1 to Oct 4 due to viral fever. Requesting attendance reconciliation for missed lectures to keep attendance above 75%.',
+    category: 'Attendance Shortage',
+    priority: 'Important',
+    status: 'In Progress',
+    submitted: '2025-10-08',
+    reply: 'Medical certificate received and sent to HOD office for condonation approval.',
+    next_step: 'Verification pending with Academic Dean',
+  },
+  {
+    id: 'REQ-005',
+    student: 'Arjun Sharma',
+    roll: 'CS21B021',
+    subject: 'Machine Learning',
+    topic: 'Dynamic programming assignment test cases',
+    faculty: 'Dr. Priya Menon',
+    description: 'Could you please clarify whether negative weights are allowed in problem 2 of the reinforcement learning baseline assignment?',
+    category: 'Assignment Submission',
+    priority: 'Low',
+    status: 'Resolved',
+    submitted: '2025-10-02',
+    reply: 'No, all weights are strictly non-negative as specified in Section 2.1.',
+    next_step: 'Submit by Friday 11:59 PM',
   },
 ];
 

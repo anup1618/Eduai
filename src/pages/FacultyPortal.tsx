@@ -3,7 +3,7 @@ import {
   Users, BookOpen, Calendar, CheckSquare, AlertTriangle, MessageSquare,
   FileSpreadsheet, User, Bell, ChevronDown, LogOut, Menu, X, Save,
   CheckCircle2, Clock, Send, Download, Sparkles, Filter, Sun, Moon,
-  ChevronLeft, ChevronRight, Activity, ArrowRight, Shield
+  ChevronLeft, ChevronRight, Activity, ArrowRight, Shield, Tag, AlertCircle
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
@@ -617,9 +617,25 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                   <div key={req.id} className="spec-card space-y-3">
                     <div className="flex items-start justify-between flex-wrap gap-2 border-b border-border pb-2.5">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-bold text-accent font-mono">{req.id}</span>
                           <span className="text-xs font-bold text-text">{req.student} ({req.roll})</span>
+                          {req.category && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-accent/10 text-accent border border-accent/20 flex items-center gap-1">
+                              <Tag className="w-2.5 h-2.5" />
+                              {req.category}
+                            </span>
+                          )}
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ${
+                            req.priority === 'Important' ? 'bg-status-danger/15 text-status-danger border border-status-danger/30' :
+                            req.priority === 'Medium' ? 'bg-status-warning/15 text-status-warning border border-status-warning/30' :
+                            'bg-status-success/15 text-status-success border border-status-success/30'
+                          }`}>
+                            {req.priority === 'Important' && <AlertCircle className="w-2.5 h-2.5" />}
+                            {req.priority === 'Medium' && <Clock className="w-2.5 h-2.5" />}
+                            {req.priority === 'Low' && <CheckCircle2 className="w-2.5 h-2.5" />}
+                            <span>{req.priority || 'Normal'} Priority</span>
+                          </span>
                         </div>
                         <p className="text-[11px] text-text-muted mt-0.5">Subject: {req.subject} · Submitted: {req.submitted}</p>
                       </div>
