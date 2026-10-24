@@ -20,7 +20,7 @@ import { authenticate } from './middleware/auth';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 // Middleware
 app.use(
@@ -130,12 +130,16 @@ const startServer = async () => {
     await autoSeedIfEmpty();
   }
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`===============================================`);
     console.log(` EduPulse AI MongoDB API Server running on:    `);
     console.log(` http://localhost:${PORT}                      `);
     console.log(` Health check: http://localhost:${PORT}/api/health`);
     console.log(`===============================================`);
+  });
+
+  server.on('error', (err: any) => {
+    console.error('[API Server Error]:', err.message);
   });
 };
 
