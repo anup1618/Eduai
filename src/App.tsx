@@ -41,6 +41,7 @@ import {
   StudentSettingsPage,
 } from './pages/student/StudentMiscPages';
 import { StudentStudyAssistantPage } from './pages/student/StudentStudyAssistantPage';
+import { StudentClassroomPage } from './pages/student/StudentClassroomPage';
 import { PortalRole } from './data/portalData';
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -143,6 +144,8 @@ const StudentPortalContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) 
     switch (studentPage) {
       case 'dashboard':
         return <StudentDashboardPage onNavigateTab={setStudentPage} />;
+      case 'classroom':
+        return <StudentClassroomPage />;
       case 'study-assistant':
         return <StudentStudyAssistantPage />;
       case 'analytics':

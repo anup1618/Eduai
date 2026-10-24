@@ -3,14 +3,14 @@ import {
   Activity, LayoutDashboard, BarChart2, BookOpen, Calendar,
   Brain, MessageSquare, User, Settings, LogOut, Menu, X, Bell,
   ChevronDown, ChevronLeft, ChevronRight, ArrowRightLeft, Check, Search,
-  Sun, Moon, Sparkles, Zap
+  Sun, Moon, Sparkles, Zap, GraduationCap
 } from 'lucide-react';
 import { FEATURED_DEMO_STUDENTS } from '../../data/portalData';
 import { useCurrentStudent, useCampusData } from '../../context/CampusDataContext';
 import { useTheme } from '../../context/ThemeContext';
 
 export type StudentPage =
-  | 'dashboard' | 'study-assistant' | 'analytics' | 'performance' | 'attendance'
+  | 'dashboard' | 'study-assistant' | 'classroom' | 'analytics' | 'performance' | 'attendance'
   | 'ai-progress' | 'my-problem' | 'profile' | 'settings';
 
 interface StudentShellProps {
@@ -57,6 +57,12 @@ export const StudentShell: React.FC<StudentShellProps> = ({
       label: 'Dashboard',
       icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />,
       badge: { text: 'Live', variant: 'live' }
+    },
+    {
+      id: 'classroom',
+      label: 'Classroom',
+      icon: <GraduationCap className="w-5 h-5 flex-shrink-0 text-cyan-400" />,
+      badge: { text: 'Hub', variant: 'live' }
     },
     {
       id: 'study-assistant',

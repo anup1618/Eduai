@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   TrendingUp, Award, AlertTriangle, BookOpen, ChevronRight,
   Star, TrendingDown, Calendar, CheckCircle2, AlertCircle, Clock,
-  ArrowRight, Sparkles, Filter
+  ArrowRight, Sparkles, Filter, GraduationCap
 } from 'lucide-react';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip,
@@ -143,31 +143,61 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
         />
       </div>
 
-      {/* AI Study Assistant Callout Banner */}
-      <div className="p-4 rounded-2xl bg-card border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-spec hover:border-accent transition-colors">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0">
-            <Sparkles className="w-5 h-5 text-accent animate-pulse" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-text">AI Study Assistant</h3>
-              <span className="text-[10px] uppercase font-bold tracking-spec-label px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
-                Engineering Tutor
-              </span>
+      {/* AI Study Assistant & Classroom Quick Access Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Card 1: AI Study Assistant */}
+        <div className="p-4 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-spec hover:border-accent transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0">
+              <Sparkles className="w-5 h-5 text-accent animate-pulse" />
             </div>
-            <p className="text-xs text-text-muted mt-0.5">
-              Ask questions on DBMS, Normalization, DAA Binary Search, Network Protocols, or request 5 practice MCQs and line-by-line code breakdowns.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-text">AI Study Assistant</h3>
+                <span className="text-[10px] uppercase font-bold tracking-spec-label px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                  Tutor
+                </span>
+              </div>
+              <p className="text-xs text-text-muted mt-0.5 line-clamp-1">
+                Ask doubts, request MCQs, or line-by-line code breakdowns.
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => onNavigateTab && onNavigateTab('study-assistant')}
+            className="btn-spec-primary text-xs py-2 px-3.5 flex items-center gap-1.5 shrink-0"
+          >
+            <span>Ask AI</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button
-          onClick={() => onNavigateTab && onNavigateTab('study-assistant')}
-          className="btn-spec-primary text-xs py-2 px-4 flex items-center gap-1.5 shrink-0"
-        >
-          <span>Ask Study Assistant</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+
+        {/* Card 2: Academic Classroom Hub */}
+        <div className="p-4 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-spec hover:border-cyan-400 transition-colors">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+              <GraduationCap className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-text">Classroom Hub</h3>
+                <span className="text-[10px] uppercase font-bold tracking-spec-label px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/25">
+                  5 Subjects
+                </span>
+              </div>
+              <p className="text-xs text-text-muted mt-0.5 line-clamp-1">
+                Interactive quizzes, lecture resources, assignments & exam prep.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigateTab && onNavigateTab('classroom')}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 transition-colors flex items-center gap-1.5 shrink-0 shadow-sm"
+          >
+            <span>Enter Classroom</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* 12-COLUMN BENTO GRID: ROW 2 - Performance Trend (8 cols) & Attendance Calendar (4 cols) */}
