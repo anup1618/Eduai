@@ -75,23 +75,23 @@ export const StudentIntelligencePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-up">
       {/* View & Sort Control Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 spec-card p-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500">
-            Cohort Roster: <strong className="text-slate-900">{sortedStudents.length}</strong> students
+          <span className="text-xs font-semibold text-text-muted">
+            Cohort Roster: <strong className="text-text">{sortedStudents.length}</strong> students
           </span>
         </div>
 
         {/* Sorting controls & view toggle */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <span>Sort by:</span>
             <select
               value={sortField}
               onChange={e => setSortField(e.target.value as any)}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800 font-semibold focus:outline-none"
+              className="bg-card border border-border rounded-lg px-2.5 py-1 text-text font-semibold focus:outline-none focus:border-accent"
             >
               <option value="score">Success Score</option>
               <option value="cgpa">Academic CGPA</option>
@@ -101,26 +101,26 @@ export const StudentIntelligencePage: React.FC = () => {
             </select>
             <button
               onClick={() => setSortDirection(prev => (prev === 'desc' ? 'asc' : 'desc'))}
-              className="p-1 text-slate-400 hover:text-slate-700 rounded bg-slate-50 border border-slate-200"
+              className="p-1 text-text-muted hover:text-text rounded bg-card border border-border"
               title="Toggle sort direction"
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="flex items-center rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+          <div className="flex items-center rounded-xl border border-border p-0.5 bg-card">
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-md text-xs font-medium ${
-                viewMode === 'table' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-700'
+              className={`p-1.5 rounded-lg text-xs font-medium transition ${
+                viewMode === 'table' ? 'bg-accent/20 text-accent font-bold shadow-sm' : 'text-text-muted hover:text-text'
               }`}
             >
               <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md text-xs font-medium ${
-                viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-700'
+              className={`p-1.5 rounded-lg text-xs font-medium transition ${
+                viewMode === 'grid' ? 'bg-accent/20 text-accent font-bold shadow-sm' : 'text-text-muted hover:text-text'
               }`}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -131,27 +131,27 @@ export const StudentIntelligencePage: React.FC = () => {
 
       {/* TABLE VIEW */}
       {viewMode === 'table' ? (
-        <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="spec-card p-0 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/80 text-slate-600 border-b border-slate-200">
+              <thead className="bg-card-hover text-text-muted border-b border-border">
                 <tr>
                   <th className="py-3 px-3.5 font-semibold">Student ID & Name</th>
                   <th className="py-3 px-3 font-semibold">Department & Year</th>
                   <th
-                    className="py-3 px-3 font-semibold cursor-pointer hover:text-teal-700"
+                    className="py-3 px-3 font-semibold cursor-pointer hover:text-accent"
                     onClick={() => toggleSort('score')}
                   >
                     Success Score
                   </th>
                   <th
-                    className="py-3 px-3 font-semibold cursor-pointer hover:text-teal-700"
+                    className="py-3 px-3 font-semibold cursor-pointer hover:text-accent"
                     onClick={() => toggleSort('cgpa')}
                   >
                     CGPA / Backlogs
                   </th>
                   <th
-                    className="py-3 px-3 font-semibold cursor-pointer hover:text-teal-700"
+                    className="py-3 px-3 font-semibold cursor-pointer hover:text-accent"
                     onClick={() => toggleSort('attendance')}
                   >
                     Attendance
@@ -162,7 +162,7 @@ export const StudentIntelligencePage: React.FC = () => {
                   <th className="py-3 px-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {sortedStudents.map(student => {
                   const scoreRes = calculateStudentSuccessScore(student, weights);
                   const acad = evaluateAcademicRisk(student, academicThresholds);
@@ -172,21 +172,21 @@ export const StudentIntelligencePage: React.FC = () => {
                   return (
                     <tr
                       key={student.student_id}
-                      className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                      className="hover:bg-card-hover transition-colors group cursor-pointer"
                       onClick={() => setSelectedStudent(student)}
                     >
                       {/* Identity */}
                       <td className="py-3 px-3.5">
-                        <div className="font-bold text-slate-900 group-hover:text-teal-700 transition">
+                        <div className="font-bold text-text group-hover:text-accent transition">
                           {student.name}
                         </div>
-                        <div className="text-[11px] font-mono text-slate-400">{student.student_id}</div>
+                        <div className="text-[11px] font-mono text-text-muted">{student.student_id}</div>
                       </td>
 
                       {/* Dept & Year */}
                       <td className="py-3 px-3">
-                        <div className="text-slate-800 font-medium">{student.department}</div>
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-text font-medium">{student.department}</div>
+                        <div className="text-[11px] text-text-muted">
                           {student.academic_year} • {student.semester}
                         </div>
                       </td>
@@ -198,31 +198,31 @@ export const StudentIntelligencePage: React.FC = () => {
                             <span
                               className={`text-sm font-extrabold ${
                                 scoreRes.final_score >= 75
-                                  ? 'text-emerald-700'
+                                  ? 'text-status-success'
                                   : scoreRes.final_score >= 60
-                                  ? 'text-teal-700'
-                                  : 'text-rose-700'
+                                  ? 'text-accent'
+                                  : 'text-status-danger'
                               }`}
                             >
                               {scoreRes.final_score}
                             </span>
-                            <span className="text-[10px] text-slate-400">/100</span>
+                            <span className="text-[10px] text-text-muted">/100</span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 italic text-[11px]">Insufficient Data</span>
+                          <span className="text-text-muted italic text-[11px]">Insufficient Data</span>
                         )}
                       </td>
 
                       {/* CGPA */}
                       <td className="py-3 px-3">
-                        <div className="font-semibold text-slate-800">
+                        <div className="font-semibold text-text">
                           {student.academic.cgpa !== null ? student.academic.cgpa.toFixed(2) : '—'}
                         </div>
                         <div className="text-[11px]">
                           {(student.academic.backlogs ?? 0) > 0 ? (
-                            <span className="text-rose-600 font-semibold">{student.academic.backlogs} backlogs</span>
+                            <span className="text-status-danger font-semibold">{student.academic.backlogs} backlogs</span>
                           ) : (
-                            <span className="text-slate-400">0 backlogs</span>
+                            <span className="text-text-muted">0 backlogs</span>
                           )}
                         </div>
                       </td>
@@ -233,16 +233,16 @@ export const StudentIntelligencePage: React.FC = () => {
                           <span
                             className={`font-semibold ${
                               student.attendance.overall_attendance < 65
-                                ? 'text-rose-600 font-bold'
+                                ? 'text-status-danger font-bold'
                                 : student.attendance.overall_attendance < 75
-                                ? 'text-amber-600'
-                                : 'text-slate-800'
+                                ? 'text-status-warning'
+                                : 'text-text'
                             }`}
                           >
                             {student.attendance.overall_attendance.toFixed(1)}%
                           </span>
                         ) : (
-                          <span className="text-slate-400 italic">—</span>
+                          <span className="text-text-muted italic">—</span>
                         )}
                       </td>
 
@@ -258,7 +258,7 @@ export const StudentIntelligencePage: React.FC = () => {
 
                       {/* Segment */}
                       <td className="py-3 px-3">
-                        <span className="text-[11px] font-medium text-slate-700 line-clamp-1 max-w-[150px]">
+                        <span className="text-[11px] font-medium text-text-muted line-clamp-1 max-w-[150px]">
                           {seg.segment}
                         </span>
                       </td>
@@ -269,21 +269,21 @@ export const StudentIntelligencePage: React.FC = () => {
                           <button
                             onClick={() => setTargetStudentForScore(student)}
                             title="Why this score?"
-                            className="p-1.5 text-slate-400 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
+                            className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/15 rounded-lg transition"
                           >
                             <HelpCircle className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setTargetStudentForWhatIf(student)}
                             title="What-If Simulator"
-                            className="p-1.5 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
+                            className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/15 rounded-lg transition"
                           >
                             <Sliders className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setTargetStudentForIntervention(student)}
                             title="Add Intervention"
-                            className="p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            className="p-1.5 text-text-muted hover:text-status-success hover:bg-status-success/15 rounded-lg transition"
                           >
                             <LifeBuoy className="w-3.5 h-3.5" />
                           </button>
@@ -309,25 +309,25 @@ export const StudentIntelligencePage: React.FC = () => {
               <div
                 key={student.student_id}
                 onClick={() => setSelectedStudent(student)}
-                className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-sm hover:shadow hover:border-teal-500/50 transition cursor-pointer flex flex-col justify-between space-y-3"
+                className="spec-card p-4 cursor-pointer flex flex-col justify-between space-y-3"
               >
                 <div>
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-card-hover text-accent border border-border">
                         {student.student_id}
                       </span>
-                      <h4 className="text-sm font-bold text-slate-900 mt-1">{student.name}</h4>
-                      <p className="text-[11px] text-slate-400">
+                      <h4 className="text-sm font-bold text-text mt-1">{student.name}</h4>
+                      <p className="text-[11px] text-text-muted">
                         {student.department} • {student.academic_year}
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-base font-extrabold text-teal-800">
+                      <div className="text-base font-extrabold text-accent">
                         {scoreRes.final_score !== null ? `${scoreRes.final_score}/100` : 'Insufficient'}
                       </div>
-                      <span className="text-[10px] text-slate-400">Success Score</span>
+                      <span className="text-[10px] text-text-muted">Success Score</span>
                     </div>
                   </div>
 
@@ -335,44 +335,44 @@ export const StudentIntelligencePage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-1.5 mt-3">
                     <Badge label={acad.risk_level} riskLevel={acad.risk_level} size="sm" />
                     <Badge label={place.risk_level} riskLevel={place.risk_level} size="sm" />
-                    <span className="text-[10px] text-slate-500 px-2 py-0.5 rounded bg-slate-100">
+                    <span className="text-[10px] text-text-muted px-2 py-0.5 rounded bg-card-hover border border-border">
                       {student.data_quality.data_completeness_percentage}% Data
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-600 mt-2 line-clamp-2 leading-relaxed">
-                    <strong>{seg.segment}:</strong> {seg.primary_reason}
+                  <p className="text-xs text-text-muted mt-2 line-clamp-2 leading-relaxed">
+                    <strong className="text-text">{seg.segment}:</strong> {seg.primary_reason}
                   </p>
                 </div>
 
                 {/* Footer metrics & actions */}
                 <div
-                  className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs"
+                  className="pt-2 border-t border-border flex items-center justify-between text-xs"
                   onClick={e => e.stopPropagation()}
                 >
-                  <div className="text-[11px] text-slate-500">
-                    CGPA: <strong>{student.academic.cgpa?.toFixed(2) ?? '—'}</strong> | Att:{' '}
-                    <strong>{student.attendance.overall_attendance?.toFixed(0) ?? '—'}%</strong>
+                  <div className="text-[11px] text-text-muted">
+                    CGPA: <strong className="text-text">{student.academic.cgpa?.toFixed(2) ?? '—'}</strong> | Att:{' '}
+                    <strong className="text-text">{student.attendance.overall_attendance?.toFixed(0) ?? '—'}%</strong>
                   </div>
 
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => setTargetStudentForScore(student)}
-                      className="p-1 text-slate-400 hover:text-teal-700"
+                      className="p-1 text-text-muted hover:text-accent rounded-lg"
                       title="Why this score?"
                     >
                       <HelpCircle className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setTargetStudentForWhatIf(student)}
-                      className="p-1 text-slate-400 hover:text-blue-700"
+                      className="p-1 text-text-muted hover:text-accent rounded-lg"
                       title="What-If"
                     >
                       <Sliders className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setTargetStudentForIntervention(student)}
-                      className="p-1 text-slate-400 hover:text-emerald-700"
+                      className="p-1 text-text-muted hover:text-status-success rounded-lg"
                       title="Intervene"
                     >
                       <LifeBuoy className="w-3.5 h-3.5" />

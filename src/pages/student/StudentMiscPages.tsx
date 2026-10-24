@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import {
   MessageSquare, Send, CheckCircle2, Clock, AlertCircle,
-  User, Shield, Mail, Phone, MapPin, Camera, Moon, Sun, Lock
+  User, Shield, Mail, Phone, MapPin, Camera, Moon, Sun, Lock, Sparkles
 } from 'lucide-react';
-import { DEMO_STUDENT, DEMO_PROBLEMS } from '../../data/portalData';
+import { DEMO_PROBLEMS } from '../../data/portalData';
 import { useCurrentStudent } from '../../context/CampusDataContext';
+import { useTheme } from '../../context/ThemeContext';
+import { SpecPageHeader, SpecKpiCard } from '../../components/common/SpecComponents';
 
 // ─── 1. MY PROBLEM REQUESTS PAGE ──────────────────────────────────────────────
 
@@ -18,7 +20,6 @@ export function StudentMyProblemPage() {
   const [priority, setPriority] = useState<'Normal' | 'Important'>('Normal');
   const [submittedAlert, setSubmittedAlert] = useState<string | null>(null);
 
-  // Sync faculty when subject changes
   const handleSubjectChange = (newSub: string) => {
     setSubject(newSub);
     const match = s.subjects.find(sub => sub.name === newSub);
@@ -53,166 +54,147 @@ export function StudentMyProblemPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold gradient-title">My Problem Requests</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Submit academic queries and support requests directly to assigned course faculty</p>
-      </div>
+    <div className="space-y-6 animate-fade-up">
+      {/* Page Header */}
+      <SpecPageHeader
+        title="My Problem Requests"
+        semesterChip={s.semester}
+        subtitle="Submit academic queries, assignment doubts, and remediation requests directly to faculty mentors"
+        sessionText="Direct Mentorship"
+        standingChip={{ text: `${requests.length} Total Requests`, variant: 'accent' }}
+      />
 
       {submittedAlert && (
-        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-status-success/15 border border-status-success/30 text-status-success text-xs font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
           {submittedAlert}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Submission Form (5 cols) */}
-        <div className="lg:col-span-5 glow-card panel p-5 space-y-4">
-          <h3 className="text-sm font-bold text-slate-200">Submit New Academic Request</h3>
-          <p className="text-xs text-slate-400">
-            Faculty will be notified and can propose one-on-one reviews or assignment revisions.
-          </p>
+      {/* 12-Column Bento Grid: Form (5 cols) & History (7 cols) */}
+      <div className="grid grid-cols-12 gap-4">
+        {/* Submit Form (5 cols) */}
+        <div className="spec-card col-span-12 lg:col-span-5 flex flex-col justify-between">
+          <div>
+            <h2 className="title-section mb-1">New Support Request</h2>
+            <p className="text-xs text-text-muted mb-4">Direct ticket routed to course professor</p>
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Subject</label>
-              <select
-                value={subject}
-                onChange={e => handleSubjectChange(e.target.value)}
-                className="w-full bg-[#0b1226] border border-[#14224a] rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-cyan-400 outline-none"
-              >
-                {s.subjects.map(sub => (
-                  <option key={sub.name} value={sub.name}>{sub.name} ({sub.faculty})</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Faculty In-Charge</label>
-              <input
-                type="text"
-                disabled
-                value={faculty}
-                className="w-full bg-[#0b1226]/50 border border-[#14224a] rounded-lg px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Topic / Specific Concept (Optional)</label>
-              <input
-                type="text"
-                placeholder="e.g., Dynamic Programming memoization"
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                className="w-full bg-[#0b1226] border border-[#14224a] rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-cyan-400 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Priority Level</label>
-              <div className="flex gap-3">
-                {(['Normal', 'Important'] as const).map(p => (
-                  <label key={p} className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="priority"
-                      checked={priority === p}
-                      onChange={() => setPriority(p)}
-                      className="accent-cyan-400"
-                    />
-                    {p}
-                  </label>
-                ))}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label-spec block mb-1.5">Select Subject:</label>
+                <select
+                  value={subject}
+                  onChange={e => handleSubjectChange(e.target.value)}
+                  className="input-spec w-full text-xs"
+                >
+                  {s.subjects.map(sub => (
+                    <option key={sub.name} value={sub.name} className="bg-card text-text">
+                      {sub.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">
-                Detailed Description <span className="text-[10px] text-slate-500">(min. 10 chars)</span>
-              </label>
-              <textarea
-                rows={4}
-                required
-                placeholder="Describe specifically what concept you are struggling with..."
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                className="w-full bg-[#0b1226] border border-[#14224a] rounded-lg p-3 text-xs text-slate-200 focus:border-cyan-400 outline-none"
-              />
-            </div>
+              <div>
+                <label className="label-spec block mb-1.5">Assigned Faculty:</label>
+                <input
+                  type="text"
+                  value={faculty}
+                  readOnly
+                  className="input-spec w-full text-xs opacity-75 cursor-not-allowed bg-card-hover"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={description.trim().length < 10}
-              className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-                description.trim().length >= 10
-                  ? 'btn-primary text-white shadow-glow-blue'
-                  : 'bg-[#14224a] text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              <Send className="w-3.5 h-3.5" /> Submit Request
-            </button>
-          </form>
+              <div>
+                <label className="label-spec block mb-1.5">Topic / Concept:</label>
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={e => setTopic(e.target.value)}
+                  placeholder="e.g. Backpropagation algorithm doubt"
+                  className="input-spec w-full text-xs"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="label-spec block mb-1.5">Problem Details:</label>
+                <textarea
+                  rows={4}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Describe your question or difficulty in detail..."
+                  className="input-spec w-full text-xs resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="priorityFlag"
+                    checked={priority === 'Important'}
+                    onChange={e => setPriority(e.target.checked ? 'Important' : 'Normal')}
+                    className="accent-[var(--accent)] rounded"
+                  />
+                  <label htmlFor="priorityFlag" className="text-xs text-text-muted">
+                    Mark as Important
+                  </label>
+                </div>
+
+                <button type="submit" className="btn-spec-primary text-xs py-2 px-4">
+                  <Send className="w-3.5 h-3.5" /> Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
-        {/* Right: Request History & Replies (7 cols) */}
-        <div className="lg:col-span-7 space-y-4">
-          <h3 className="text-sm font-bold text-slate-200">Your Submitted Requests ({requests.length})</h3>
+        {/* Existing Requests History (7 cols) */}
+        <div className="spec-card col-span-12 lg:col-span-7 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="title-section">Request History</h2>
+              <span className="label-spec text-[10px]">FACULTY AUDIT</span>
+            </div>
 
-          <div className="space-y-3">
-            {requests.map(req => (
-              <div key={req.id} className="glow-card panel p-4 space-y-3">
-                <div className="flex items-start justify-between flex-wrap gap-2 border-b border-[#14224a] pb-2.5">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-extrabold text-cyan-400">{req.id}</span>
-                      <span className="text-xs font-bold text-slate-200">{req.subject}</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Faculty: {req.faculty} · Submitted: {req.submitted}</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {req.priority === 'Important' && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                        Important
-                      </span>
-                    )}
-                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                      req.status === 'Resolved' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                      req.status === 'In Progress' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                      'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                    }`}>
+            <div className="space-y-3">
+              {requests.map(req => (
+                <div
+                  key={req.id}
+                  className="p-4 rounded-xl bg-card border border-border hover:border-accent transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-mono text-xs font-bold text-accent">{req.id}</span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        req.status === 'Resolved'
+                          ? 'bg-status-success/15 text-status-success'
+                          : 'bg-status-warning/15 text-status-warning'
+                      }`}
+                    >
                       {req.status}
                     </span>
                   </div>
-                </div>
 
-                <div>
-                  <p className="text-[11px] text-slate-400 uppercase font-semibold">Topic: {req.topic}</p>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">{req.description}</p>
-                </div>
+                  <h4 className="text-xs font-bold text-text">{req.topic}</h4>
+                  <p className="text-[11px] text-text-muted mt-0.5">
+                    {req.subject} · To: {req.faculty} · {req.submitted}
+                  </p>
+                  <p className="text-xs text-text-muted mt-2 bg-card-hover/40 p-2.5 rounded-lg border border-border/40">
+                    "{req.description}"
+                  </p>
 
-                {/* Faculty Response if available */}
-                {req.reply ? (
-                  <div className="p-3 rounded-lg bg-[#0b1226] border border-blue-500/30 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-cyan-400 font-bold">
-                      <span>Faculty Response ({req.faculty})</span>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                  {req.reply && (
+                    <div className="mt-2.5 p-2.5 rounded-lg bg-accent/10 border border-accent/20 text-xs">
+                      <span className="font-bold text-accent">Faculty Response: </span>
+                      <span className="text-text">{req.reply}</span>
                     </div>
-                    <p className="text-xs text-slate-300">{req.reply}</p>
-                    {req.next_step && (
-                      <p className="text-[11px] text-amber-300 font-semibold pt-1 border-t border-[#14224a]">
-                        Next Step: {req.next_step}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-2.5 rounded-lg bg-[#0b1226]/50 border border-[#14224a] text-[11px] text-slate-500 flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5" /> Awaiting faculty review and response.
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -220,106 +202,63 @@ export function StudentMyProblemPage() {
   );
 }
 
-// ─── 2. STUDENT PROFILE & SETTINGS ────────────────────────────────────────────
+// ─── 2. STUDENT PROFILE PAGE ──────────────────────────────────────────────────
 
 export function StudentProfilePage() {
   const s = useCurrentStudent();
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-extrabold gradient-title">My Profile</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Academic registration details, institutional credentials, and student snapshot</p>
-      </div>
+    <div className="space-y-6 animate-fade-up">
+      <SpecPageHeader
+        title="Student Profile"
+        semesterChip={s.semester}
+        subtitle="Official campus registrar information, academic credentials, and institutional contact"
+        sessionText="Registrar Record"
+        standingChip={{ text: 'Verified', variant: 'success' }}
+      />
 
-      {/* Header banner card */}
-      <div className="glow-card panel overflow-hidden">
-        <div className="h-28 bg-gradient-to-r from-blue-900/60 via-cyan-900/40 to-blue-950/80 border-b border-[#14224a]" />
-        <div className="p-6 relative pt-0">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between -mt-12 gap-4 pb-4 border-b border-[#14224a]">
-            <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-white text-3xl font-extrabold shadow-[0_0_24px_rgba(47,123,255,0.4)] border-4 border-[#05070f]">
-                {s.avatar_initials}
-              </div>
-              <div>
-                <h2 className="text-xl font-extrabold text-white">{s.name}</h2>
-                <p className="text-xs text-slate-400 mt-0.5">{s.department} · {s.academic_year} ({s.semester})</p>
-                <div className="flex items-center gap-2 justify-center sm:justify-start mt-2">
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-blue-500/20 text-cyan-400 border border-blue-500/30">
-                    Roll: {s.roll_no}
-                  </span>
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">
-                    Enrolled Active
-                  </span>
-                </div>
-              </div>
-            </div>
+      <div className="grid grid-cols-12 gap-4">
+        {/* Profile Card (4 cols) */}
+        <div className="spec-card col-span-12 lg:col-span-4 flex flex-col items-center text-center">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-brand-royal to-accent text-accent-contrast font-bold text-3xl flex items-center justify-center mb-4 shadow-spec-card">
+            {s.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
           </div>
-
-          {/* Quick Snapshot Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
-            <div className="panel-raised p-3 rounded-xl border border-[#14224a]">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Cumulative CGPA</span>
-              <div className="text-lg font-bold text-cyan-400 mt-0.5">{s.cgpa.toFixed(2)}</div>
-            </div>
-            <div className="panel-raised p-3 rounded-xl border border-[#14224a]">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Overall Attendance</span>
-              <div className="text-lg font-bold text-green-400 mt-0.5">{s.overall_attendance}%</div>
-            </div>
-            <div className="panel-raised p-3 rounded-xl border border-[#14224a]">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Success Score</span>
-              <div className="text-lg font-bold text-blue-400 mt-0.5">{s.success_score}/100</div>
-            </div>
-            <div className="panel-raised p-3 rounded-xl border border-[#14224a]">
-              <span className="text-[10px] text-slate-500 uppercase font-semibold">Active Backlogs</span>
-              <div className="text-lg font-bold text-white mt-0.5">{s.backlogs}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glow-card panel p-5 space-y-3">
-          <h3 className="text-sm font-bold text-slate-200">Contact & Institutional Info</h3>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between py-1.5 border-b border-[#14224a]/50">
-              <span className="text-slate-400">Institutional Email</span>
-              <span className="text-slate-200 font-medium">{s.email}</span>
-            </div>
-            <div className="flex justify-between py-1.5 border-b border-[#14224a]/50">
-              <span className="text-slate-400">Contact Number</span>
-              <span className="text-slate-200 font-medium">{s.phone}</span>
-            </div>
-            <div className="flex justify-between py-1.5 border-b border-[#14224a]/50">
-              <span className="text-slate-400">Date of Birth</span>
-              <span className="text-slate-200 font-medium">{s.dob}</span>
-            </div>
-            <div className="flex justify-between py-1.5 border-b border-[#14224a]/50">
-              <span className="text-slate-400">Parent / Guardian</span>
-              <span className="text-slate-200 font-medium">{s.guardian}</span>
-            </div>
-            <div className="flex justify-between py-1.5">
-              <span className="text-slate-400">Permanent Address</span>
-              <span className="text-slate-200 font-medium">{s.address}</span>
-            </div>
-          </div>
+          <h2 className="text-lg font-bold text-text">{s.name}</h2>
+          <span className="text-xs font-mono text-accent mt-0.5">{s.roll_no}</span>
+          <p className="text-xs text-text-muted mt-1">{s.department}</p>
+          <span className="mt-3 px-3 py-1 rounded-full bg-accent/15 text-accent text-xs font-bold border border-accent/30">
+            {s.semester}
+          </span>
         </div>
 
-        <div className="glow-card panel p-5 space-y-3">
-          <h3 className="text-sm font-bold text-slate-200">Current Semester Enrolled Subjects</h3>
-          <div className="space-y-2 text-xs">
-            {s.subjects.map(sub => (
-              <div key={sub.code} className="flex items-center justify-between p-2 rounded-lg bg-[#0b1226] border border-[#14224a]">
-                <div>
-                  <span className="font-bold text-white">{sub.code}: {sub.name}</span>
-                  <p className="text-[10px] text-slate-400">{sub.faculty}</p>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-cyan-400 border border-blue-500/30">
-                  {sub.internal_pct}% int
-                </span>
-              </div>
-            ))}
+        {/* Details (8 cols) */}
+        <div className="spec-card col-span-12 lg:col-span-8">
+          <h2 className="title-section mb-4">Academic & Personal Particulars</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <span className="label-spec text-[10px]">EMAIL ADDRESS</span>
+              <p className="font-semibold text-text mt-1">{s.email || `${s.name.toLowerCase().replace(' ', '.')}@campus.edu`}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <span className="label-spec text-[10px]">BATCH / SESSION</span>
+              <p className="font-semibold text-text mt-1">2023 - 2027 (Undergraduate B.Tech)</p>
+            </div>
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <span className="label-spec text-[10px]">CURRENT CGPA</span>
+              <p className="font-semibold text-accent mt-1">{s.cgpa.toFixed(2)} / 10.0</p>
+            </div>
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <span className="label-spec text-[10px]">TOTAL ATTENDANCE</span>
+              <p className="font-semibold text-text mt-1">{s.overall_attendance}% Cumulative</p>
+            </div>
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <span className="label-spec text-[10px]">PLACEMENTS ELIGIBILITY</span>
+              <p className="font-semibold text-status-success mt-1">Eligible (Zero Active Backlogs)</p>
+            </div>
+            <div className="p-3 rounded-xl bg-card border border-border">
+              <span className="label-spec text-[10px]">CAMPUS MENTOR</span>
+              <p className="font-semibold text-text mt-1">Dr. Priya Menon (Dept of CSE)</p>
+            </div>
           </div>
         </div>
       </div>
@@ -330,44 +269,53 @@ export function StudentProfilePage() {
 // ─── 3. SETTINGS PAGE ─────────────────────────────────────────────────────────
 
 export function StudentSettingsPage() {
-  return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-extrabold gradient-title">Settings</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Portal preferences, appearance, and credentials</p>
-      </div>
+  const { theme, toggleTheme } = useTheme();
 
-      <div className="glow-card panel p-5 space-y-4">
-        <h3 className="text-sm font-bold text-slate-200">Interface Theme</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3.5 rounded-xl bg-blue-600/10 border-2 border-cyan-400 flex items-center gap-3 cursor-pointer">
-            <Moon className="w-5 h-5 text-cyan-400" />
+  return (
+    <div className="space-y-6 animate-fade-up">
+      <SpecPageHeader
+        title="Settings & Preferences"
+        subtitle="Theme configuration, alert thresholds, and security parameters"
+        sessionText="User Configuration"
+        standingChip={{ text: 'Personalized', variant: 'accent' }}
+      />
+
+      <div className="spec-card max-w-2xl space-y-6">
+        <div>
+          <h2 className="title-section mb-1">Visual Theme</h2>
+          <p className="text-xs text-text-muted mb-4">
+            Toggle between Dark Theme (Electric Mint) and Light Theme (Royal Blue)
+          </p>
+          <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border">
             <div>
-              <p className="text-xs font-bold text-white">Pure Black (Default)</p>
-              <p className="text-[10px] text-slate-400">Optimized for hackathon judging</p>
+              <span className="text-xs font-bold text-text">Active Theme: </span>
+              <span className="text-xs text-accent font-semibold capitalize">{theme} Mode</span>
             </div>
-          </div>
-          <div className="p-3.5 rounded-xl bg-[#0b1226] border border-[#14224a] opacity-50 flex items-center gap-3 cursor-not-allowed">
-            <Sun className="w-5 h-5 text-slate-500" />
-            <div>
-              <p className="text-xs font-bold text-slate-400">Light Theme</p>
-              <p className="text-[10px] text-slate-500">Disabled in hackathon MVP</p>
-            </div>
+            <button onClick={toggleTheme} className="btn-spec-primary text-xs py-1.5 px-4">
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              Switch to {theme === 'dark' ? 'Light' : 'Dark'}
+            </button>
           </div>
         </div>
-      </div>
 
-      <div className="glow-card panel p-5 space-y-4">
-        <h3 className="text-sm font-bold text-slate-200">Security Credentials</h3>
-        <p className="text-xs text-slate-400">
-          Single sign-on managed via institutional directory. Password reset requires IT helpdesk ticket.
-        </p>
-        <button
-          disabled
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-[#14224a] text-slate-500 cursor-not-allowed flex items-center gap-2"
-        >
-          <Lock className="w-4 h-4" /> Change Password (Managed by College SSO)
-        </button>
+        <div className="pt-4 border-t border-border">
+          <h2 className="title-section mb-1">Notification Preferences</h2>
+          <p className="text-xs text-text-muted mb-3">Manage automated early warnings and exam notifications</p>
+          <div className="space-y-2.5">
+            <label className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border cursor-pointer">
+              <input type="checkbox" defaultChecked className="accent-[var(--accent)]" />
+              <span className="text-xs text-text font-medium">Email alert when subject attendance drops below 75%</span>
+            </label>
+            <label className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border cursor-pointer">
+              <input type="checkbox" defaultChecked className="accent-[var(--accent)]" />
+              <span className="text-xs text-text font-medium">Weekly AI Progress Synthesis notification</span>
+            </label>
+            <label className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border cursor-pointer">
+              <input type="checkbox" defaultChecked className="accent-[var(--accent)]" />
+              <span className="text-xs text-text font-medium">Placement drive qualification alerts</span>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   );

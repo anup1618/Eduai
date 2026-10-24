@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { parseCSV, validateDataset, mergeValidatedRecords } from '../engine/dataValidator';
+import { parseCSV, parseSpreadsheet, validateDataset, mergeValidatedRecords } from '../engine/dataValidator';
 import { UnifiedStudent } from '../types/student';
+import * as XLSX from 'xlsx';
 
 describe('Data Integration & CSV Validator', () => {
   it('parses CSV text into rows and headers correctly', () => {
@@ -13,6 +14,27 @@ EP-CS-002,7.2,70,1`;
     expect(rows.length).toBe(2);
     expect(rows[0]['student_id']).toBe('EP-CS-001');
     expect(rows[0]['cgpa']).toBe('8.5');
+  });
+
+  it('parses binary Excel XLSX workbooks correctly with parseSpreadsheet', () => {
+    // Generate an in-memory XLSX workbook
+    const testData = [
+      { student_id: 'STU-XLSX-01', name: 'Excel Student 1', department: 'Computer Science', cgpa: 9.1 },
+      { student_id: 'STU-XLSX-02', name: 'Excel Student 2', department: 'Mechanical', cgpa: 7.8 },
+    ];
+    const ws = XLSX.utils.json_to_sheet(testData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Students');
+    const xlsxBuffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+
+    const { headers, rows } = parseSpreadsheet(xlsxBuffer);
+    expect(headers).toContain('student_id');
+    expect(headers).toContain('name');
+    expect(headers).toContain('department');
+    expect(headers).toContain('cgpa');
+    expect(rows.length).toBe(2);
+    expect(rows[0]['student_id']).toBe('STU-XLSX-01');
+    expect(rows[0]['name']).toBe('Excel Student 1');
   });
 
   it('validates ranges and catches invalid CGPA (> 10)', () => {
@@ -37,6 +59,39 @@ EP-CS-002,7.2,70,1`;
 
     const result = validateDataset('attendance', headers, rows);
     expect(result.duplicateIds).toContain('EP-CS-001');
+  });
+
+  it('creates brand new student profiles from full roster category ingestion', () => {
+    const existing: UnifiedStudent[] = [];
+    const rosterRecords = [
+      {
+        student_id: 'NEW-2026-001',
+        name: 'Pooja Sharma',
+        department: 'Information Technology',
+        academic_year: '3rd Year',
+        semester: 'Sem 6',
+        email: 'pooja.s@edupulse.edu',
+        cgpa: 8.75,
+        internal_marks: 86,
+        overall_attendance: 94.0,
+        aptitude_score: 82,
+        coding_score: 88,
+        technical_skill_score: 85,
+        soft_skill_score: 80,
+      },
+    ];
+
+    const mergeRes = mergeValidatedRecords(existing, 'roster', rosterRecords, 'merge');
+    expect(mergeRes.newStudentsAdded).toBe(1);
+    expect(mergeRes.mergedStudents.length).toBe(1);
+
+    const created = mergeRes.mergedStudents[0];
+    expect(created.student_id).toBe('NEW-2026-001');
+    expect(created.name).toBe('Pooja Sharma');
+    expect(created.academic.cgpa).toBe(8.75);
+    expect(created.attendance.overall_attendance).toBe(94.0);
+    expect(created.placement.coding_score).toBe(88);
+    expect(created.data_quality.data_completeness_percentage).toBeGreaterThan(50);
   });
 
   it('merges records without silently overwriting when in merge mode', () => {
@@ -68,3 +123,4 @@ EP-CS-002,7.2,70,1`;
     expect(mergeRes.mergedStudents[0].academic.cgpa).toBe(8.0); // Preserved
   });
 });
+

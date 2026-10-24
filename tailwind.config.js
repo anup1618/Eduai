@@ -4,45 +4,62 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: ['class', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {
-        // UI_SPEC design tokens
-        page: '#000000',
-        panel: '#05070f',
-        raised: '#0b1226',
-        border: '#14224a',
-        blue: {
-          accent: '#2f7bff',
-          600: '#2563eb',
-          500: '#3b82f6',
-          400: '#60a5fa',
-          300: '#93c5fd',
+        // Semantic Theme Tokens
+        bg: 'var(--bg)',
+        sidebar: 'var(--sidebar)',
+        card: 'var(--card)',
+        'card-hover': 'var(--card-hover)',
+        border: 'var(--border)',
+        text: 'var(--text)',
+        'text-muted': 'var(--text-muted)',
+        accent: 'var(--accent)',
+        'accent-contrast': 'var(--accent-contrast)',
+
+        // Brand Palette
+        brand: {
+          mint: '#2AF5C8',
+          carbon: '#141414',
+          royal: '#014BAA',
+          cream: '#F8F3F0',
         },
-        cyan: {
-          accent: '#22d3ee',
-          400: '#22d3ee',
-          300: '#67e8f9',
-        },
-        // Status colors
+
+        // Status Colors
         status: {
-          green: '#22c55e',
-          red: '#ef4444',
-          amber: '#f59e0b',
-          grey: '#6b7280',
-        }
+          success: '#10B981',
+          warning: '#F59E0B',
+          danger: '#EF4444',
+        },
+
+        // Chart Tokens
+        chart: {
+          1: 'var(--chart-1)',
+          2: 'var(--chart-2)',
+          3: 'var(--chart-3)',
+          4: 'var(--chart-4)',
+          5: 'var(--chart-5)',
+          6: 'var(--chart-6)',
+        },
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
-      backgroundImage: {
-        'panel-gradient': 'linear-gradient(135deg, #0a1022, #05070f)',
-        'btn-primary': 'linear-gradient(135deg, #2563eb, #2f7bff, #22d3ee)',
-        'sidebar-active': 'linear-gradient(90deg, rgba(47,123,255,0.2), rgba(34,211,238,0.1))',
+      borderRadius: {
+        'spec-card': '20px',
+        'spec-sidebar': '22px',
+        'spec-btn': '12px',
+        'spec-chip': '10px',
       },
       boxShadow: {
-        'glow-blue': '0 0 24px rgba(47, 123, 255, 0.25)',
-        'glow-cyan': '0 0 16px rgba(34, 211, 238, 0.2)',
+        'spec-card': 'var(--shadow-card)',
+        'spec-hover': 'var(--shadow-card-hover)',
+        'spec-glow': '0 0 24px var(--accent-glow)',
+      },
+      letterSpacing: {
+        'spec-label': '0.08em',
       },
     },
   },

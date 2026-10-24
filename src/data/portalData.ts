@@ -1,7 +1,7 @@
 import { INITIAL_STUDENTS } from './initialStudents';
 import { UnifiedStudent } from '../types/student';
 
-export type PortalRole = 'login' | 'student' | 'faculty' | 'admin';
+export type PortalRole = 'login' | 'student' | 'faculty' | 'admin' | 'tpo';
 
 // ─── Demo Credentials ──────────────────────────────────────────────────────────
 export interface DemoCredential {
@@ -24,9 +24,9 @@ export interface DemoCredential {
 export const FEATURED_DEMO_STUDENTS = [
   {
     id: 'STU001',
-    name: 'Arjun Sharma',
-    email: 'arjun.sharma@edupulse.edu',
-    altEmail: 'aarav.sharma019@example.com',
+    name: 'Anup Kumar',
+    email: 'anup.kumar@edupulse.edu',
+    altEmail: 'anup.kumar@example.com',
     password: 'student@123',
     department: 'Computer Science',
     course: 'B Tech CSE',
@@ -289,6 +289,19 @@ export const DEMO_CREDENTIALS: DemoCredential[] = [
     color: 'from-teal-600 to-emerald-500',
     accentColor: 'text-teal-400',
     badgeBg: 'bg-teal-500/10 border-teal-500/30',
+  },
+  // Training & Placement Officer (TPO)
+  {
+    role: 'tpo',
+    label: 'TPO',
+    email: 'tpo@edupulse.edu',
+    password: 'tpo@123',
+    name: 'Prof. Vikram Malhotra',
+    subtitle: 'Training & Placement Officer · Corporate Relations',
+    avatarInitials: 'VM',
+    color: 'from-amber-600 to-orange-500',
+    accentColor: 'text-amber-400',
+    badgeBg: 'bg-amber-500/10 border-amber-500/30',
   },
 ];
 

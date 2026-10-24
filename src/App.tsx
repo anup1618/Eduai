@@ -24,9 +24,9 @@ import {
 import { StudentDrawer } from './components/student/StudentDrawer';
 import { CampusAnalystModal } from './components/analyst/CampusAnalystModal';
 
-// Entry & Other Portals
 import { LoginPage } from './pages/LoginPage';
 import { FacultyPortal } from './pages/FacultyPortal';
+import { TPOPlatform } from './pages/TPOPlatform';
 import { StudentShell, StudentPage } from './components/portal/StudentShell';
 import {
   StudentDashboardPage,
@@ -41,6 +41,8 @@ import {
   StudentSettingsPage,
 } from './pages/student/StudentMiscPages';
 import { PortalRole } from './data/portalData';
+
+import { ThemeProvider } from './context/ThemeContext';
 
 // ─── ADMIN PORTAL CONTENT ─────────────────────────────────────────────────────
 
@@ -84,7 +86,7 @@ const AdminPortalContent: React.FC<{ onSwitchPortal: () => void }> = ({ onSwitch
   };
 
   return (
-    <div className="min-h-screen bg-black text-slate-200 flex">
+    <div className="min-h-screen bg-bg text-text flex relative overflow-x-hidden">
       {/* Persistent Sidebar */}
       <Sidebar
         currentPage={currentPage}
@@ -96,7 +98,7 @@ const AdminPortalContent: React.FC<{ onSwitchPortal: () => void }> = ({ onSwitch
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen relative z-10">
         {/* Header */}
         <Header
           currentPage={currentPage}
@@ -172,23 +174,33 @@ export function App() {
   const [activeRole, setActiveRole] = useState<PortalRole>('login');
 
   return (
-    <CampusDataProvider>
-      {activeRole === 'login' && (
-        <LoginPage onSelectRole={role => setActiveRole(role)} />
-      )}
+    <ThemeProvider>
+      <CampusDataProvider>
+        {/* Ambient background glowing blobs per Design Spec */}
+        <div className="ambient-blob-mint top-[-100px] left-[-100px]" />
+        <div className="ambient-blob-blue bottom-[-150px] right-[-100px]" />
 
-      {activeRole === 'student' && (
-        <StudentPortalContent onLogout={() => setActiveRole('login')} />
-      )}
+        {activeRole === 'login' && (
+          <LoginPage onSelectRole={role => setActiveRole(role)} />
+        )}
 
-      {activeRole === 'faculty' && (
-        <FacultyPortal onLogout={() => setActiveRole('login')} />
-      )}
+        {activeRole === 'student' && (
+          <StudentPortalContent onLogout={() => setActiveRole('login')} />
+        )}
 
-      {activeRole === 'admin' && (
-        <AdminPortalContent onSwitchPortal={() => setActiveRole('login')} />
-      )}
-    </CampusDataProvider>
+        {activeRole === 'faculty' && (
+          <FacultyPortal onLogout={() => setActiveRole('login')} />
+        )}
+
+        {activeRole === 'tpo' && (
+          <TPOPlatform onLogout={() => setActiveRole('login')} />
+        )}
+
+        {activeRole === 'admin' && (
+          <AdminPortalContent onSwitchPortal={() => setActiveRole('login')} />
+        )}
+      </CampusDataProvider>
+    </ThemeProvider>
   );
 }
 

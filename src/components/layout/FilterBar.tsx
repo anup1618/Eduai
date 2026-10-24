@@ -54,23 +54,23 @@ export const FilterBar: React.FC = () => {
     filters.searchQuery.trim() !== '';
 
   return (
-    <div className="bg-[#05070f] border-b border-[#14224a] px-4 sm:px-6 py-3 space-y-3">
+    <div className="bg-bg/95 border-b border-border px-4 sm:px-6 py-3 space-y-3">
       {/* Top Search & Filter Summary */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Search input */}
         <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
             value={filters.searchQuery}
             onChange={e => setFilters({ searchQuery: e.target.value })}
-            placeholder="Search by student name, ID (e.g. EP-CS-001), or dept..."
-            className="w-full pl-9 pr-8 py-1.5 text-xs bg-[#0b1226] border border-[#14224a] rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition"
+            placeholder="Search by student name, ID, or department..."
+            className="w-full pl-9 pr-8 py-1.5 text-xs bg-card border border-border rounded-xl text-text placeholder:text-text-muted focus:outline-none focus:border-accent"
           />
           {filters.searchQuery && (
             <button
               onClick={() => setFilters({ searchQuery: '' })}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -79,14 +79,14 @@ export const FilterBar: React.FC = () => {
 
         {/* Status & Reset */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">
-            Showing <strong className="text-cyan-400">{filteredStudents.length}</strong> of{' '}
-            <strong className="text-slate-200">{students.length}</strong> students
+          <span className="text-xs text-text-muted">
+            Showing <strong className="text-accent">{filteredStudents.length}</strong> of{' '}
+            <strong className="text-text">{students.length}</strong> students
           </span>
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg text-red-400 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 transition"
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-xl text-status-danger bg-status-danger/10 border border-status-danger/30 hover:bg-status-danger/20 transition"
             >
               <RotateCcw className="w-3 h-3" />
               Reset All
@@ -99,16 +99,16 @@ export const FilterBar: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
         {/* Department */}
         <div>
-          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          <label className="block label-spec text-[10px] mb-1">
             Department
           </label>
           <select
             value={filters.department}
             onChange={e => setFilters({ department: e.target.value as any })}
-            className="w-full text-xs bg-[#0b1226] border border-[#14224a] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-400"
+            className="w-full text-xs bg-card border border-border rounded-xl px-2.5 py-1.5 text-text focus:outline-none focus:border-accent"
           >
             {DEPARTMENTS.map(d => (
-              <option key={d} value={d}>
+              <option key={d} value={d} className="bg-card text-text">
                 {d}
               </option>
             ))}
@@ -117,16 +117,16 @@ export const FilterBar: React.FC = () => {
 
         {/* Academic Year */}
         <div>
-          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          <label className="block label-spec text-[10px] mb-1">
             Academic Year
           </label>
           <select
             value={filters.academic_year}
             onChange={e => setFilters({ academic_year: e.target.value as any })}
-            className="w-full text-xs bg-[#0b1226] border border-[#14224a] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-400"
+            className="w-full text-xs bg-card border border-border rounded-xl px-2.5 py-1.5 text-text focus:outline-none focus:border-accent"
           >
             {YEARS.map(y => (
-              <option key={y} value={y}>
+              <option key={y} value={y} className="bg-card text-text">
                 {y}
               </option>
             ))}
@@ -135,16 +135,16 @@ export const FilterBar: React.FC = () => {
 
         {/* Semester */}
         <div>
-          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          <label className="block label-spec text-[10px] mb-1">
             Semester
           </label>
           <select
             value={filters.semester}
             onChange={e => setFilters({ semester: e.target.value as any })}
-            className="w-full text-xs bg-[#0b1226] border border-[#14224a] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-400"
+            className="w-full text-xs bg-card border border-border rounded-xl px-2.5 py-1.5 text-text focus:outline-none focus:border-accent"
           >
             {SEMESTERS.map(s => (
-              <option key={s} value={s}>
+              <option key={s} value={s} className="bg-card text-text">
                 {s}
               </option>
             ))}
@@ -153,17 +153,17 @@ export const FilterBar: React.FC = () => {
 
         {/* Academic Risk */}
         <div>
-          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          <label className="block label-spec text-[10px] mb-1">
             Academic Risk
           </label>
           <select
             value={filters.academic_risk}
             onChange={e => setFilters({ academic_risk: e.target.value as any })}
-            className="w-full text-xs bg-[#0b1226] border border-[#14224a] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-400"
+            className="w-full text-xs bg-card border border-border rounded-xl px-2.5 py-1.5 text-text focus:outline-none focus:border-accent"
           >
             {RISK_LEVELS.map(r => (
-              <option key={r} value={r}>
-                {r === 'All' ? 'All Risks' : `${r} Risk`}
+              <option key={r} value={r} className="bg-card text-text">
+                {r}
               </option>
             ))}
           </select>
@@ -171,34 +171,34 @@ export const FilterBar: React.FC = () => {
 
         {/* Placement Risk */}
         <div>
-          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+          <label className="block label-spec text-[10px] mb-1">
             Placement Risk
           </label>
           <select
             value={filters.placement_risk}
             onChange={e => setFilters({ placement_risk: e.target.value as any })}
-            className="w-full text-xs bg-[#0b1226] border border-[#14224a] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-400"
+            className="w-full text-xs bg-card border border-border rounded-xl px-2.5 py-1.5 text-text focus:outline-none focus:border-accent"
           >
             {RISK_LEVELS.map(r => (
-              <option key={r} value={r}>
-                {r === 'All' ? 'All Risks' : `${r} Risk`}
+              <option key={r} value={r} className="bg-card text-text">
+                {r}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Segment */}
+        {/* Cohort Segment */}
         <div>
-          <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-            Segment
+          <label className="block label-spec text-[10px] mb-1">
+            Student Segment
           </label>
           <select
             value={filters.segment}
             onChange={e => setFilters({ segment: e.target.value as any })}
-            className="w-full text-xs bg-[#0b1226] border border-[#14224a] rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-cyan-400"
+            className="w-full text-xs bg-card border border-border rounded-xl px-2.5 py-1.5 text-text focus:outline-none focus:border-accent truncate"
           >
             {SEGMENTS.map(s => (
-              <option key={s} value={s}>
+              <option key={s} value={s} className="bg-card text-text">
                 {s}
               </option>
             ))}

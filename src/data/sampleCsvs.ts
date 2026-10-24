@@ -1,6 +1,26 @@
 // Downloadable CSV Templates and Sample Datasets
 
 export const CSV_TEMPLATES: Record<string, { filename: string; template: string; sample: string }> = {
+  roster: {
+    filename: 'edupulse_full_roster_template.csv',
+    template: 'student_id,name,department,academic_year,semester,email,cgpa,internal_marks,backlogs,overall_attendance,aptitude_score,coding_score,mock_interview_score,lms_logins,assignment_completion,technical_skill_score,soft_skill_score\n',
+    sample: `student_id,name,department,academic_year,semester,email,cgpa,internal_marks,backlogs,overall_attendance,aptitude_score,coding_score,mock_interview_score,lms_logins,assignment_completion,technical_skill_score,soft_skill_score
+STU-NEW-01,Aryan Varma,Computer Science,3rd Year,Sem 6,aryan.varma@edupulse.edu,8.45,88,0,91.5,84,86,80,24,92,85,80
+STU-NEW-02,Sneha Patel,Information Technology,3rd Year,Sem 6,sneha.patel@edupulse.edu,7.60,74,0,84.0,72,70,75,18,80,75,78
+STU-NEW-03,Karan Malhotra,Electronics,2nd Year,Sem 4,karan.m@edupulse.edu,6.10,56,1,68.5,55,50,58,10,55,60,65
+STU-NEW-04,Ananya Deshmukh,Computer Science,3rd Year,Sem 5,ananya.d@edupulse.edu,8.90,92,0,94.0,90,92,88,32,96,88,85
+STU-NEW-05,Rohan Mehta,Mechanical,4th Year,Sem 7,rohan.m@edupulse.edu,7.15,65,0,76.0,68,62,70,14,72,70,72
+`,
+  },
+  identity: {
+    filename: 'edupulse_student_identity_template.csv',
+    template: 'student_id,name,department,academic_year,semester,email\n',
+    sample: `student_id,name,department,academic_year,semester,email
+STU-NEW-01,Aryan Varma,Computer Science,3rd Year,Sem 6,aryan.varma@edupulse.edu
+STU-NEW-02,Sneha Patel,Information Technology,3rd Year,Sem 6,sneha.patel@edupulse.edu
+STU-NEW-03,Karan Malhotra,Electronics,2nd Year,Sem 4,karan.m@edupulse.edu
+`,
+  },
   academic: {
     filename: 'edupulse_academic_template.csv',
     template: 'student_id,cgpa,internal_marks,backlogs\n',

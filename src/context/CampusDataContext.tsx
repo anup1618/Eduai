@@ -12,7 +12,10 @@ import { DEFAULT_PLACEMENT_THRESHOLDS } from '../engine/placementRiskEngine';
 import { evaluateAcademicRisk } from '../engine/academicRiskEngine';
 import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
 import { assignStudentSegment } from '../engine/segmentationEngine';
-import { mergeValidatedRecords, DatasetCategory, MergeResult } from '../engine/dataValidator';
+import { mergeValidatedRecords, DatasetCategory, MergeResult, IngestionResult } from '../engine/dataValidator';
+import api, { DatabaseHealth, AuthUserProfile, getAuthToken } from '../services/api';
+
+export type DbConnectionStatus = 'connected' | 'offline' | 'checking';
 
 interface CampusDataContextType {
   students: UnifiedStudent[];
@@ -46,9 +49,33 @@ interface CampusDataContextType {
   updateWeights: (newWeights: ScoreWeights) => void;
   updateAcademicThresholds: (newThresholds: AcademicRiskThresholds) => void;
   updatePlacementThresholds: (newThresholds: PlacementRiskThresholds) => void;
-  mergeDataRecords: (category: DatasetCategory, records: Record<string, any>[], mode?: 'merge' | 'overwrite' | 'preserve') => MergeResult;
+  mergeDataRecords: (category: DatasetCategory, records: Record<string, any>[], mode?: 'merge' | 'overwrite' | 'preserve') => Promise<IngestionResult>;
   resetToDemoData: () => void;
+  // Authentication & Role Scoping
+  currentUser: AuthUserProfile | null;
+  setCurrentUser: (user: AuthUserProfile | null) => void;
+  loginUser: (creds: {
+    role: 'admin' | 'faculty' | 'student' | 'tpo';
+    username?: string;
+    email?: string;
+    password?: string;
+    student_id?: string;
+  }) => Promise<any>;
+  logoutUser: () => void;
+  uploadSpreadsheetToBackend: (payload: {
+    fileName: string;
+    fileData: string;
+    format: 'xlsx' | 'csv';
+    conflictMode?: 'merge' | 'overwrite' | 'preserve';
+  }) => Promise<any>;
+  // MongoDB database sync integration
+  dbStatus: DbConnectionStatus;
+  dbHealth: DatabaseHealth | null;
+  isSyncing: boolean;
+  refreshFromDatabase: () => Promise<boolean>;
+  seedToDatabase: () => Promise<boolean>;
 }
+
 
 const CampusDataContext = createContext<CampusDataContextType | undefined>(undefined);
 
@@ -151,6 +178,136 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return 0;
   });
 
+  // Current authenticated user (Admin, Faculty, Student)
+  const [currentUser, setCurrentUser] = useState<AuthUserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('edupulse_current_user_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  });
+
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem('edupulse_current_user_v1', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('edupulse_current_user_v1');
+      }
+    } catch (e) {}
+  }, [currentUser]);
+
+  // MongoDB connection & sync state
+  const [dbStatus, setDbStatus] = useState<DbConnectionStatus>('checking');
+  const [dbHealth, setDbHealth] = useState<DatabaseHealth | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  // Sync / fetch from MongoDB (Auth-aware)
+  const refreshFromDatabase = async (): Promise<boolean> => {
+    setIsSyncing(true);
+    try {
+      // Ensure we have an active auth token. If not, auto-authenticate as admin.
+      if (!getAuthToken()) {
+        try {
+          const authRes = await api.login({ role: 'admin', email: 'admin@edupulse.edu', password: 'admin@123' });
+          if (authRes?.user) {
+            setCurrentUser(authRes.user);
+          }
+        } catch (authErr) {
+          console.warn('[EduPulse] Auto-auth failed:', authErr);
+        }
+      }
+
+      const healthRes = await api.checkHealth();
+      setDbHealth(healthRes.database);
+      if (healthRes.database?.isConnected) {
+        setDbStatus('connected');
+        const dbStudents = await api.getStudents();
+        if (dbStudents && dbStudents.length > 0) {
+          setStudents(dbStudents);
+        }
+        const dbInterventions = await api.getInterventions();
+        if (dbInterventions && dbInterventions.length > 0) {
+          setInterventions(dbInterventions);
+        }
+        const dbSettings = await api.getSettings();
+        if (dbSettings) {
+          if (dbSettings.weights) setWeights(dbSettings.weights);
+          if (dbSettings.academicThresholds) setAcademicThresholds(dbSettings.academicThresholds);
+          if (dbSettings.placementThresholds) setPlacementThresholds(dbSettings.placementThresholds);
+        }
+        setIsSyncing(false);
+        return true;
+      } else {
+        setDbStatus('offline');
+        setIsSyncing(false);
+        return false;
+      }
+    } catch (e) {
+      // Server not running or proxy not responding, fallback gracefully to client localStorage
+      setDbStatus('offline');
+      setIsSyncing(false);
+      return false;
+    }
+  };
+
+  const loginUser = async (creds: {
+    role: 'admin' | 'faculty' | 'student' | 'tpo';
+    username?: string;
+    email?: string;
+    password?: string;
+    student_id?: string;
+  }) => {
+    const res = await api.login(creds);
+    if (res.user) {
+      setCurrentUser(res.user);
+      if (res.user.role === 'student' && res.student) {
+        setLoggedInStudent(res.student);
+        setSelectedStudent(res.student);
+        setStudents([res.student]);
+      } else {
+        await refreshFromDatabase();
+      }
+    }
+    return res;
+  };
+
+  const logoutUser = () => {
+    api.logout();
+    setCurrentUser(null);
+    localStorage.removeItem('edupulse_current_user_v1');
+  };
+
+  const uploadSpreadsheetToBackend = async (payload: {
+    fileName: string;
+    fileData: string;
+    format: 'xlsx' | 'csv';
+    conflictMode?: 'merge' | 'overwrite' | 'preserve';
+  }) => {
+    const res = await api.uploadSpreadsheetFile(payload);
+    await refreshFromDatabase();
+    return res;
+  };
+
+  const seedToDatabase = async (): Promise<boolean> => {
+    setIsSyncing(true);
+    try {
+      await api.seedDatabase();
+      await refreshFromDatabase();
+      setIsSyncing(false);
+      return true;
+    } catch (e) {
+      console.error('[EduPulse] Failed to seed database:', e);
+      setIsSyncing(false);
+      return false;
+    }
+  };
+
+  // Initial check on mount
+  useEffect(() => {
+    refreshFromDatabase();
+  }, []);
+
   useEffect(() => {
     try {
       if (loggedInStudent) {
@@ -164,6 +321,7 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem('edupulse_logged_in_faculty_v1', String(loggedInFacultyIdx));
     } catch (e) {}
   }, [loggedInFacultyIdx]);
+
 
   const selectStudentForPortal = (studentOrId: UnifiedStudent | string) => {
     if (typeof studentOrId === 'object' && studentOrId !== null) {
@@ -367,14 +525,51 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setPlacementThresholds(newThresholds);
   };
 
-  const mergeDataRecords = (
+  const mergeDataRecords = async (
     category: DatasetCategory,
     records: Record<string, any>[],
     mode: 'merge' | 'overwrite' | 'preserve' = 'merge'
-  ): MergeResult => {
+  ): Promise<IngestionResult> => {
     const result = mergeValidatedRecords(students, category, records, mode);
     setStudents(result.mergedStudents);
-    return result;
+
+    let dbSync: IngestionResult['dbSync'];
+    try {
+      const syncRes = await api.bulkUpsertStudents(result.mergedStudents);
+      if (syncRes && syncRes.success) {
+        dbSync = {
+          success: true,
+          upserted: syncRes.result?.upserted ?? result.newStudentsAdded,
+          modified: syncRes.result?.modified ?? result.updatedStudents,
+        };
+        // Refresh health to reflect new counts
+        const health = await api.checkHealth().catch(() => null);
+        if (health?.database) {
+          setDbHealth(health.database);
+          setDbStatus('connected');
+        }
+      } else {
+        dbSync = {
+          success: false,
+          upserted: 0,
+          modified: 0,
+          error: syncRes?.message || 'Bulk upsert returned unsuccessful status',
+        };
+      }
+    } catch (err: any) {
+      console.warn('[EduPulse] MongoDB sync on merge had an issue:', err.message);
+      dbSync = {
+        success: false,
+        upserted: 0,
+        modified: 0,
+        error: err.message || 'Could not connect to MongoDB server',
+      };
+    }
+
+    return {
+      ...result,
+      dbSync,
+    };
   };
 
   const resetToDemoData = () => {
@@ -445,6 +640,16 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updatePlacementThresholds,
         mergeDataRecords,
         resetToDemoData,
+        currentUser,
+        setCurrentUser,
+        loginUser,
+        logoutUser,
+        uploadSpreadsheetToBackend,
+        dbStatus,
+        dbHealth,
+        isSyncing,
+        refreshFromDatabase,
+        seedToDatabase,
       }}
     >
       {children}

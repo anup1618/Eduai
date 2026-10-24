@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   Activity, LayoutDashboard, BarChart2, BookOpen, Calendar,
-  Brain, MessageSquare, User, Settings, LogOut, Menu, X, Bell, ChevronDown,
-  ArrowRightLeft, Check, ShieldAlert, Sparkles, Search
+  Brain, MessageSquare, User, Settings, LogOut, Menu, X, Bell,
+  ChevronDown, ChevronLeft, ChevronRight, ArrowRightLeft, Check, Search,
+  Sun, Moon, Sparkles, Zap
 } from 'lucide-react';
-import type { PortalRole } from '../../data/portalData';
 import { FEATURED_DEMO_STUDENTS } from '../../data/portalData';
 import { useCurrentStudent, useCampusData } from '../../context/CampusDataContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export type StudentPage =
   | 'dashboard' | 'analytics' | 'performance' | 'attendance'
@@ -19,24 +20,27 @@ interface StudentShellProps {
   children: React.ReactNode;
 }
 
-const navItems: { id: StudentPage; label: string; icon: React.ReactNode }[] = [
-  { id: 'dashboard',   label: 'Dashboard',          icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'analytics',   label: 'Analytics',           icon: <BarChart2 className="w-5 h-5" /> },
-  { id: 'performance', label: 'Performance',          icon: <BookOpen className="w-5 h-5" /> },
-  { id: 'attendance',  label: 'Attendance',           icon: <Calendar className="w-5 h-5" /> },
-  { id: 'ai-progress', label: 'AI Progress Tracker',  icon: <Brain className="w-5 h-5" /> },
-  { id: 'my-problem',  label: 'My Problem',           icon: <MessageSquare className="w-5 h-5" /> },
-  { id: 'profile',     label: 'My Profile',           icon: <User className="w-5 h-5" /> },
-  { id: 'settings',    label: 'Settings',             icon: <Settings className="w-5 h-5" /> },
-];
+interface NavItemConfig {
+  id: StudentPage;
+  label: string;
+  icon: React.ReactNode;
+  badge?: { text: string; variant: 'live' | 'alert' | 'neutral' };
+}
 
-export const StudentShell: React.FC<StudentShellProps> = ({ currentPage, onNavigate, onLogout, children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export const StudentShell: React.FC<StudentShellProps> = ({
+  currentPage,
+  onNavigate,
+  onLogout,
+  children
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const { theme, toggleTheme } = useTheme();
   const s = useCurrentStudent();
   const { students, selectStudentForPortal } = useCampusData();
 
@@ -47,299 +51,427 @@ export const StudentShell: React.FC<StudentShellProps> = ({ currentPage, onNavig
   ];
   const unreadCount = notifications.filter(n => n.unread).length;
 
-  const filteredSearchStudents = searchQuery.trim()
-    ? students.filter(st =>
-        st.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        st.student_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        st.email.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 8)
-    : [];
+  const navItems: NavItemConfig[] = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />,
+      badge: { text: 'Live', variant: 'live' }
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: <BarChart2 className="w-5 h-5 flex-shrink-0" />,
+      badge: s.overall_attendance < 75 ? { text: `${s.overall_attendance}% Alert`, variant: 'alert' } : undefined
+    },
+    {
+      id: 'performance',
+      label: 'Performance',
+      icon: <BookOpen className="w-5 h-5 flex-shrink-0" />
+    },
+    {
+      id: 'attendance',
+      label: 'Attendance',
+      icon: <Calendar className="w-5 h-5 flex-shrink-0" />,
+      badge: { text: `${s.overall_attendance}%`, variant: s.overall_attendance < 75 ? 'alert' : 'neutral' }
+    },
+    {
+      id: 'ai-progress',
+      label: 'AI Progress',
+      icon: <Brain className="w-5 h-5 flex-shrink-0" />,
+      badge: { text: 'AI', variant: 'live' }
+    },
+    {
+      id: 'my-problem',
+      label: 'My Problem',
+      icon: <MessageSquare className="w-5 h-5 flex-shrink-0" />,
+      badge: { text: '2 Active', variant: 'neutral' }
+    },
+    {
+      id: 'profile',
+      label: 'My Profile',
+      icon: <User className="w-5 h-5 flex-shrink-0" />
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: <Settings className="w-5 h-5 flex-shrink-0" />
+    },
+  ];
 
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="p-5 border-b border-[#14224a] flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-[0_0_16px_rgba(47,123,255,0.3)]">
-            <Activity className="w-5 h-5 text-white stroke-[2.5]" />
-          </div>
-          <div>
-            <div className="text-base font-extrabold tracking-tight gradient-title">EduPulse AI</div>
-            <div className="text-[10px] text-slate-500 font-medium">Student Portal</div>
-          </div>
-        </div>
-        <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  };
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(item => {
-          const isActive = currentPage === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => { onNavigate(item.id); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
-                isActive
-                  ? 'nav-active text-cyan-400'
-                  : 'text-slate-400 hover:bg-[#0b1226] hover:text-white'
-              }`}
-            >
-              <span className={isActive ? 'text-cyan-400' : 'text-slate-500'}>{item.icon}</span>
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Demo note */}
-      <div className="mx-3 mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-        <p className="text-[10px] text-amber-400 font-semibold">⚠ Demo Data</p>
-        <p className="text-[10px] text-slate-500 mt-0.5">Showing synthetic student data for demonstration.</p>
-      </div>
-
-      {/* Logout */}
-      <div className="p-3 border-t border-[#14224a]">
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          Log Out
-        </button>
-      </div>
-    </div>
-  );
+  const studentInitials = getInitials(s.name);
 
   return (
-    <div className="min-h-screen bg-black flex">
-      {/* Mobile backdrop */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
+    <div className="min-h-screen bg-bg text-text flex relative overflow-x-hidden">
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#03050c] border-r border-[#14224a] transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <SidebarContent />
+      {/* Floating Glass Sidebar (DESIGN SPEC) */}
+      <aside
+        className={`fixed top-4 bottom-4 left-4 z-50 rounded-spec-sidebar spec-glass transition-all duration-300 flex flex-col ${
+          collapsed ? 'w-[72px]' : 'w-[260px]'
+        } ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-[calc(100%+24px)] lg:translate-x-0'
+        }`}
+      >
+        {/* Collapse Toggle Button (Right Edge) */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="hidden lg:flex absolute -right-3.5 top-8 w-7 h-7 rounded-full bg-accent text-accent-contrast shadow-md items-center justify-center hover:scale-110 transition-transform z-10"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+
+        {/* Top: Logo Mark + EduPulse AI bold + STUDENT chip + subtitle */}
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center flex-shrink-0">
+              <Activity className="w-5 h-5 text-accent stroke-[2.5]" />
+            </div>
+
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-bold text-text tracking-tight">EduPulse AI</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                    STUDENT
+                  </span>
+                </div>
+                <p className="text-[11px] text-text-muted truncate">Intelligent Student OS</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="lg:hidden text-text-muted hover:text-text p-1 ml-auto"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Below Logo: Student Card */}
+        {!collapsed ? (
+          <div className="px-4 py-3 border-b border-border bg-card/40">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-royal to-accent flex items-center justify-center text-accent-contrast font-bold text-sm shadow-sm flex-shrink-0">
+                {studentInitials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-text truncate">{s.name}</div>
+                <div className="text-[11px] text-text-muted truncate">
+                  {s.department} · {s.semester}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="py-3 border-b border-border flex justify-center">
+            <div
+              className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-royal to-accent flex items-center justify-center text-accent-contrast font-bold text-xs"
+              title={`${s.name} (${s.department})`}
+            >
+              {studentInitials}
+            </div>
+          </div>
+        )}
+
+        {/* Search Field (if expanded) */}
+        {!collapsed && (
+          <div className="px-4 pt-3 pb-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search portal..."
+                className="w-full bg-card/60 border border-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-text placeholder:text-text-muted/60 focus:outline-none focus:border-accent"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Menu Label & Nav Items */}
+        <div className="flex-1 px-3 py-2 overflow-y-auto space-y-1">
+          {!collapsed && (
+            <div className="px-2 pt-2 pb-1 label-spec text-[10px]">MENU</div>
+          )}
+
+          {navItems.map(item => {
+            const isActive = currentPage === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onNavigate(item.id);
+                  setMobileOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all duration-150 relative group ${
+                  isActive
+                    ? 'bg-accent/15 text-accent font-semibold border-l-[3px] border-accent pl-2.5'
+                    : 'text-text-muted hover:text-text hover:bg-card-hover hover:translate-x-0.5'
+                }`}
+                title={collapsed ? item.label : undefined}
+              >
+                <span className={isActive ? 'text-accent' : 'text-text-muted group-hover:text-text'}>
+                  {item.icon}
+                </span>
+
+                {!collapsed && (
+                  <span className="truncate flex-1 text-left">{item.label}</span>
+                )}
+
+                {!collapsed && item.badge && (
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                      item.badge.variant === 'live'
+                        ? 'bg-accent/20 text-accent border border-accent/30'
+                        : item.badge.variant === 'alert'
+                        ? 'bg-status-warning/20 text-status-warning border border-status-warning/30'
+                        : 'bg-border text-text-muted'
+                    }`}
+                  >
+                    {item.badge.text}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Bottom Section: EduPulse Pro Mini Card & Logout */}
+        <div className="p-3 border-t border-border space-y-2">
+          {!collapsed ? (
+            <div className="p-3 rounded-xl bg-card border border-border relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles className="w-3.5 h-3.5 text-accent" />
+                <span className="text-xs font-bold text-text">EduPulse Pro</span>
+              </div>
+              <p className="text-[11px] text-text-muted leading-relaxed">
+                Semester 5 AI Diagnostics & Remedial Roadmap Active
+              </p>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/25 flex items-center justify-center text-accent" title="EduPulse Pro Active">
+                <Zap className="w-4 h-4" />
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={onLogout}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium text-text-muted hover:text-status-danger hover:bg-status-danger/10 transition-colors ${
+              collapsed ? 'justify-center' : ''
+            }`}
+            title="Switch Portal / Log Out"
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            {!collapsed && <span>Switch Portal / Log Out</span>}
+          </button>
+        </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
-        {/* Header */}
-        <header className="sticky top-0 z-30 h-16 bg-[#03050c]/80 backdrop-blur-md border-b border-[#14224a] flex items-center px-4 gap-4">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400 hover:text-white p-1">
+      {/* Main Content Area */}
+      <div
+        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 relative z-10 ${
+          collapsed ? 'lg:pl-[96px]' : 'lg:pl-[284px]'
+        }`}
+      >
+        {/* Top Bar (DESIGN SPEC) */}
+        <header className="sticky top-0 z-30 h-16 bg-bg/80 backdrop-blur-md border-b border-border flex items-center px-4 sm:px-6 gap-4">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden text-text-muted hover:text-text p-1.5 rounded-lg bg-card border border-border"
+          >
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Portal badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-600/10 border border-blue-600/30">
-            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            <span className="text-xs font-bold text-blue-400">Student Portal</span>
+          {/* Left: Rounded "Student Portal" pill with accent dot + Academic Session text */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/25">
+              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              <span className="text-xs font-bold text-accent">Student Portal</span>
+            </div>
+            <span className="hidden md:inline text-xs text-text-muted font-medium">
+              Academic Session 2025-26 · {s.semester}
+            </span>
           </div>
 
-          <div className="flex-1" />
-
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
-              className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#0b1226] transition-colors"
-            >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white font-bold flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            {notifOpen && (
-              <div className="absolute right-0 top-12 w-80 bg-[#0b1226] border border-[#14224a] rounded-xl shadow-2xl z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#14224a] flex items-center justify-between">
-                  <span className="text-sm font-bold text-white">Notifications</span>
-                  <button className="text-xs text-blue-400 hover:text-blue-300">Mark all read</button>
-                </div>
-                {notifications.map(n => (
-                  <div key={n.id} className={`px-4 py-3 border-b border-[#14224a]/50 flex gap-3 ${n.unread ? 'bg-blue-600/5' : ''}`}>
-                    {n.unread && <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0 mt-1.5" />}
-                    {!n.unread && <div className="w-2 h-2 flex-shrink-0" />}
-                    <div>
-                      <p className="text-xs text-slate-300">{n.text}</p>
-                      <p className="text-[10px] text-slate-500 mt-1">{n.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* Centre: Rounded Search Bar */}
+          <div className="flex-1 max-w-md mx-auto hidden sm:block">
+            <div className="relative">
+              <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search courses, exams, attendance..."
+                className="w-full bg-card border border-border rounded-full pl-9 pr-4 py-1.5 text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-accent"
+              />
+            </div>
           </div>
 
-          {/* Quick Switch Student Dropdown Button */}
-          <div className="relative">
+          {/* Right Controls: Theme Toggle, Notifications, Avatar Pill */}
+          <div className="flex items-center gap-2.5 ml-auto">
+            {/* Theme Toggle (Sun/Moon in a round button) */}
             <button
-              onClick={() => { setSwitcherOpen(!switcherOpen); setNotifOpen(false); setProfileOpen(false); }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-400 text-xs text-cyan-300 font-semibold transition-all hover:bg-cyan-500/20 shadow-sm"
-              title="Switch demo student to test different academic profiles"
+              onClick={toggleTheme}
+              className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-text hover:border-accent hover:text-accent transition-colors shadow-sm"
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Theme`}
             >
-              <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden md:inline">Switch Student:</span>
-              <span className="font-bold text-white max-w-[120px] truncate">{s.name}</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-cyan-400/20 text-cyan-200 font-mono">
-                {s.roll_no}
-              </span>
-              <ChevronDown className="w-3 h-3 text-cyan-400" />
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Switcher Dropdown Modal */}
-            {switcherOpen && (
-              <div className="absolute right-0 top-12 w-80 sm:w-96 bg-[#0b1226] border border-[#14224a] rounded-2xl shadow-2xl z-50 p-4 space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-[#14224a]">
-                  <div className="flex items-center gap-2">
-                    <ArrowRightLeft className="w-4 h-4 text-cyan-400" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Switch Active Student</span>
+            {/* Notification Bell with red count badge */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setNotifOpen(!notifOpen);
+                  setProfileOpen(false);
+                  setSwitcherOpen(false);
+                }}
+                className="relative w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-text-muted hover:text-text hover:border-accent transition-colors shadow-sm"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-status-danger text-white rounded-full text-[9px] font-bold flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover */}
+              {notifOpen && (
+                <div className="absolute right-0 top-12 w-80 bg-card border border-border rounded-2xl shadow-spec-hover z-50 p-3 space-y-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-border">
+                    <span className="text-xs font-bold text-text">Campus Notifications</span>
+                    <span className="text-[10px] text-accent font-semibold">{unreadCount} new</span>
                   </div>
-                  <button
-                    onClick={() => setSwitcherOpen(false)}
-                    className="text-slate-400 hover:text-white text-xs p-1"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-slate-400">
-                  Select a student below or search from all 100 campus profiles to observe their real-time grades, attendance, and risk analytics:
-                </p>
-
-                {/* Quick Featured Students */}
-                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                  {FEATURED_DEMO_STUDENTS.map(demo => {
-                    const isCurrent = s.name.toLowerCase() === demo.name.toLowerCase() || s.id === demo.id;
-                    return (
-                      <button
-                        key={demo.id}
-                        onClick={() => {
-                          selectStudentForPortal(demo.id);
-                          setSwitcherOpen(false);
-                        }}
-                        className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
-                          isCurrent
-                            ? 'bg-cyan-500/15 border-cyan-500/50 text-white'
-                            : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.08] hover:border-white/10 text-slate-300'
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                    {notifications.map(n => (
+                      <div
+                        key={n.id}
+                        className={`p-2.5 rounded-xl border text-left transition-colors ${
+                          n.unread
+                            ? 'bg-accent/10 border-accent/25'
+                            : 'bg-card-hover/40 border-border text-text-muted'
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${demo.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                            {demo.initials}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                              <span className="truncate">{demo.name}</span>
-                              {isCurrent && <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />}
-                            </div>
-                            <div className="text-[10px] text-slate-400 truncate">
-                              {demo.rollNo} · {demo.course}
-                            </div>
-                          </div>
-                        </div>
+                        <p className="text-xs text-text font-medium">{n.text}</p>
+                        <span className="text-[10px] text-text-muted mt-1 block">{n.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
 
-                        <div className="text-right flex-shrink-0">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                            demo.risk === 'High'
-                              ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                              : demo.risk === 'Medium'
-                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                              : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+            {/* Student Switcher & Profile Avatar Pill */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setSwitcherOpen(!switcherOpen);
+                  setNotifOpen(false);
+                }}
+                className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-card border border-border hover:border-accent transition-all shadow-sm group"
+                title="Switch student profile"
+              >
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-brand-royal to-accent text-accent-contrast font-bold text-xs flex items-center justify-center">
+                  {studentInitials}
+                </div>
+                <div className="hidden md:flex flex-col text-left">
+                  <span className="text-xs font-bold text-text truncate max-w-[110px]">{s.name}</span>
+                  <span className="text-[9px] text-text-muted font-mono">{s.roll_no}</span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-text-muted group-hover:text-accent transition-transform" />
+              </button>
+
+              {/* Switcher Modal */}
+              {switcherOpen && (
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-card border border-border rounded-2xl shadow-spec-hover z-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <ArrowRightLeft className="w-4 h-4 text-accent" />
+                      <span className="text-xs font-bold text-text uppercase tracking-spec-label">
+                        Switch Active Student
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setSwitcherOpen(false)}
+                      className="text-text-muted hover:text-text text-xs p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-text-muted">
+                    Test different student profiles to see how the dashboard dynamically adapts:
+                  </p>
+
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {FEATURED_DEMO_STUDENTS.map(demo => {
+                      const isCurrent = s.name.toLowerCase() === demo.name.toLowerCase() || s.id === demo.id;
+                      return (
+                        <button
+                          key={demo.id}
+                          onClick={() => {
+                            selectStudentForPortal(demo.id);
+                            setSwitcherOpen(false);
+                          }}
+                          className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2.5 ${
+                            isCurrent
+                              ? 'bg-accent/15 border-accent text-text'
+                              : 'bg-card border-border hover:bg-card-hover text-text-muted'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${demo.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                              {demo.initials}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-text flex items-center gap-1.5">
+                                <span className="truncate">{demo.name}</span>
+                                {isCurrent && <Check className="w-3.5 h-3.5 text-accent flex-shrink-0" />}
+                              </div>
+                              <div className="text-[10px] text-text-muted truncate">
+                                {demo.rollNo} · {demo.course}
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            demo.risk === 'High' ? 'bg-status-danger/15 text-status-danger' :
+                            demo.risk === 'Medium' ? 'bg-status-warning/15 text-status-warning' :
+                            'bg-status-success/15 text-status-success'
                           }`}>
                             {demo.risk} Risk
                           </span>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                            {demo.cgpa} CGPA · {demo.attendance}%
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Search all 100 students */}
-                <div className="pt-2 border-t border-[#14224a]">
-                  <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Search all 100 students (e.g. STU015, Aditi)..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-white/[0.05] border border-white/10 text-xs text-white placeholder-slate-500 outline-none focus:border-cyan-400"
-                    />
-                  </div>
-
-                  {filteredSearchStudents.length > 0 && (
-                    <div className="mt-2 space-y-1 max-h-36 overflow-y-auto">
-                      {filteredSearchStudents.map(st => (
-                        <button
-                          key={st.student_id}
-                          onClick={() => {
-                            selectStudentForPortal(st);
-                            setSwitcherOpen(false);
-                            setSearchQuery('');
-                          }}
-                          className="w-full text-left p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.08] text-xs flex items-center justify-between"
-                        >
-                          <span className="font-semibold text-white">{st.name} ({st.student_id})</span>
-                          <span className="text-[10px] text-slate-400">{st.department}</span>
                         </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Profile */}
-          <div className="relative">
-            <button
-              onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); setSwitcherOpen(false); }}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-[#0b1226] border border-[#14224a] hover:border-[#2f7bff] transition-colors"
-            >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">
-                {s.avatar_initials}
-              </div>
-              <span className="text-sm font-semibold text-white hidden sm:block">{s.name}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-            {profileOpen && (
-              <div className="absolute right-0 top-12 w-56 bg-[#0b1226] border border-[#14224a] rounded-xl shadow-2xl z-50 overflow-hidden">
-                <div className="px-4 py-4 bg-gradient-to-br from-blue-600/10 to-cyan-600/5 border-b border-[#14224a]">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center text-white font-bold mb-2">
-                    {s.avatar_initials}
+                      );
+                    })}
                   </div>
-                  <p className="text-sm font-bold text-white">{s.name}</p>
-                  <p className="text-xs text-slate-400">{s.roll_no} · {s.department}</p>
                 </div>
-                <div className="p-2">
-                  <button onClick={() => { setSwitcherOpen(true); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-cyan-400 hover:bg-cyan-500/10 transition-colors">
-                    <ArrowRightLeft className="w-4 h-4" /> Switch Student
-                  </button>
-                  <button onClick={() => { onNavigate('profile'); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-[#14224a] hover:text-white transition-colors">
-                    <User className="w-4 h-4" /> View Profile
-                  </button>
-                  <button onClick={() => { onNavigate('settings'); setProfileOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-[#14224a] hover:text-white transition-colors">
-                    <Settings className="w-4 h-4" /> Settings
-                  </button>
-                  <div className="border-t border-[#14224a] my-1" />
-                  <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                    <LogOut className="w-4 h-4" /> Log Out
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        {/* Main Content Body */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>

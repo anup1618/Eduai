@@ -1,14 +1,17 @@
 import { UnifiedStudent, Department, AcademicYear, Semester } from '../types/student';
+import * as XLSX from 'xlsx';
+import { CSV_TEMPLATES } from '../data/sampleCsvs';
 
 export type DatasetCategory =
+  | 'roster'
+  | 'identity'
   | 'academic'
   | 'attendance'
   | 'lms'
   | 'engagement'
   | 'placement'
   | 'skills'
-  | 'feedback'
-  | 'identity';
+  | 'feedback';
 
 export interface ValidationError {
   row: number;
@@ -38,10 +41,42 @@ export interface MergeResult {
   mergedStudents: UnifiedStudent[];
 }
 
+export interface IngestionResult extends MergeResult {
+  dbSync?: {
+    success: boolean;
+    upserted: number;
+    modified: number;
+    error?: string;
+  };
+}
+
 /**
  * Standard schemas for each data category
  */
 export const CATEGORY_SCHEMAS: Record<DatasetCategory, { name: string; requiredFields: string[]; sampleHeaders: string[] }> = {
+  roster: {
+    name: 'Full Student Roster (All-in-One)',
+    requiredFields: ['student_id', 'name', 'department'],
+    sampleHeaders: [
+      'student_id',
+      'name',
+      'department',
+      'academic_year',
+      'semester',
+      'email',
+      'cgpa',
+      'internal_marks',
+      'backlogs',
+      'overall_attendance',
+      'aptitude_score',
+      'coding_score',
+      'mock_interview_score',
+      'lms_logins',
+      'assignment_completion',
+      'technical_skill_score',
+      'soft_skill_score',
+    ],
+  },
   identity: {
     name: 'Student Identity',
     requiredFields: ['student_id', 'name', 'department'],
@@ -83,6 +118,73 @@ export const CATEGORY_SCHEMAS: Record<DatasetCategory, { name: string; requiredF
     sampleHeaders: ['student_id', 'student_satisfaction', 'faculty_feedback'],
   },
 };
+
+/**
+ * Universal Spreadsheet parser supporting Excel (.xlsx, .xls) and CSV
+ */
+export function parseSpreadsheet(data: ArrayBuffer | string): { headers: string[]; rows: Record<string, string>[] } {
+  try {
+    const workbook =
+      typeof data === 'string'
+        ? XLSX.read(data, { type: 'string' })
+        : XLSX.read(new Uint8Array(data), { type: 'array' });
+
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) return { headers: [], rows: [] };
+
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+    if (rawRows.length === 0) return { headers: [], rows: [] };
+
+    const rawHeaders = Object.keys(rawRows[0]).map(h => h.trim());
+    const rows: Record<string, string>[] = rawRows.map(row => {
+      const formatted: Record<string, string> = {};
+      for (const [k, v] of Object.entries(row)) {
+        formatted[k.trim()] = v !== undefined && v !== null ? String(v).trim() : '';
+      }
+      return formatted;
+    });
+
+    return { headers: rawHeaders, rows };
+  } catch (e) {
+    if (typeof data === 'string') {
+      return parseCSV(data);
+    }
+    throw e;
+  }
+}
+
+/**
+ * Export sample or template workbook as .xlsx or .csv
+ */
+export function exportDatasetTemplate(
+  category: DatasetCategory,
+  format: 'xlsx' | 'csv' = 'xlsx',
+  type: 'template' | 'sample' = 'template'
+) {
+  const tpl = CSV_TEMPLATES[category];
+  if (!tpl) return;
+
+  const content = type === 'template' ? tpl.template : tpl.sample;
+  const { headers, rows } = parseCSV(content);
+
+  if (format === 'csv') {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${type}_${category}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } else {
+    const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{}], { header: headers });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Student Data');
+    XLSX.writeFile(wb, `${type}_${category}.xlsx`);
+  }
+}
 
 /**
  * Parse raw CSV string into rows and header columns
@@ -344,7 +446,25 @@ export function mergeValidatedRecords(
       let modified = false;
 
       // Update specific category fields
-      if (category === 'academic') {
+      if (category === 'roster') {
+        if (record.name) existing.name = record.name;
+        if (record.department) existing.department = record.department as Department;
+        if (record.academic_year) existing.academic_year = record.academic_year as AcademicYear;
+        if (record.semester) existing.semester = record.semester as Semester;
+        if (record.email) existing.email = record.email;
+        if (record.cgpa !== undefined) existing.academic.cgpa = record.cgpa;
+        if (record.internal_marks !== undefined) existing.academic.internal_marks = record.internal_marks;
+        if (record.backlogs !== undefined) existing.academic.backlogs = record.backlogs;
+        if (record.overall_attendance !== undefined) existing.attendance.overall_attendance = record.overall_attendance;
+        if (record.aptitude_score !== undefined) existing.placement.aptitude_score = record.aptitude_score;
+        if (record.coding_score !== undefined) existing.placement.coding_score = record.coding_score;
+        if (record.mock_interview_score !== undefined) existing.placement.mock_interview_score = record.mock_interview_score;
+        if (record.lms_logins !== undefined) existing.lms.lms_logins = record.lms_logins;
+        if (record.assignment_completion !== undefined) existing.lms.assignment_completion = record.assignment_completion;
+        if (record.technical_skill_score !== undefined) existing.skills.technical_skill_score = record.technical_skill_score;
+        if (record.soft_skill_score !== undefined) existing.skills.soft_skill_score = record.soft_skill_score;
+        modified = true;
+      } else if (category === 'academic') {
         if (record.cgpa !== undefined && (conflictResolution === 'overwrite' || existing.academic.cgpa === null)) {
           if (existing.academic.cgpa !== null && existing.academic.cgpa !== record.cgpa) conflictCount++;
           existing.academic.cgpa = record.cgpa;
@@ -397,27 +517,52 @@ export function mergeValidatedRecords(
       }
     } else {
       // Record has no matching existing student
-      if (category === 'identity') {
-        // We can create a new student skeleton if identity data provided
+      if (category === 'roster' || category === 'identity') {
+        // Create full new student profile
         const newStudent: UnifiedStudent = {
           student_id: sId,
           name: record.name || `Student ${sId}`,
           department: (record.department as Department) || 'Computer Science',
           academic_year: (record.academic_year as AcademicYear) || '3rd Year',
           semester: (record.semester as Semester) || 'Sem 6',
-          email: record.email || `${sId.toLowerCase()}@university.edu`,
-          academic: { cgpa: null, internal_marks: null, backlogs: 0 },
-          attendance: { overall_attendance: null },
-          lms: { lms_logins: null, assignment_completion: null },
-          engagement: { events_participated: 0, club_participation: 0, hackathons: 0, certifications: 0 },
-          placement: { aptitude_score: null, coding_score: null, mock_interview_score: null, placement_preparation_participation: null },
-          skills: { technical_skill_score: null, soft_skill_score: null },
-          feedback: { student_satisfaction: null, faculty_feedback: null },
+          email: record.email || `${sId.toLowerCase()}@edupulse.edu`,
+          academic: {
+            cgpa: record.cgpa !== undefined ? record.cgpa : null,
+            internal_marks: record.internal_marks !== undefined ? record.internal_marks : null,
+            backlogs: record.backlogs !== undefined ? record.backlogs : 0,
+          },
+          attendance: {
+            overall_attendance: record.overall_attendance !== undefined ? record.overall_attendance : null,
+          },
+          lms: {
+            lms_logins: record.lms_logins !== undefined ? record.lms_logins : null,
+            assignment_completion: record.assignment_completion !== undefined ? record.assignment_completion : null,
+          },
+          engagement: {
+            events_participated: record.events_participated ?? 0,
+            club_participation: record.club_participation ?? 0,
+            hackathons: record.hackathons ?? 0,
+            certifications: record.certifications ?? 0,
+          },
+          placement: {
+            aptitude_score: record.aptitude_score !== undefined ? record.aptitude_score : null,
+            coding_score: record.coding_score !== undefined ? record.coding_score : null,
+            mock_interview_score: record.mock_interview_score !== undefined ? record.mock_interview_score : null,
+            placement_preparation_participation: record.placement_preparation_participation ?? null,
+          },
+          skills: {
+            technical_skill_score: record.technical_skill_score !== undefined ? record.technical_skill_score : null,
+            soft_skill_score: record.soft_skill_score !== undefined ? record.soft_skill_score : null,
+          },
+          feedback: {
+            student_satisfaction: record.student_satisfaction ?? null,
+            faculty_feedback: record.faculty_feedback ?? null,
+          },
           data_quality: {
             available_fields: 0,
             total_fields: 13,
-            missing_fields: ['Identity registered, metrics pending'],
-            data_completeness_percentage: 15,
+            missing_fields: [],
+            data_completeness_percentage: 0,
             has_minimum_evidence: false,
           },
           interventions: [],
