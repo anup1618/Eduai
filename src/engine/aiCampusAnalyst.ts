@@ -3,6 +3,7 @@ import { evaluateAcademicRisk } from './academicRiskEngine';
 import { evaluatePlacementRisk } from './placementRiskEngine';
 import { assignStudentSegment } from './segmentationEngine';
 import { calculateStudentSuccessScore } from './scoringEngine';
+import { findStudentInQuery, buildStudentDetailBundle } from './studentAiChatEngine';
 
 export interface AnalystResponse {
   query: string;
@@ -38,6 +39,33 @@ export function queryCampusAnalyst(
       metrics: [{ label: 'Active Students', value: 0 }],
       detailedBreakdown: ['Ensure valid records are present in the system.'],
       suggestedAction: 'Clear active filters in the top filter bar.',
+    };
+  }
+
+  // Check if a specific student is queried (e.g. STU001, Anup Sharma, Priya Singh)
+  const matchedStudent = findStudentInQuery(q, students);
+  if (matchedStudent) {
+    const bundle = buildStudentDetailBundle(matchedStudent);
+    return {
+      query,
+      answerTitle: `Student 360° Profile: ${matchedStudent.name} (${matchedStudent.student_id})`,
+      answerSummary: `${matchedStudent.name} is enrolled in ${matchedStudent.department} (${matchedStudent.semester}). Current Academic Standing: CGPA ${bundle.cgpa.toFixed(2)}, Attendance ${bundle.overallAttendance}% (${bundle.attendanceStatus}), Backlogs: ${bundle.backlogs}. Placement Readiness: ${bundle.placementTier} (Coding ${bundle.codingScore}/100, Aptitude ${bundle.aptitudeScore}/100).`,
+      metrics: [
+        { label: 'CGPA', value: bundle.cgpa.toFixed(2), sublabel: 'Scale 10.0' },
+        { label: 'Attendance', value: `${bundle.overallAttendance}%`, sublabel: bundle.attendanceStatus },
+        { label: 'Placement Tier', value: bundle.placementTier, sublabel: `Coding ${bundle.codingScore}/100` },
+        { label: 'Success Score', value: `${bundle.successScore}/100`, sublabel: `Risk: ${bundle.academicRisk.risk_level}` },
+      ],
+      detailedBreakdown: [
+        `Department: ${matchedStudent.department} · ${matchedStudent.semester} (${matchedStudent.academic_year})`,
+        `Assigned Faculty Mentor: ${bundle.mentorName} (${bundle.mentorDept}) · Contact: ${bundle.mentorEmail}`,
+        `Eligible Campus Drives: ${bundle.eligibleDrives.length > 0 ? bundle.eligibleDrives.slice(0, 3).join(', ') : 'None pending backlog clearance'}`,
+        `Academic Risk Level: ${bundle.academicRisk.risk_level} (Score ${bundle.academicRisk.risk_score}/100)`,
+        `Placement Risk Level: ${bundle.placementRisk.risk_level} (Score ${bundle.placementRisk.risk_score}/100)`,
+      ],
+      suggestedAction: `Click the student chip below to open ${matchedStudent.name}'s complete 360° profile drawer.`,
+      relatedStudentIds: [matchedStudent.student_id],
+      targetPage: 'student-intelligence',
     };
   }
 

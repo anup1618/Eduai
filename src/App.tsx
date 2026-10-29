@@ -23,6 +23,7 @@ import {
 // Global Overlays
 import { StudentDrawer } from './components/student/StudentDrawer';
 import { CampusAnalystModal } from './components/analyst/CampusAnalystModal';
+import { AIChatBotWidget } from './components/common/AIChatBotWidget';
 
 import { LoginPage } from './pages/LoginPage';
 import { FacultyPortal } from './pages/FacultyPortal';
@@ -49,7 +50,7 @@ import { ThemeProvider } from './context/ThemeContext';
 // ─── ADMIN PORTAL CONTENT ─────────────────────────────────────────────────────
 
 const AdminPortalContent: React.FC<{ onSwitchPortal: () => void }> = ({ onSwitchPortal }) => {
-  const { selectedStudent, setSelectedStudent } = useCampusData();
+  const { students, selectedStudent, setSelectedStudent } = useCampusData();
 
   const [currentPage, setCurrentPage] = useState<NavigationPage>('overview');
   const [collapsed, setCollapsed] = useState(false);
@@ -137,6 +138,13 @@ const AdminPortalContent: React.FC<{ onSwitchPortal: () => void }> = ({ onSwitch
         isOpen={isAnalystOpen}
         onClose={() => setIsAnalystOpen(false)}
         onNavigate={setCurrentPage}
+      />
+
+      {/* AI Student Intelligence Chatbot Widget (Admin Portal) */}
+      <AIChatBotWidget
+        students={students}
+        context="admin"
+        onSelectStudent={student => setSelectedStudent(student)}
       />
     </div>
   );

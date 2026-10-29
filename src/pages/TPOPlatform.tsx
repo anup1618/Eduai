@@ -46,6 +46,7 @@ import {
 } from '../types/tpo';
 import { UnifiedStudent } from '../types/student';
 import { SpecKpiCard, SpecPageHeader } from '../components/common/SpecComponents';
+import { AIChatBotWidget } from '../components/common/AIChatBotWidget';
 
 interface TPOPlatformProps {
   onLogout: () => void;
@@ -84,6 +85,7 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isTpoAiChatOpen, setIsTpoAiChatOpen] = useState(false);
 
   // Placement Data State
   const [drives, setDrives] = useState<PlacementDrive[]>(DEMO_PLACEMENT_DRIVES);
@@ -793,6 +795,16 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
 
           {/* Quick Header Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Student AI Chatbot Header Launcher */}
+            <button
+              onClick={() => setIsTpoAiChatOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#FF3B5C]/15 to-[#10B981]/15 border border-[#FF3B5C]/30 hover:border-[#FF3B5C] text-text text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
+              title="Query Student Placement Intelligence"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#FF3B5C]" />
+              <span className="hidden md:inline">Student AI Assistant</span>
+            </button>
+
             <button
               onClick={() => setIsCreateDriveOpen(true)}
               className="btn-spec-primary text-xs py-1.5 px-3 flex items-center gap-1.5"
@@ -3737,6 +3749,17 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
           </div>
         </div>
       )}
+      {/* ── AI CHATBOT WIDGET (TPO SECTION) ─────────────────────────────────── */}
+      <AIChatBotWidget
+        students={students}
+        context="tpo"
+        onSelectStudent={student => {
+          setSelectedStudentForDossier(student);
+          setDossierActiveTab('academics');
+        }}
+        isOpenExternal={isTpoAiChatOpen}
+        onCloseExternal={() => setIsTpoAiChatOpen(false)}
+      />
     </div>
   );
 };
