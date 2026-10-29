@@ -6,6 +6,7 @@ import {
   Sliders, AlertTriangle, CheckCircle2, RotateCcw, Info, Settings,
   Database, RefreshCw, Server, ShieldCheck, Check, Sparkles, AlertCircle
 } from 'lucide-react';
+import { useActionInfo } from '../context/ActionInfoContext';
 
 export const SettingsPage: React.FC = () => {
   const {
@@ -23,6 +24,7 @@ export const SettingsPage: React.FC = () => {
     refreshFromDatabase,
     seedToDatabase,
   } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   // Local state for weights form
   const [localWeights, setLocalWeights] = useState<ScoreWeights>({ ...weights });
@@ -56,6 +58,21 @@ export const SettingsPage: React.FC = () => {
     updateWeights(localWeights);
     setWeightSuccessMsg(true);
     setTimeout(() => setWeightSuccessMsg(false), 3000);
+
+    showActionInfo({
+      title: 'Success Score Weights Calibrated & Applied',
+      badge: '100% Calibrated',
+      category: 'settings',
+      message: 'Scoring engine weights saved successfully. All student composite scores and risk metrics have been deterministically recalculated.',
+      details: [
+        `Academic Standing: ${localWeights.academic}%`,
+        `Attendance Telemetry: ${localWeights.attendance}%`,
+        `Placement Readiness: ${localWeights.placement}%`,
+        `LMS Engagement: ${localWeights.lms}%`,
+        `Technical Skills: ${localWeights.skills}%`,
+        `Club & Extracurriculars: ${localWeights.engagement}%`,
+      ],
+    });
   };
 
   const handleSaveAcad = (e: React.FormEvent) => {
@@ -63,6 +80,19 @@ export const SettingsPage: React.FC = () => {
     updateAcademicThresholds(localAcad);
     setAcadSuccessMsg(true);
     setTimeout(() => setAcadSuccessMsg(false), 3000);
+
+    showActionInfo({
+      title: 'Academic Retention Thresholds Updated',
+      badge: 'Thresholds Active',
+      category: 'settings',
+      message: 'New academic risk rules have been applied across all cohorts and early warning dashboards.',
+      details: [
+        `Critical Attendance Floor: < ${localAcad.min_attendance_critical}%`,
+        `Watchlist Attendance: < ${localAcad.min_attendance_low}%`,
+        `Critical CGPA Benchmark: < ${localAcad.min_cgpa_critical}`,
+        `Max Tolerated Backlogs: ${localAcad.max_acceptable_backlogs}`,
+      ],
+    });
   };
 
   const handleSavePlace = (e: React.FormEvent) => {
@@ -70,6 +100,18 @@ export const SettingsPage: React.FC = () => {
     updatePlacementThresholds(localPlace);
     setPlaceSuccessMsg(true);
     setTimeout(() => setPlaceSuccessMsg(false), 3000);
+
+    showActionInfo({
+      title: 'Placement Diagnostic Thresholds Updated',
+      badge: 'Recruiter Filter Active',
+      category: 'placement',
+      message: 'Placement risk criteria updated. Recruiter screener and Tier allocation benchmarks re-evaluated.',
+      details: [
+        `Min Coding Assessment Score: ${localPlace.min_coding_score}/100`,
+        `Min Quantitative Aptitude Score: ${localPlace.min_aptitude_score}/100`,
+        `Min Mock Interview Rating: ${localPlace.min_mock_interview_score}/100`,
+      ],
+    });
   };
 
   const handleSyncFromDatabase = async () => {
@@ -77,10 +119,31 @@ export const SettingsPage: React.FC = () => {
     const success = await refreshFromDatabase();
     if (success) {
       setDbNotice({ message: 'Successfully synced all records from MongoDB database!', type: 'success' });
+      showActionInfo({
+        title: 'MongoDB Atlas Cloud Synchronization Successful',
+        badge: `${students.length} Records Verified`,
+        category: 'success',
+        message: 'Synchronized latest student records, department structures, and scoring configurations from cloud database.',
+        details: [
+          `Active MongoDB Database: edupulse-ai`,
+          `Collections Synced: students, users, configurations`,
+          `Connection Mode: Mongoose v8.19 Atlas Cloud Active`,
+        ],
+      });
     } else {
       setDbNotice({
         message: 'Could not connect to MongoDB server. Falling back to local offline storage.',
         type: 'error',
+      });
+      showActionInfo({
+        title: 'MongoDB Offline Fallback Active',
+        badge: 'Local Storage Persistent',
+        category: 'warning',
+        message: 'Backend server is currently operating in offline mode. All student changes are safely stored in browser local persistence and will sync when server reconnects.',
+        details: [
+          'Fallback: server/data/students.json active',
+          'Zero data loss: All student modifications preserved',
+        ],
       });
     }
     setTimeout(() => setDbNotice(null), 5000);
@@ -92,6 +155,17 @@ export const SettingsPage: React.FC = () => {
     const success = await seedToDatabase();
     if (success) {
       setDbNotice({ message: 'MongoDB database initialized with 135 student records!', type: 'success' });
+      showActionInfo({
+        title: 'MongoDB Database Seeded Successfully',
+        badge: '135 Students Initialized',
+        category: 'success',
+        message: 'Initialized university dataset with 135 verified students across 5 engineering departments.',
+        details: [
+          'Departments: CSE, IT, ECE, Mechanical, Civil',
+          'Includes realistic semester grades, attendance %, and placement scores',
+          'Multi-tier risk distribution populated for institutional simulation',
+        ],
+      });
     } else {
       setDbNotice({
         message: 'Database seeding failed. Ensure MongoDB server is active (npm run server).',

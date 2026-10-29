@@ -13,6 +13,7 @@ import {
 import { useCurrentStudent } from '../../context/CampusDataContext';
 import { SpecKpiCard, SpecPageHeader, SpecProgressBar } from '../../components/common/SpecComponents';
 import { MotionCounter } from '../../components/common/MotionCounter';
+import { useActionInfo } from '../../context/ActionInfoContext';
 
 const CHART_TOOLTIP_STYLE = {
   contentStyle: {
@@ -28,6 +29,7 @@ const CHART_TOOLTIP_STYLE = {
 
 export function StudentAttendancePage() {
   const s = useCurrentStudent();
+  const { showActionInfo } = useActionInfo();
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [targetAttendance, setTargetAttendance] = useState<number>(75);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -83,6 +85,22 @@ export function StudentAttendancePage() {
           caption="Mandatory 75% threshold required"
           label="OVERALL ATTENDANCE"
           percent={s.overall_attendance}
+          onClick={() => {
+            showActionInfo({
+              title: 'Institutional Attendance Compliance',
+              badge: `${s.overall_attendance}% Current Standing`,
+              category: s.overall_attendance >= 75 ? 'success' : 'danger',
+              message: s.overall_attendance >= 75
+                ? 'Your attendance complies with the university 75% statutory requirement. Hall ticket eligibility for end-semester exams is confirmed.'
+                : 'Urgent: You are below the 75% cutoff. Compensatory tutorial and lab sessions are required to prevent exam debarment.',
+              details: [
+                `University Threshold: 75% minimum required`,
+                `Current Attendance: ${s.overall_attendance}%`,
+                `Attended: ${s.classes_attended} / ${s.classes_conducted} scheduled sessions`,
+                `Status: ${s.overall_attendance >= 75 ? 'Good Standing' : 'Debarment Watchlist'}`,
+              ],
+            });
+          }}
         />
         <SpecKpiCard
           icon={<CheckCircle className="w-5 h-5 text-status-success" />}
@@ -91,6 +109,19 @@ export function StudentAttendancePage() {
           caption="Total sessions physically attended"
           label="CLASSES ATTENDED"
           percent={(s.classes_attended / s.classes_conducted) * 100}
+          onClick={() => {
+            showActionInfo({
+              title: 'Verified Physical Lecture Presence',
+              badge: `${s.classes_attended} Sessions Attended`,
+              category: 'success',
+              message: 'Your biometric presence has been officially logged across all course lectures, labs, and interactive seminars.',
+              details: [
+                `Classroom Presence: ${s.classes_attended} delivered lectures attended`,
+                `Biometric Punch Rate: 100% verified`,
+                `Audit Source: Department Smart Classroom Gateway`,
+              ],
+            });
+          }}
         />
         <SpecKpiCard
           icon={<Clock className="w-5 h-5 text-text-muted" />}
@@ -98,6 +129,19 @@ export function StudentAttendancePage() {
           number={<MotionCounter value={s.classes_conducted} />}
           caption="Delivered across all subjects"
           label="TOTAL CLASSES"
+          onClick={() => {
+            showActionInfo({
+              title: 'Curriculum Delivery Status',
+              badge: `${s.classes_conducted} Total Conducted`,
+              category: 'info',
+              message: 'Total curriculum contact hours delivered across all registered 5th semester subjects by faculty.',
+              details: [
+                `Registered Subjects: ${s.subjects.length} engineering courses`,
+                `Total Instructional Hours: ${s.classes_conducted} hours`,
+                `Remaining Semester Contact Hours: 30 hours scheduled`,
+              ],
+            });
+          }}
         />
         <SpecKpiCard
           icon={<AlertTriangle className="w-5 h-5 text-status-danger" />}
@@ -105,6 +149,19 @@ export function StudentAttendancePage() {
           number={<MotionCounter value={s.classes_conducted - s.classes_attended} />}
           caption="Absences recorded to date"
           label="CLASSES MISSED"
+          onClick={() => {
+            showActionInfo({
+              title: 'Absence Record & Leave Audit',
+              badge: `${s.classes_conducted - s.classes_attended} Missed Lectures`,
+              category: 'warning',
+              message: `Total absences recorded across all coursework. Submit medical certificates or leave letters to your faculty proctor within 3 days of absence.`,
+              details: [
+                `Absences: ${s.classes_conducted - s.classes_attended} classes`,
+                `Medical Leaves Permitted: Max 5 days with hospital slip`,
+                `Proctor Contact: Dr. Priya Menon (Head of Mentorship)`,
+              ],
+            });
+          }}
         />
       </div>
 

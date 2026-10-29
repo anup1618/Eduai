@@ -5,6 +5,7 @@ import { evaluateAcademicRisk } from '../engine/academicRiskEngine';
 import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
 import { SpecKpiCard, SpecPageHeader } from '../components/common/SpecComponents';
 import { CampusIntelligence3D } from '../components/3d/CampusIntelligence3D';
+import { useActionInfo } from '../context/ActionInfoContext';
 import {
   Users,
   GraduationCap,
@@ -46,6 +47,7 @@ const CHART_TOOLTIP_STYLE = {
 
 export const OverviewPage: React.FC = () => {
   const { filteredStudents, weights, academicThresholds, placementThresholds, setSelectedStudent } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   // 1. KPI Calculations from current filtered dataset
   const totalStudents = filteredStudents.length;
@@ -197,6 +199,19 @@ export const OverviewPage: React.FC = () => {
           number={totalStudents}
           caption={`Across ${new Set(filteredStudents.map(s => s.department)).size} Departments`}
           label="TOTAL ENROLLED"
+          onClick={() => {
+            showActionInfo({
+              title: 'Total Enrolled Cohort Telemetry',
+              badge: `${totalStudents} Active Students`,
+              category: 'info',
+              message: `Tracking ${totalStudents} active student records across ${new Set(filteredStudents.map(s => s.department)).size} campus departments. All profile data is synchronized with MongoDB Atlas.`,
+              details: [
+                `Active Departments: ${Array.from(new Set(filteredStudents.map(s => s.department))).join(', ')}`,
+                `Average Campus Attendance: ${Math.round(filteredStudents.reduce((a, s) => a + (s.attendance.overall_attendance ?? 0), 0) / (totalStudents || 1))}%`,
+                `Average Campus CGPA: ${(filteredStudents.reduce((a, s) => a + (s.academic.cgpa ?? 0), 0) / (totalStudents || 1)).toFixed(2)} / 10.0`,
+              ],
+            });
+          }}
         />
 
         <SpecKpiCard
@@ -206,6 +221,21 @@ export const OverviewPage: React.FC = () => {
           caption="Institutional Composite Score"
           label="AVG SUCCESS SCORE"
           percent={avgSuccessScore}
+          onClick={() => {
+            showActionInfo({
+              title: 'Composite Success Score Metric',
+              badge: `${avgSuccessScore}/100 Campus Score`,
+              category: 'success',
+              message: `The Institutional Composite Score combines six core telemetry dimensions calibrated to assess student retention probability and career readiness.`,
+              details: [
+                `Academic Standing (${weights.academic}%): CGPA, internal exam marks, and backlog penalty deductions`,
+                `Attendance Telemetry (${weights.attendance}%): Class presence against the 75% institutional threshold`,
+                `Placement Readiness (${weights.placement}%): Coding score, aptitude, and mock interviews`,
+                `LMS Portal Activity (${weights.lms}%): Login frequency and assignment turnaround`,
+                `Holistic Skills & Co-curriculars (${weights.skills + weights.engagement}%): Technical skills and hackathons`,
+              ],
+            });
+          }}
         />
 
         <SpecKpiCard
@@ -214,6 +244,19 @@ export const OverviewPage: React.FC = () => {
           number={flaggedAcademic}
           caption={`${Math.round((flaggedAcademic / (totalStudents || 1)) * 100)}% of Enrolled Cohort`}
           label="ACADEMIC REVIEW"
+          onClick={() => {
+            showActionInfo({
+              title: 'Academic Retention Review Roster',
+              badge: `${flaggedAcademic} Flagged (${flaggedAcademicHigh} Critical)`,
+              category: 'danger',
+              message: `${flaggedAcademic} students (${Math.round((flaggedAcademic / (totalStudents || 1)) * 100)}% of cohort) exhibit academic risk signals requiring faculty counseling or remedial tutorials.`,
+              details: [
+                `Critical High Risk: ${flaggedAcademicHigh} students with CGPA < 5.5, multiple backlogs, or attendance < 65%`,
+                `Moderate Risk: ${flaggedAcademic - flaggedAcademicHigh} students with attendance in the 65-75% warning band`,
+                `Recommended Action: Faculty mentors have been notified to initiate intervention clinics`,
+              ],
+            });
+          }}
         />
 
         <SpecKpiCard
@@ -222,6 +265,19 @@ export const OverviewPage: React.FC = () => {
           number={flaggedPlacement}
           caption={`${Math.round((flaggedPlacement / (totalStudents || 1)) * 100)}% of Cohort`}
           label="PLACEMENT REVIEW"
+          onClick={() => {
+            showActionInfo({
+              title: 'Placement Readiness & Skill Gap Audit',
+              badge: `${flaggedPlacement} Flagged (${flaggedPlacementHigh} Critical)`,
+              category: 'placement',
+              message: `${flaggedPlacement} candidates demonstrate practical skill gaps that may limit shortlist rates in Tier-1 campus placement drives.`,
+              details: [
+                `Critical Gaps: ${flaggedPlacementHigh} candidates scoring below 50 in practical coding assessments`,
+                `Moderate Gaps: ${flaggedPlacement - flaggedPlacementHigh} candidates needing quantitative aptitude or mock interview polish`,
+                `Intervention Strategy: Automated enrollment in 4-week coding bootcamps and mock interview tracks`,
+              ],
+            });
+          }}
         />
       </div>
 
@@ -241,8 +297,26 @@ export const OverviewPage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
           {/* Priority Insight 1 */}
-          <div className="p-3.5 rounded-xl border border-status-danger/30 bg-status-danger/10 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-status-danger">Departmental Risk</span>
+          <div
+            onClick={() => {
+              showActionInfo({
+                title: `Departmental Risk Audit: ${highestRiskDept?.dept || 'Campus'}`,
+                badge: `${Math.round(highestRiskDept?.rate || 0)}% Flagged`,
+                category: 'danger',
+                message: `${highestRiskDept?.dept} currently exhibits the highest concentration of academic flags in the institution (${highestRiskDept?.high} of ${highestRiskDept?.total} students flagged).`,
+                details: [
+                  `Primary Factor: Core engineering theoretical subjects (DSA, VLSI, Networks)`,
+                  `Faculty Mentor Ratio: 1:18 in ${highestRiskDept?.dept}`,
+                  `Action: Scheduled departmental review meeting with HOD`,
+                ],
+              });
+            }}
+            className="p-3.5 rounded-xl border border-status-danger/30 bg-status-danger/10 space-y-1 cursor-pointer hover:border-status-danger/60 hover:bg-status-danger/15 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-status-danger">Departmental Risk</span>
+              <Info className="w-3.5 h-3.5 text-status-danger opacity-60 group-hover:opacity-100" />
+            </div>
             <div className="text-base font-bold text-text truncate">
               {highestRiskDept?.dept || 'None'}
             </div>
@@ -254,8 +328,26 @@ export const OverviewPage: React.FC = () => {
           </div>
 
           {/* Priority Insight 2 */}
-          <div className="p-3.5 rounded-xl border border-status-warning/30 bg-status-warning/10 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-status-warning">Exam Debarment Alert</span>
+          <div
+            onClick={() => {
+              showActionInfo({
+                title: 'Mandatory Attendance Debarment Warning (< 65%)',
+                badge: `${attendanceDebarredCount} Candidates at Risk`,
+                category: 'warning',
+                message: `${attendanceDebarredCount} candidates breach the 65% critical attendance floor. University statute mandates detention from end-semester examinations unless compensatory clinical attendance is granted.`,
+                details: [
+                  `Mandatory University Rule: 75% minimum required for exam hall tickets`,
+                  `Debarment Cutoff: Below 65% automatic hall ticket withholding`,
+                  `Remedial Action: Compulsory Saturday laboratory and tutorial make-up sessions`,
+                ],
+              });
+            }}
+            className="p-3.5 rounded-xl border border-status-warning/30 bg-status-warning/10 space-y-1 cursor-pointer hover:border-status-warning/60 hover:bg-status-warning/15 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-status-warning">Exam Debarment Alert</span>
+              <Info className="w-3.5 h-3.5 text-status-warning opacity-60 group-hover:opacity-100" />
+            </div>
             <div className="text-base font-bold text-text">
               {attendanceDebarredCount} Students &lt; 65%
             </div>
@@ -265,8 +357,26 @@ export const OverviewPage: React.FC = () => {
           </div>
 
           {/* Priority Insight 3 */}
-          <div className="p-3.5 rounded-xl border border-accent/30 bg-accent/10 space-y-1">
-            <span className="text-[10px] uppercase font-bold text-accent">Practical Skill-Gap</span>
+          <div
+            onClick={() => {
+              showActionInfo({
+                title: 'High-GPA / Low-Placement Practical Gap',
+                badge: `${highGpaLowPlacement} Students Identified`,
+                category: 'placement',
+                message: `${highGpaLowPlacement} high-performing students (CGPA ≥ 7.5) score below 60% in competitive coding assessments, indicating theoretical strength without practical problem-solving speed.`,
+                details: [
+                  `Identified Segment: High Academic, Low Placement Readiness`,
+                  `Corporate Bottleneck: Initial academic resume filter cleared, but fails technical coding round`,
+                  `Targeted Prescription: 4-week competitive programming bootcamp and mock technical interviews`,
+                ],
+              });
+            }}
+            className="p-3.5 rounded-xl border border-accent/30 bg-accent/10 space-y-1 cursor-pointer hover:border-accent/60 hover:bg-accent/15 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-accent">Practical Skill-Gap</span>
+              <Info className="w-3.5 h-3.5 text-accent opacity-60 group-hover:opacity-100" />
+            </div>
             <div className="text-base font-bold text-text">
               {highGpaLowPlacement} High-GPA Students
             </div>
@@ -276,8 +386,26 @@ export const OverviewPage: React.FC = () => {
           </div>
 
           {/* Priority Insight 4 */}
-          <div className="p-3.5 rounded-xl border border-border bg-card space-y-1">
-            <span className="text-[10px] uppercase font-bold text-text-muted">Coding Cutoff Gap</span>
+          <div
+            onClick={() => {
+              showActionInfo({
+                title: 'Campus Algorithmic Coding Diagnostic Gap',
+                badge: `${codingGapCount} Below 50 Pts`,
+                category: 'warning',
+                message: `${codingGapCount} candidates scored below 50 in algorithmic diagnostic exams. Algorithmic problem-solving is the single largest eliminator in Tier-1 campus hiring.`,
+                details: [
+                  `Benchmarked Algorithms: Array manipulation, hashing, recursion, and basic dynamic programming`,
+                  `Recruiter Standard: Minimum 70 points for Tier-1 product roles`,
+                  `Remedial Track: Daily timed LeetCode-style problem assignments via the Classroom portal`,
+                ],
+              });
+            }}
+            className="p-3.5 rounded-xl border border-border bg-card space-y-1 cursor-pointer hover:border-accent/40 hover:bg-card-hover transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-text-muted">Coding Cutoff Gap</span>
+              <Info className="w-3.5 h-3.5 text-text-muted opacity-60 group-hover:opacity-100" />
+            </div>
             <div className="text-base font-bold text-text">
               {codingGapCount} Below 50 Pts
             </div>

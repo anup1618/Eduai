@@ -6,9 +6,11 @@ import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
 import { assignStudentSegment, SEGMENT_METADATA } from '../engine/segmentationEngine';
 import { SegmentType } from '../types/segmentation';
 import { Printer, Download, FileText, CheckCircle2 } from 'lucide-react';
+import { useActionInfo } from '../context/ActionInfoContext';
 
 export const ReportsPage: React.FC = () => {
   const { filteredStudents, weights, academicThresholds, placementThresholds, filters } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   const [reportType, setReportType] = useState<
     'student' | 'department' | 'academic_risk' | 'placement_risk' | 'segment' | 'data_quality'
@@ -16,6 +18,17 @@ export const ReportsPage: React.FC = () => {
 
   // Trigger browser print
   const handlePrint = () => {
+    showActionInfo({
+      title: 'Institutional Audit Report Prepared for Printing',
+      badge: 'Print Dialog Active',
+      category: 'info',
+      message: `Formatted print-ready document for "${reportType.toUpperCase()}" with ${filteredStudents.length} student records.`,
+      details: [
+        'Headers calibrated for institutional accreditation reviews',
+        'Standard A4 orientation with automatic page numbering',
+        'Zero sensitive credentials exposed in audit printout',
+      ],
+    });
     window.print();
   };
 
@@ -83,6 +96,19 @@ export const ReportsPage: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    showActionInfo({
+      title: 'CSV Institutional Export Generated',
+      badge: `${filteredStudents.length} Records Exported`,
+      category: 'export',
+      message: `Successfully compiled and generated "edupulse_${reportType}_report_${dateStr}.csv". The download has been saved to your browser downloads folder.`,
+      details: [
+        `File Name: edupulse_${reportType}_report_${dateStr}.csv`,
+        `Report Type: ${reportType.toUpperCase()}`,
+        `Total Rows: ${filteredStudents.length} student records`,
+        `Format: RFC 4180 Standard CSV`,
+      ],
+    });
   };
 
   return (

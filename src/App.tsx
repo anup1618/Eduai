@@ -46,6 +46,7 @@ import { StudentClassroomPage } from './pages/student/StudentClassroomPage';
 import { PortalRole } from './data/portalData';
 
 import { ThemeProvider } from './context/ThemeContext';
+import { ActionInfoProvider } from './context/ActionInfoContext';
 
 // ─── ADMIN PORTAL CONTENT ─────────────────────────────────────────────────────
 
@@ -197,29 +198,31 @@ export function App() {
   return (
     <ThemeProvider>
       <CampusDataProvider>
-        {/* Ambient background glowing blobs per Design Spec */}
-        <div className="ambient-blob-mint top-[-100px] left-[-100px]" />
-        <div className="ambient-blob-blue bottom-[-150px] right-[-100px]" />
+        <ActionInfoProvider>
+          {/* Ambient background glowing blobs per Design Spec */}
+          <div className="ambient-blob-mint top-[-100px] left-[-100px]" />
+          <div className="ambient-blob-blue bottom-[-150px] right-[-100px]" />
 
-        {activeRole === 'login' && (
-          <LoginPage onSelectRole={role => setActiveRole(role)} />
-        )}
+          {activeRole === 'login' && (
+            <LoginPage onSelectRole={role => setActiveRole(role)} />
+          )}
 
-        {activeRole === 'student' && (
-          <StudentPortalContent onLogout={() => setActiveRole('login')} />
-        )}
+          {activeRole === 'student' && (
+            <StudentPortalContent onLogout={() => setActiveRole('login')} />
+          )}
 
-        {activeRole === 'faculty' && (
-          <FacultyPortal onLogout={() => setActiveRole('login')} />
-        )}
+          {activeRole === 'faculty' && (
+            <FacultyPortal onLogout={() => setActiveRole('login')} />
+          )}
 
-        {activeRole === 'tpo' && (
-          <TPOPlatform onLogout={() => setActiveRole('login')} />
-        )}
+          {activeRole === 'tpo' && (
+            <TPOPlatform onLogout={() => setActiveRole('login')} />
+          )}
 
-        {activeRole === 'admin' && (
-          <AdminPortalContent onSwitchPortal={() => setActiveRole('login')} />
-        )}
+          {activeRole === 'admin' && (
+            <AdminPortalContent onSwitchPortal={() => setActiveRole('login')} />
+          )}
+        </ActionInfoProvider>
       </CampusDataProvider>
     </ThemeProvider>
   );

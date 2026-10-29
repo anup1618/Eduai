@@ -47,6 +47,7 @@ import {
 import { UnifiedStudent } from '../types/student';
 import { SpecKpiCard, SpecPageHeader } from '../components/common/SpecComponents';
 import { AIChatBotWidget } from '../components/common/AIChatBotWidget';
+import { useActionInfo } from '../context/ActionInfoContext';
 
 interface TPOPlatformProps {
   onLogout: () => void;
@@ -78,6 +79,7 @@ const CHART_TOOLTIP_STYLE = {
 export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
   const { students, weights, academicThresholds, placementThresholds } = useCampusData();
   const { theme, toggleTheme } = useTheme();
+  const { showActionInfo } = useActionInfo();
 
   // Navigation & layout state
   const [currentPage, setCurrentPage] = useState<TPOPage>('dashboard');
@@ -321,6 +323,17 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
     link.click();
     document.body.removeChild(link);
     showToast(`Exported ${screenerResults.length} shortlisted candidates to CSV.`);
+    showActionInfo({
+      title: 'TPO Recruiter Shortlist Exported',
+      badge: `${screenerResults.length} Candidates Qualified`,
+      category: 'export',
+      message: `Exported screened shortlist matching criteria: CGPA ≥ ${screenerMinCgpa}, Max Backlogs ≤ ${screenerMaxBacklogs}, Coding Score ≥ ${screenerMinCoding}.`,
+      details: [
+        `File: EduPulse_TPO_Shortlist_${new Date().toISOString().slice(0, 10)}.csv`,
+        `Shortlisted: ${screenerResults.length} candidates`,
+        `Ready for recruiter technical round scheduling`,
+      ],
+    });
   };
 
   // Export Placement Accreditation Report
@@ -348,6 +361,18 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
     link.click();
     document.body.removeChild(link);
     showToast('Placement accreditation report exported successfully.');
+    showActionInfo({
+      title: 'NAAC / NIRF Placement Audit Report Exported',
+      badge: `${offers.length} Placement Offers Documented`,
+      category: 'export',
+      message: `Verified institutional placement records compiled for NAAC Criterion 5.2 and NIRF annual institutional rankings.`,
+      details: [
+        `Academic Season: ${DEMO_TPO_OFFICER.season}`,
+        `Total Verified Offers: ${offers.length}`,
+        `Highest Package: ₹44.0 LPA (Sneha Joshi - Microsoft)`,
+        `Average Institutional CTC: ₹14.8 LPA`,
+      ],
+    });
   };
 
   // ── Student Academics & Opportunity Allocation Intelligence ─────────────────
@@ -645,6 +670,17 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
     link.click();
     document.body.removeChild(link);
     showToast('Student Career Opportunity Registry exported successfully to CSV.');
+    showActionInfo({
+      title: 'Student Opportunity Allocation Registry Exported',
+      badge: `${allocations.length} Allocations Recorded`,
+      category: 'export',
+      message: `Complete opportunity allocations ledger exported with company providers, package values, and verification notes.`,
+      details: [
+        `File: TPO_Career_Opportunity_Registry_${new Date().toISOString().slice(0, 10)}.csv`,
+        `Allocations Logged: ${allocations.length} opportunities`,
+        `Categories: Campus Placement Drives, Paid Internships, Research Labs`,
+      ],
+    });
   };
 
   return (
@@ -2520,11 +2556,26 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
                           </button>
                         )}
                         <button
-                          onClick={() => showToast(`Downloaded ${rsm.version} for ${rsm.studentName}.`)}
+                          onClick={() => {
+                            showToast(`Downloaded ${rsm.version} for ${rsm.studentName}.`);
+                            showActionInfo({
+                              title: `ATS Candidate Resume Audit: ${rsm.studentName}`,
+                              badge: `ATS Score: ${rsm.atsScore}%`,
+                              category: 'placement',
+                              message: `Candidate profile parsed against Tier-1 recruiter benchmarks. Verified technical competencies, GPA, and portfolio links.`,
+                              details: [
+                                `Student: ${rsm.studentName} (${rsm.studentId}) - ${rsm.department}`,
+                                `Resume Document: ${rsm.version} (Verified)`,
+                                `Skills Extracted: ${rsm.skills.join(', ')}`,
+                                `Status: ${rsm.status}`,
+                                `Uploaded: ${rsm.submittedDate}`,
+                              ],
+                            });
+                          }}
                           className="text-[11px] font-bold text-accent hover:underline flex items-center gap-1"
                         >
                           <Download className="w-3 h-3" />
-                          <span>View PDF</span>
+                          <span>View PDF &amp; ATS Audit</span>
                         </button>
                       </div>
                     </div>

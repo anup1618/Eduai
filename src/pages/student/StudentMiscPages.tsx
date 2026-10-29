@@ -14,12 +14,14 @@ import {
 import { useCampusData, useCurrentStudent } from '../../context/CampusDataContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SpecPageHeader, SpecKpiCard } from '../../components/common/SpecComponents';
+import { useActionInfo } from '../../context/ActionInfoContext';
 
 // ─── 1. MY PROBLEM REQUESTS PAGE ──────────────────────────────────────────────
 
 export function StudentMyProblemPage() {
   const s = useCurrentStudent();
   const { problemRequests, addProblemRequest } = useCampusData();
+  const { showActionInfo } = useActionInfo();
   const [subject, setSubject] = useState(s.subjects[0]?.name || 'Machine Learning');
   const [category, setCategory] = useState<ProblemCategory>('Academic Doubt');
   const [priority, setPriority] = useState<ProblemPriority>('Medium');
@@ -63,6 +65,18 @@ export function StudentMyProblemPage() {
 
     await addProblemRequest(newReq);
     setSubmittedAlert(`Problem Request ${newId} logged with [${priority.toUpperCase()}] priority under "${category}". Ticket dispatched directly to ${faculty}.`);
+    showActionInfo({
+      title: 'Problem Request Registered with Faculty Mentorship Cell',
+      badge: `Ticket: ${newId}`,
+      category: 'success',
+      message: `Your query has been logged and dispatched directly to ${faculty} (${s.department}).`,
+      details: [
+        `Subject: ${subject}`,
+        `Topic: ${topic.trim() || 'General Query'}`,
+        `Priority: ${priority.toUpperCase()}`,
+        `Expected Resolution: Mentor response within 24-48 institutional hours`,
+      ],
+    });
     setDescription('');
     setTopic('');
     setTimeout(() => setSubmittedAlert(null), 6000);

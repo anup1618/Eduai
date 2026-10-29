@@ -33,6 +33,7 @@ import {
   PlusCircle,
   Save,
 } from 'lucide-react';
+import { useActionInfo } from '../context/ActionInfoContext';
 
 export const DataIntegrationPage: React.FC = () => {
   const {
@@ -46,6 +47,7 @@ export const DataIntegrationPage: React.FC = () => {
     uploadSpreadsheetToBackend,
     currentUser,
   } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   // Mode: Bulk spreadsheet upload vs manual entry
   const [integrationMode, setIntegrationMode] = useState<'upload' | 'manual'>('upload');
@@ -198,6 +200,33 @@ export const DataIntegrationPage: React.FC = () => {
       type: 'csv',
     });
     processSpreadsheetBuffer(sample, `${selectedCategory}_sample_dataset.csv`, sample.length);
+
+    showActionInfo({
+      title: 'Verified Demonstration Dataset Ingested',
+      badge: 'Sample Pre-Loaded',
+      category: 'success',
+      message: `Loaded realistic ${CATEGORY_SCHEMAS[selectedCategory].name} data directly into the preview validator for institutional demonstration.`,
+      details: [
+        `Schema: ${CATEGORY_SCHEMAS[selectedCategory].name}`,
+        `Status: Formatted & Range Validated`,
+        `Next Step: Review data table below and click "Commit Dataset to MongoDB"`,
+      ],
+    });
+  };
+
+  const handleExportTemplateWithFeedback = (cat: DatasetCategory, format: 'xlsx' | 'csv', mode: 'template' | 'sample') => {
+    exportDatasetTemplate(cat, format, mode);
+    showActionInfo({
+      title: `${mode === 'template' ? 'Blank Schema Template' : 'Sample Dataset'} Exported`,
+      badge: `${cat.toUpperCase()} (${format.toUpperCase()})`,
+      category: 'export',
+      message: `Generated official institutional ${format.toUpperCase()} file for ${CATEGORY_SCHEMAS[cat].name}. Compatible with Excel, Google Sheets, and MongoDB bulk ingestion pipelines.`,
+      details: [
+        `Category: ${CATEGORY_SCHEMAS[cat].name}`,
+        `File Format: .${format}`,
+        `Schema Constraints: Range checks, data type verification, and duplicate ID prevention`,
+      ],
+    });
   };
 
   // Commit merged records into CampusDataContext & MongoDB Atlas (Secure Backend Ingestion)
@@ -809,7 +838,7 @@ export const DataIntegrationPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => exportDatasetTemplate(selectedCategory, 'xlsx', 'template')}
+                onClick={() => handleExportTemplateWithFeedback(selectedCategory, 'xlsx', 'template')}
                 className="py-2 px-3 text-xs font-semibold rounded-xl border border-border hover:bg-card-hover text-text flex items-center justify-center gap-1.5 transition"
                 title="Download blank Excel spreadsheet"
               >
@@ -817,7 +846,7 @@ export const DataIntegrationPage: React.FC = () => {
                 <span>Excel (.xlsx)</span>
               </button>
               <button
-                onClick={() => exportDatasetTemplate(selectedCategory, 'csv', 'template')}
+                onClick={() => handleExportTemplateWithFeedback(selectedCategory, 'csv', 'template')}
                 className="py-2 px-3 text-xs font-semibold rounded-xl border border-border hover:bg-card-hover text-text flex items-center justify-center gap-1.5 transition"
                 title="Download blank CSV spreadsheet"
               >
@@ -831,7 +860,7 @@ export const DataIntegrationPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => exportDatasetTemplate(selectedCategory, 'xlsx', 'sample')}
+                onClick={() => handleExportTemplateWithFeedback(selectedCategory, 'xlsx', 'sample')}
                 className="py-2 px-3 text-xs font-semibold rounded-xl border border-border hover:bg-card-hover text-text flex items-center justify-center gap-1.5 transition"
                 title="Download sample Excel with realistic student records"
               >
@@ -839,7 +868,7 @@ export const DataIntegrationPage: React.FC = () => {
                 <span>Sample .xlsx</span>
               </button>
               <button
-                onClick={() => exportDatasetTemplate(selectedCategory, 'csv', 'sample')}
+                onClick={() => handleExportTemplateWithFeedback(selectedCategory, 'csv', 'sample')}
                 className="py-2 px-3 text-xs font-semibold rounded-xl border border-border hover:bg-card-hover text-text flex items-center justify-center gap-1.5 transition"
                 title="Download sample CSV with realistic student records"
               >
