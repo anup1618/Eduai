@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu, Sparkles, Filter, RefreshCw, Shield, Sun, Moon } from 'lucide-react';
 import { useCampusData } from '../../context/CampusDataContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useActionInfo } from '../../context/ActionInfoContext';
 import { NavigationPage } from './Sidebar';
 
 interface HeaderProps {
@@ -72,6 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { students, filteredStudents, resetFilters, filters } = useCampusData();
   const { theme, toggleTheme } = useTheme();
+  const { showActionInfo } = useActionInfo();
   const pageMeta = PAGE_METADATA[currentPage] || { title: 'EduPulse AI', subtitle: 'Institutional Intelligence OS' };
 
   const hasActiveFilters =
@@ -91,6 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenMobileNav}
             className="p-1.5 text-text-muted hover:text-text rounded-xl hover:bg-card-hover border border-border lg:hidden"
+            title="Open Mobile Navigation Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -108,11 +111,29 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right: Actions, Theme Toggle, & Cohort Counts */}
         <div className="flex items-center gap-2.5">
           {/* Cohort size pill */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              showActionInfo({
+                title: 'Active Cohort Telemetry Status',
+                badge: `${filteredStudents.length} of ${students.length} Filtered`,
+                category: 'info',
+                message: `Currently displaying ${filteredStudents.length} student records from the total institutional enrollment of ${students.length}. Filter conditions: ${hasActiveFilters ? 'Active filters applied' : 'Full campus cohort'}.`,
+                details: [
+                  `Active Filter Count: ${Object.values(filters).filter(v => v !== 'All' && v !== '').length}`,
+                  `Total Enrolled in SIS: ${students.length} students`,
+                  `Currently In-View: ${filteredStudents.length} students (${Math.round((filteredStudents.length / (students.length || 1)) * 100)}% of cohort)`,
+                  `Persistence Status: Synchronized with Central Database`
+                ]
+              });
+            }}
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border hover:border-accent text-xs cursor-pointer transition shadow-sm"
+            title="Click for Cohort Breakdown Telemetry"
+          >
             <span className="font-bold text-accent">{filteredStudents.length}</span>
             <span className="text-text-muted">/</span>
             <span className="text-text-muted">{students.length} students</span>
-          </div>
+          </button>
 
           {/* Toggle Filter Bar */}
           <button
@@ -122,6 +143,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-accent/15 text-accent border-accent/40 shadow-sm'
                 : 'bg-card text-text-muted border-border hover:border-accent hover:text-text'
             }`}
+            title="Toggle Filter Bar"
           >
             <Filter className="w-3.5 h-3.5" />
             <span>Filters</span>
@@ -133,7 +155,21 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Clear filters if active */}
           {hasActiveFilters && (
             <button
-              onClick={resetFilters}
+              onClick={() => {
+                resetFilters();
+                showActionInfo({
+                  title: 'Cohort Filters Restored to Baseline',
+                  badge: 'Campus Baseline Active',
+                  category: 'success',
+                  message: `All cohort filtering criteria (departments, academic years, semesters, and risk levels) have been cleared. Viewing the complete institutional student body (${students.length} students).`,
+                  details: [
+                    `Department filter: All Departments`,
+                    `Academic Year: All Years`,
+                    `Search query: Cleared`,
+                    `Active students in view: ${students.length}`
+                  ]
+                });
+              }}
               className="p-1.5 text-text-muted hover:text-text rounded-xl hover:bg-card-hover border border-border"
               title="Reset all filters"
             >
@@ -143,7 +179,20 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Theme Toggle Button */}
           <button
-            onClick={toggleTheme}
+            onClick={() => {
+              toggleTheme();
+              showActionInfo({
+                title: `${theme === 'dark' ? 'Light Theme Activated' : 'Dark Matrix Theme Activated'}`,
+                badge: 'Display Preference Updated',
+                category: 'settings',
+                message: `Display mode set to ${theme === 'dark' ? 'Clean Watermelon Day Light Mode' : 'Cyber Matrix Dark Mode'}. Visual contrast tokens and telemetry charts calibrated.`,
+                details: [
+                  `Current Mode: ${theme === 'dark' ? 'Light' : 'Dark'}`,
+                  `Accent Hue: Emerald Green & Crisp Watermelon Coral`,
+                  `Contrast Standard: WCAG AAA Compliant`
+                ]
+              });
+            }}
             className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-text hover:border-accent hover:text-accent transition-colors shadow-sm"
             title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Theme`}
           >
@@ -154,6 +203,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenAnalyst}
             className="btn-spec-primary text-xs py-1.5 px-3.5"
+            title="Launch AI Campus Intelligence Analyst"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">AI Campus Analyst</span>

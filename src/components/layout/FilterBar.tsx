@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, X, RotateCcw } from 'lucide-react';
 import { useCampusData } from '../../context/CampusDataContext';
+import { useActionInfo } from '../../context/ActionInfoContext';
 import { Department, AcademicYear, Semester } from '../../types/student';
 import { RiskLevel } from '../../types/risk';
 import { SegmentType } from '../../types/segmentation';
@@ -43,6 +44,7 @@ const SEGMENTS: (SegmentType | 'All')[] = [
 
 export const FilterBar: React.FC = () => {
   const { filters, setFilters, resetFilters, filteredStudents, students } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   const hasActiveFilters =
     filters.department !== 'All' ||
@@ -70,8 +72,17 @@ export const FilterBar: React.FC = () => {
           />
           {filters.searchQuery && (
             <button
-              onClick={() => setFilters({ searchQuery: '' })}
+              onClick={() => {
+                setFilters({ searchQuery: '' });
+                showActionInfo({
+                  title: 'Search Filter Cleared',
+                  badge: 'Full Cohort Restored',
+                  category: 'info',
+                  message: 'Name and ID search query cleared. Restored active departmental and risk filters.',
+                });
+              }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+              title="Clear Search Query"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -86,8 +97,23 @@ export const FilterBar: React.FC = () => {
           </span>
           {hasActiveFilters && (
             <button
-              onClick={resetFilters}
-              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-xl text-status-danger bg-status-danger/10 border border-status-danger/30 hover:bg-status-danger/20 transition"
+              onClick={() => {
+                resetFilters();
+                showActionInfo({
+                  title: 'All Roster Filters Reset',
+                  badge: 'Campus Baseline',
+                  category: 'success',
+                  message: `All cohort filtering dimensions have been restored to campus defaults. Displaying all ${students.length} active enrolled students.`,
+                  details: [
+                    `Department: All Departments`,
+                    `Year & Semester: All Cohorts`,
+                    `Risk Category: Unfiltered`,
+                    `Search: Cleared`
+                  ]
+                });
+              }}
+              className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-xl text-status-danger bg-status-danger/10 border border-status-danger/30 hover:bg-status-danger/20 transition cursor-pointer"
+              title="Clear all active cohort filters"
             >
               <RotateCcw className="w-3 h-3" />
               Reset All

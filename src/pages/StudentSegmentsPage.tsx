@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCampusData } from '../context/CampusDataContext';
+import { useActionInfo } from '../context/ActionInfoContext';
 import { assignStudentSegment, SEGMENT_METADATA } from '../engine/segmentationEngine';
 import { SegmentType } from '../types/segmentation';
 import { Badge } from '../components/common/Badge';
@@ -8,6 +9,7 @@ import { Users, CheckCircle, ArrowRight, BookOpen, Briefcase, Award } from 'luci
 
 export const StudentSegmentsPage: React.FC = () => {
   const { filteredStudents, weights, setSelectedStudent } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   const [selectedSegment, setSelectedSegment] = useState<SegmentType>(
     'Strong Academics, Low Placement Readiness'
@@ -52,12 +54,26 @@ export const StudentSegmentsPage: React.FC = () => {
           return (
             <div
               key={segType}
-              onClick={() => setSelectedSegment(segType)}
+              onClick={() => {
+                setSelectedSegment(segType);
+                showActionInfo({
+                  title: `Segment Cohort: ${segType}`,
+                  badge: `${count} Students (${pct}%)`,
+                  category: segType.includes('Academic Support') ? 'warning' : segType.includes('Placement') ? 'placement' : 'success',
+                  message: meta.description,
+                  details: [
+                    `Cohort Enrollment: ${count} students (${pct}% of cohort)`,
+                    `Trigger Baseline: ${meta.typicalIndicators.join(' • ')}`,
+                    `Institutional Intervention: ${meta.recommendedInterventions.join(' • ')}`
+                  ]
+                });
+              }}
               className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
                 isSelected
                   ? 'bg-white border-teal-500 shadow-md ring-2 ring-teal-500/20'
                   : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-sm'
               }`}
+              title="Click to View Segment Telemetry & Recommendations"
             >
               <div>
                 <div className="flex items-center justify-between">

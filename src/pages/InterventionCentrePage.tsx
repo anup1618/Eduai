@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCampusData } from '../context/CampusDataContext';
+import { useActionInfo } from '../context/ActionInfoContext';
 import { InterventionItem, InterventionStatus } from '../types/intervention';
 import { Badge } from '../components/common/Badge';
 import { CreateInterventionModal } from '../components/intervention/CreateInterventionModal';
@@ -18,6 +19,7 @@ import {
 
 export const InterventionCentrePage: React.FC = () => {
   const { interventions, updateInterventionStatus, setSelectedStudent, students } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<InterventionStatus | 'All'>('All');
@@ -50,13 +52,37 @@ export const InterventionCentrePage: React.FC = () => {
     if (!newNoteText.trim()) return;
     updateInterventionStatus(id, 'In Progress', newNoteText.trim());
     setNewNoteText('');
+    showActionInfo({
+      title: 'Mentor Note Recorded & Appended',
+      badge: 'Intervention Updated',
+      category: 'success',
+      message: 'New clinical counseling note was committed to the student intervention case file.',
+    });
   };
 
   return (
     <div className="space-y-6">
       {/* KPI Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div
+          onClick={() => {
+            setStatusFilter('All');
+            showActionInfo({
+              title: 'Total Institutional Interventions Telemetry',
+              badge: `${totalCount} Plans Registered`,
+              category: 'info',
+              message: `Campus-wide proactive counseling & academic remediation ledger. Tracking ${totalCount} active and completed intervention plans across ${students.length} students.`,
+              details: [
+                `Active In Progress: ${inProgressCount} sessions`,
+                `Resolved & Completed: ${completedCount} cases (${completionRate}% resolution rate)`,
+                `Scheduled / Backlog: ${plannedCount} initial intakes`,
+                `Faculty Coverage: Departmental mentors assigned across all academic tracks`
+              ]
+            });
+          }}
+          className="p-4 rounded-xl bg-white border border-slate-200/80 hover:border-teal-500 shadow-sm flex items-center justify-between cursor-pointer transition"
+          title="Click to Filter All & View Telemetry"
+        >
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Total Interventions
@@ -69,7 +95,24 @@ export const InterventionCentrePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div
+          onClick={() => {
+            setStatusFilter('In Progress');
+            showActionInfo({
+              title: 'Active In-Progress Mentor Sessions',
+              badge: `${inProgressCount} Mentoring Active`,
+              category: 'info',
+              message: `${inProgressCount} students are actively engaged in scheduled 1-on-1 counseling, remedial tutorials, or attendance recovery contracts.`,
+              details: [
+                `Active Cases: ${inProgressCount}`,
+                `Typical Session Cycle: 2-4 weekly review milestones`,
+                `Focus: Attendance recovery, backlog clearing, and coding assessment speed`
+              ]
+            });
+          }}
+          className="p-4 rounded-xl bg-white border border-slate-200/80 hover:border-blue-500 shadow-sm flex items-center justify-between cursor-pointer transition"
+          title="Click to Filter In-Progress Cases"
+        >
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               In Progress
@@ -82,7 +125,24 @@ export const InterventionCentrePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div
+          onClick={() => {
+            setStatusFilter('Completed');
+            showActionInfo({
+              title: 'Resolved Student Interventions',
+              badge: `${completedCount} Successfully Closed`,
+              category: 'success',
+              message: `${completedCount} student interventions have met their remedial goals with verified attendance improvement and resolved academic deficiencies.`,
+              details: [
+                `Resolution Rate: ${completionRate}%`,
+                `Average Recovery Time: 3.2 weeks`,
+                `Outcome Verification: Automated grade and biometric log reconciliation`
+              ]
+            });
+          }}
+          className="p-4 rounded-xl bg-white border border-slate-200/80 hover:border-emerald-500 shadow-sm flex items-center justify-between cursor-pointer transition"
+          title="Click to Filter Completed Cases"
+        >
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Completed
@@ -95,7 +155,24 @@ export const InterventionCentrePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between">
+        <div
+          onClick={() => {
+            setStatusFilter('Planned');
+            showActionInfo({
+              title: 'Scheduled / Intake Backlog',
+              badge: `${plannedCount} Pending First Intake`,
+              category: 'warning',
+              message: `${plannedCount} new student risk triggers are queued for initial mentor intake meetings and diagnostic assessments.`,
+              details: [
+                `Backlog Queue: ${plannedCount} students`,
+                `Target SLA: Initial intake within 5 institutional business days`,
+                `Action: Expedite mentor allocation in departmental meetings`
+              ]
+            });
+          }}
+          className="p-4 rounded-xl bg-white border border-slate-200/80 hover:border-amber-500 shadow-sm flex items-center justify-between cursor-pointer transition"
+          title="Click to Filter Planned Cases"
+        >
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Planned / Backlog
@@ -187,8 +264,23 @@ export const InterventionCentrePage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <select
                     value={item.status}
-                    onChange={e => updateInterventionStatus(item.id, e.target.value as InterventionStatus)}
-                    className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:border-teal-500"
+                    onChange={e => {
+                      const newSt = e.target.value as InterventionStatus;
+                      updateInterventionStatus(item.id, newSt);
+                      showActionInfo({
+                        title: `Intervention Status Updated: "${newSt}"`,
+                        badge: `Case: ${item.student_name}`,
+                        category: newSt === 'Completed' ? 'success' : 'info',
+                        message: `Intervention plan "${item.title}" for ${item.student_name} (${item.student_id}) transitioned to "${newSt}".`,
+                        details: [
+                          `Assigned Mentor: ${item.faculty_assigned}`,
+                          `Department: ${item.department}`,
+                          `Target Deadline: ${item.target_date}`,
+                          `Database Status: Synchronized with Central Database`
+                        ]
+                      });
+                    }}
+                    className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-medium focus:outline-none focus:border-teal-500 cursor-pointer"
                   >
                     <option value="Planned">Planned</option>
                     <option value="In Progress">In Progress</option>

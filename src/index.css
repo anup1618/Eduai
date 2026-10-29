@@ -278,11 +278,15 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--border-focus);
   }
+  .input-spec.input-with-left-icon,
+  input.input-with-left-icon,
   .input-with-left-icon {
-    padding-left: 44px !important;
+    padding-left: 48px !important;
   }
+  .input-spec.input-with-right-icon,
+  input.input-with-right-icon,
   .input-with-right-icon {
-    padding-right: 44px !important;
+    padding-right: 48px !important;
   }
 }
 

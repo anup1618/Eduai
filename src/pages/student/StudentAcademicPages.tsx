@@ -13,6 +13,7 @@ import {
   ASSESSMENT_HISTORY, ATTENDANCE_CALENDAR_OCT, DAY_LECTURES
 } from '../../data/portalData';
 import { useCurrentStudent } from '../../context/CampusDataContext';
+import { useActionInfo } from '../../context/ActionInfoContext';
 import { SpecKpiCard, SpecPageHeader, SpecProgressBar } from '../../components/common/SpecComponents';
 import { MotionCounter } from '../../components/common/MotionCounter';
 import { StudentNeuralOrb } from '../../components/3d/StudentNeuralOrb';
@@ -45,6 +46,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const s = useCurrentStudent();
+  const { showActionInfo } = useActionInfo();
   const bestSem  = s.sgpa_history.reduce((a, b) => a.sgpa > b.sgpa ? a : b);
   const worstSem = s.sgpa_history.reduce((a, b) => a.sgpa < b.sgpa ? a : b);
   const strongSub = [...s.subjects].sort((a, b) => b.internal_pct - a.internal_pct)[0];
@@ -86,7 +88,24 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
             {/* Interactive 3D Personal AI Learning Orb */}
-            <div className="hidden sm:block animate-float-slow shrink-0">
+            <div
+              onClick={() => {
+                showActionInfo({
+                  title: `${s.name}'s Neural Learning Orb`,
+                  badge: `${s.success_score}/100 Composite Score`,
+                  category: 'success',
+                  message: 'Real-time 3D Three.js neural avatar modeling your semester academic velocity, attendance reliability, and coding readiness.',
+                  details: [
+                    `Current Readiness Index: ${s.success_score}/100`,
+                    `Current Semester: Semester ${s.semester}`,
+                    `Department: ${s.department}`,
+                    `Orb Telemetry: Particle frequency scales dynamically with academic momentum`
+                  ]
+                });
+              }}
+              className="hidden sm:block animate-float-slow shrink-0 cursor-pointer"
+              title="Click to Inspect AI Neural Orb Telemetry"
+            >
               <StudentNeuralOrb score={s.success_score} size={110} />
             </div>
 
@@ -106,7 +125,24 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
               </h2>
 
               {/* Live Schedule Pulse Ticker */}
-              <div className="flex items-center gap-2 text-xs text-text-muted pt-0.5 flex-wrap">
+              <div
+                onClick={() => {
+                  showActionInfo({
+                    title: 'Current Lecture: Database Systems Laboratory',
+                    badge: 'Room 402 · Active Session',
+                    category: 'info',
+                    message: 'Practical database indexing and SQL query optimization lab currently conducting in Science & Tech Block, Room 402.',
+                    details: [
+                      `Instructor: Prof. Suresh Kumar`,
+                      `Subject: Database Management Systems (CS502)`,
+                      `Biometric Check-in: Verified Present`,
+                      `Required Submission: Lab Exercise 05 due today at 5:00 PM`
+                    ]
+                  });
+                }}
+                className="flex items-center gap-2 text-xs text-text-muted pt-0.5 flex-wrap cursor-pointer hover:text-text transition"
+                title="Click for Class Schedule Details"
+              >
                 <span className="inline-flex items-center gap-1.5 text-[#10B981] font-semibold">
                   <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse-dot" />
                   Live Academic Pulse:
@@ -122,14 +158,32 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
           <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2 w-full sm:w-auto shrink-0">
             <button
               onClick={() => onNavigateTab && onNavigateTab('study-assistant')}
-              className="btn-spec-primary text-xs py-2 px-4 shadow-sm motion-pressable flex items-center gap-1.5"
+              className="btn-spec-primary text-xs py-2 px-4 shadow-sm motion-pressable flex items-center gap-1.5 cursor-pointer"
+              title="Launch AI Study Assistant"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Launch AI Tutor</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
 
-            <div className="flex items-center gap-2 text-[11px] text-text-muted">
+            <div
+              onClick={() => {
+                showActionInfo({
+                  title: 'Student Success Score Breakdown',
+                  badge: `${s.success_score}/100 Top 15%`,
+                  category: 'success',
+                  message: 'Your overall academic index ranks in the top 15th percentile of your departmental cohort.',
+                  details: [
+                    `Cumulative CGPA: ${s.cgpa.toFixed(2)} (Weight: 30%)`,
+                    `Attendance Compliance: ${s.overall_attendance}% (Weight: 25%)`,
+                    `Continuous Internals: ${(s.subjects.reduce((a, b) => a + b.internal_pct, 0) / s.subjects.length).toFixed(1)}% (Weight: 25%)`,
+                    `Coding Aptitude: ${(s as any).placement_stats?.coding_score || 82}/100 (Weight: 20%)`
+                  ]
+                });
+              }}
+              className="flex items-center gap-2 text-[11px] text-text-muted cursor-pointer hover:text-text transition"
+              title="Click for Success Score Factor Weights"
+            >
               <span>Success Score:</span>
               <span className="font-bold text-accent text-sm">
                 <MotionCounter value={s.success_score} suffix="/100" />

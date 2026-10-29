@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useCampusData } from '../context/CampusDataContext';
+import { useActionInfo } from '../context/ActionInfoContext';
 import { calculateStudentSuccessScore } from '../engine/scoringEngine';
 import { evaluateAcademicRisk } from '../engine/academicRiskEngine';
 import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
@@ -29,6 +30,7 @@ import {
 
 export const StudentIntelligencePage: React.FC = () => {
   const { filteredStudents, weights, academicThresholds, placementThresholds, setSelectedStudent, deleteStudent } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [sortField, setSortField] = useState<'score' | 'cgpa' | 'attendance' | 'placement' | 'completeness'>('score');
@@ -110,8 +112,17 @@ export const StudentIntelligencePage: React.FC = () => {
             <span>Sort by:</span>
             <select
               value={sortField}
-              onChange={e => setSortField(e.target.value as any)}
-              className="bg-card border border-border rounded-lg px-2.5 py-1 text-text font-semibold focus:outline-none focus:border-accent"
+              onChange={e => {
+                const val = e.target.value as any;
+                setSortField(val);
+                showActionInfo({
+                  title: `Roster Sorted by ${val.toUpperCase()}`,
+                  badge: `${sortedStudents.length} Students Rearranged`,
+                  category: 'info',
+                  message: `Roster ordering updated according to ${val}. The highest scoring students appear at the top.`,
+                });
+              }}
+              className="bg-card border border-border rounded-lg px-2.5 py-1 text-text font-semibold focus:outline-none focus:border-accent cursor-pointer"
             >
               <option value="score">Success Score</option>
               <option value="cgpa">Academic CGPA</option>
@@ -120,8 +131,17 @@ export const StudentIntelligencePage: React.FC = () => {
               <option value="completeness">Data Completeness</option>
             </select>
             <button
-              onClick={() => setSortDirection(prev => (prev === 'desc' ? 'asc' : 'desc'))}
-              className="p-1 text-text-muted hover:text-text rounded bg-card border border-border"
+              onClick={() => {
+                const nextDir = sortDirection === 'desc' ? 'asc' : 'desc';
+                setSortDirection(nextDir);
+                showActionInfo({
+                  title: `Sort Direction: ${nextDir === 'desc' ? 'Descending (High to Low)' : 'Ascending (Low to High)'}`,
+                  badge: `${sortField.toUpperCase()}`,
+                  category: 'info',
+                  message: `Reordered all ${sortedStudents.length} active students in ${nextDir === 'desc' ? 'descending (highest first)' : 'ascending (lowest first)'} sequence.`,
+                });
+              }}
+              className="p-1 text-text-muted hover:text-text rounded bg-card border border-border cursor-pointer transition"
               title="Toggle sort direction"
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
@@ -130,18 +150,36 @@ export const StudentIntelligencePage: React.FC = () => {
 
           <div className="flex items-center rounded-xl border border-border p-0.5 bg-card">
             <button
-              onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-lg text-xs font-medium transition ${
+              onClick={() => {
+                setViewMode('table');
+                showActionInfo({
+                  title: 'Tabular Telemetry View Activated',
+                  badge: 'Dense Roster Grid',
+                  category: 'info',
+                  message: 'Displaying comprehensive tabular view with columns for CGPA, Attendance, Placement Aptitude, LMS Engagement, and Data Completeness.',
+                });
+              }}
+              className={`p-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                 viewMode === 'table' ? 'bg-accent/20 text-accent font-bold shadow-sm' : 'text-text-muted hover:text-text'
               }`}
+              title="Switch to Table View"
             >
               <List className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg text-xs font-medium transition ${
+              onClick={() => {
+                setViewMode('grid');
+                showActionInfo({
+                  title: 'Bento Card Grid View Activated',
+                  badge: 'Visual Card Mode',
+                  category: 'info',
+                  message: 'Displaying student intelligence cards with visual score dials, risk badges, and direct intervention shortcuts.',
+                });
+              }}
+              className={`p-1.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                 viewMode === 'grid' ? 'bg-accent/20 text-accent font-bold shadow-sm' : 'text-text-muted hover:text-text'
               }`}
+              title="Switch to Bento Card Grid"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -156,29 +194,168 @@ export const StudentIntelligencePage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-card-hover text-text-muted border-b border-border">
                 <tr>
-                  <th className="py-3 px-3.5 font-semibold">Student ID & Name</th>
-                  <th className="py-3 px-3 font-semibold">Department & Year</th>
+                  <th className="py-3 px-3.5 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showActionInfo({
+                          title: 'Student Identity & Registration Directory',
+                          badge: `${sortedStudents.length} Students Listed`,
+                          category: 'info',
+                          message: 'Displays student institutional roll numbers and verified names cross-referenced with Central Database records.',
+                          details: [
+                            'Identifier format: STU001 to STU135',
+                            'Integrity check: 100% verified campus enrollment',
+                            'Click any row to open student 360° analytics drawer',
+                          ],
+                        });
+                      }}
+                      className="hover:text-accent flex items-center gap-1 font-semibold"
+                    >
+                      Student ID & Name
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showActionInfo({
+                          title: 'Department & Academic Year Stratification',
+                          badge: '5 Departments Active',
+                          category: 'info',
+                          message: 'Cohorts grouped by branch (Computer Science, IT, Electronics, Mechanical, Civil) and semester progression.',
+                          details: [
+                            'Academic Years: 1st through 4th Year',
+                            'Curriculum Semesters: Semester 1 through 8',
+                            'Filtered by active institutional filter bar',
+                          ],
+                        });
+                      }}
+                      className="hover:text-accent flex items-center gap-1 font-semibold"
+                    >
+                      Department & Year
+                    </button>
+                  </th>
                   <th
                     className="py-3 px-3 font-semibold cursor-pointer hover:text-accent"
-                    onClick={() => toggleSort('score')}
+                    onClick={() => {
+                      toggleSort('score');
+                      showActionInfo({
+                        title: 'Success Score Ranking Sort',
+                        badge: `Sorted ${sortDirection === 'desc' ? 'Ascending' : 'Descending'}`,
+                        category: 'settings',
+                        message: `Roster re-ordered by holistic institutional success score (${weights.academic}% Academics, ${weights.attendance}% Attendance, ${weights.placement}% Placement).`,
+                        details: [
+                          'Score Scale: 0 to 100 composite index',
+                          'High Priority (<60): Flagged for academic & mentor intervention',
+                          'Dean Honour (>75): Placement accelerator eligible',
+                        ],
+                      });
+                    }}
                   >
                     Success Score
                   </th>
                   <th
                     className="py-3 px-3 font-semibold cursor-pointer hover:text-accent"
-                    onClick={() => toggleSort('cgpa')}
+                    onClick={() => {
+                      toggleSort('cgpa');
+                      showActionInfo({
+                        title: 'Cumulative GPA & Backlog Audit Sort',
+                        badge: `Sorted ${sortDirection === 'desc' ? 'Ascending' : 'Descending'}`,
+                        category: 'settings',
+                        message: 'Roster sorted by Cumulative Grade Point Average (CGPA) and standing backlogs.',
+                        details: [
+                          'CGPA Scale: 10.0 institutional grading standard',
+                          'Backlog Threshold: >2 backlogs triggers critical academic review',
+                          'Remediation: Mandatory remedial bridge courses',
+                        ],
+                      });
+                    }}
                   >
                     CGPA / Backlogs
                   </th>
                   <th
                     className="py-3 px-3 font-semibold cursor-pointer hover:text-accent"
-                    onClick={() => toggleSort('attendance')}
+                    onClick={() => {
+                      toggleSort('attendance');
+                      showActionInfo({
+                        title: 'Lecture Attendance Pulse Sort',
+                        badge: `Sorted ${sortDirection === 'desc' ? 'Ascending' : 'Descending'}`,
+                        category: 'settings',
+                        message: 'Roster sorted by real-time lecture and laboratory attendance percentage.',
+                        details: [
+                          'Mandatory Threshold: 75% for semester exam hall ticket',
+                          'Critical Warning: <65% triggers proctor & parent notification',
+                          'Sync Frequency: Daily automated RFID / SIS ingestion',
+                        ],
+                      });
+                    }}
                   >
                     Attendance
                   </th>
-                  <th className="py-3 px-3 font-semibold">Academic Risk</th>
-                  <th className="py-3 px-3 font-semibold">Placement Risk</th>
-                  <th className="py-3 px-3 font-semibold">Segment</th>
+                  <th className="py-3 px-3 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showActionInfo({
+                          title: 'Institutional Academic Risk Classification',
+                          badge: '3-Tier Classification',
+                          category: 'warning',
+                          message: 'Rule-based algorithmic risk tiering computed from CGPA, internal tests, attendance, and backlogs.',
+                          details: [
+                            'High Risk: Immediate proctor intervention required',
+                            'Moderate Risk: Weekly academic monitoring',
+                            'Low Risk: Standard academic progression',
+                          ],
+                        });
+                      }}
+                      className="hover:text-accent font-semibold"
+                    >
+                      Academic Risk
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showActionInfo({
+                          title: 'Placement Readiness & Tier Assessment',
+                          badge: 'Corporate Readiness',
+                          category: 'info',
+                          message: 'Evaluated by DSA coding score, mock technical interviews, resume completeness, and eligible company CTC tiers.',
+                          details: [
+                            'Tier 1 (18+ LPA): Product and FAANG tracks',
+                            'Tier 2 (8-18 LPA): Core engineering and fintech',
+                            'Tier 3 (<8 LPA): Mass recruitment accelerators',
+                          ],
+                        });
+                      }}
+                      className="hover:text-accent font-semibold"
+                    >
+                      Placement Risk
+                    </button>
+                  </th>
+                  <th className="py-3 px-3 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showActionInfo({
+                          title: 'Student Clinical Cohort Segment',
+                          badge: '7 Segments Available',
+                          category: 'info',
+                          message: 'Actionable intervention grouping based on cross-domain academic and placement signals.',
+                          details: [
+                            'High Academic, Placement Gap: Technical aptitude boost needed',
+                            'High Placement, Low Attendance: Attendance waiver & exam warning',
+                            'Dual-At-Risk: Intensive multidisciplinary clinical remediation',
+                          ],
+                        });
+                      }}
+                      className="hover:text-accent font-semibold"
+                    >
+                      Segment
+                    </button>
+                  </th>
                   <th className="py-3 px-3 font-semibold text-right">Actions</th>
                 </tr>
               </thead>

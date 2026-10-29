@@ -1088,10 +1088,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setStudentInput(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full !pl-12 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
-                          style={{ paddingLeft: '44px' }}
+                          style={{ paddingLeft: '48px' }}
                         />
                       </div>
                       <div className="text-[11px] text-text-muted pt-1 leading-normal">
@@ -1131,10 +1131,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setFacultyInput(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full !pl-12 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
-                          style={{ paddingLeft: '44px' }}
+                          style={{ paddingLeft: '48px' }}
                         />
                       </div>
                       <div className="text-[11px] text-text-muted pt-1 leading-normal">
@@ -1174,10 +1174,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setTpoEmail(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full !pl-12 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
-                          style={{ paddingLeft: '44px' }}
+                          style={{ paddingLeft: '48px' }}
                         />
                       </div>
                       <div className="text-[11px] text-text-muted pt-1 leading-normal">
@@ -1210,10 +1210,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setAdminEmail(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full !pl-12 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
-                          style={{ paddingLeft: '44px' }}
+                          style={{ paddingLeft: '48px' }}
                         />
                       </div>
                       <div className="text-[11px] text-text-muted pt-1 leading-normal">
@@ -1244,8 +1244,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         placeholder="••••••••"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="input-spec input-with-left-icon input-with-right-icon w-full text-xs"
-                        style={{ paddingLeft: '44px', paddingRight: '44px' }}
+                        className="input-spec input-with-left-icon input-with-right-icon w-full !pl-12 !pr-12 text-xs"
+                        style={{ paddingLeft: '48px', paddingRight: '48px' }}
                       />
                       <button
                         type="button"

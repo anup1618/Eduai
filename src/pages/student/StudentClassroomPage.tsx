@@ -15,10 +15,12 @@ import {
   ClassroomAssessment
 } from '../../data/classroomData';
 import { useCurrentStudent } from '../../context/CampusDataContext';
+import { useActionInfo } from '../../context/ActionInfoContext';
 import { SpecPageHeader, SpecKpiCard } from '../../components/common/SpecComponents';
 
 export function StudentClassroomPage() {
   const currentStudent = useCurrentStudent();
+  const { showActionInfo } = useActionInfo();
 
   // Find all subjects from student profile or default to our 5 subjects
   const subjectCodes = Object.keys(CLASSROOM_DATA);
@@ -855,8 +857,22 @@ export function StudentClassroomPage() {
                   <button
                     onClick={() => {
                       showToast(`Downloading "${res.title}" (${res.fileSize})...`);
+                      showActionInfo({
+                        title: `Course Resource Prepared: ${res.title}`,
+                        badge: `${res.fileFormat} · ${res.fileSize}`,
+                        category: 'export',
+                        message: `Official digital curriculum asset ready for offline student reference. Verified by ${res.uploadedBy}.`,
+                        details: [
+                          `Course: ${subjectData.name} (${subjectData.code})`,
+                          `Topic: ${res.category}`,
+                          `File Format: ${res.fileFormat}`,
+                          `File Size: ${res.fileSize}`,
+                          `Institutional License: Open Academic Access`
+                        ]
+                      });
                     }}
-                    className="py-2 rounded-xl text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition-colors flex items-center justify-center gap-1.5"
+                    className="py-2 rounded-xl text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    title="Download Course File"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download</span>
@@ -931,9 +947,20 @@ export function StudentClassroomPage() {
                   <button
                     onClick={() => {
                       showToast(`Downloading "${previewResource.title}"...`);
+                      showActionInfo({
+                        title: `Resource Download: ${previewResource.title}`,
+                        badge: `${previewResource.fileFormat} · ${previewResource.fileSize}`,
+                        category: 'export',
+                        message: `Prepared "${previewResource.title}" for offline revision. Authored by ${previewResource.uploadedBy}.`,
+                        details: [
+                          `Course: ${subjectData.name}`,
+                          `Format: ${previewResource.fileFormat}`,
+                          `Size: ${previewResource.fileSize}`
+                        ]
+                      });
                       setPreviewResource(null);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 shadow-md"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 shadow-md cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
                     <span>Download Full File</span>
@@ -1305,8 +1332,21 @@ export function StudentClassroomPage() {
                       <button
                         onClick={() => {
                           showToast(`Downloading past question paper blueprint for ${asm.title}...`);
+                          showActionInfo({
+                            title: `Past Exam Papers & Solution Keys: ${asm.title}`,
+                            badge: 'Exam Prep Blueprint',
+                            category: 'export',
+                            message: `Institutional past examination papers and model solution rubrics for ${asm.title} (${subjectData.name}).`,
+                            details: [
+                              `Course: ${subjectData.name} (${subjectData.code})`,
+                              `Weightage: ${asm.weightagePct}% of final semester grade`,
+                              `Includes: 3 full past question papers with step-by-step solutions`,
+                              `Syllabus Modules Covered: 1, 2, 3, and 4`
+                            ]
+                          });
                         }}
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-card border border-border hover:border-cyan-500/40 text-cyan-300 transition-colors"
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-card border border-border hover:border-cyan-500/40 text-cyan-300 transition-colors cursor-pointer"
+                        title="Download Past Papers & Model Solutions"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>Download Past Year Papers & Model Solutions</span>

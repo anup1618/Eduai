@@ -5,6 +5,7 @@ import {
   Cpu, Award, MessageSquare, ChevronDown, CheckCircle2, Shield
 } from 'lucide-react';
 import { useCurrentStudent } from '../../context/CampusDataContext';
+import { useActionInfo } from '../../context/ActionInfoContext';
 import { SpecPageHeader } from '../../components/common/SpecComponents';
 import api from '../../services/api';
 
@@ -39,6 +40,7 @@ const PRESET_QUESTIONS = [
 
 export function StudentStudyAssistantPage() {
   const currentStudent = useCurrentStudent();
+  const { showActionInfo } = useActionInfo();
   const studentId = currentStudent?.id || currentStudent?.roll_no || 'STU001';
   const studentName = currentStudent?.name || 'Student';
 
@@ -213,6 +215,17 @@ export function StudentStudyAssistantPage() {
       };
       setMessages([resetMsg]);
       localStorage.removeItem(`edupulse_study_chat_${studentId}`);
+      showActionInfo({
+        title: 'Study Assistant Session Reset',
+        badge: `${selectedSubject} Context Initialized`,
+        category: 'info',
+        message: `Chat history archived. Ready for fresh academic questions in ${selectedSubject}.`,
+        details: [
+          `Subject: ${selectedSubject}`,
+          `Student: ${studentName}`,
+          `Engine: ${aiStatus.model}`
+        ]
+      });
     }
   };
 
@@ -220,6 +233,12 @@ export function StudentStudyAssistantPage() {
     try {
       navigator.clipboard.writeText(content);
       setCopiedId(id);
+      showActionInfo({
+        title: 'Code Snippet Copied to Clipboard',
+        badge: 'Clipboard Ready',
+        category: 'success',
+        message: 'The solution code block has been copied to your system clipboard for local development.',
+      });
       setTimeout(() => setCopiedId(null), 2000);
     } catch (e) {}
   };

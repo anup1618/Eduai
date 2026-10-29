@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   MessageSquare, Send, CheckCircle2, Clock, AlertCircle, AlertTriangle,
   User, Shield, Mail, Phone, MapPin, Camera, Moon, Sun, Lock, Sparkles,
-  Tag, Filter, Layers, Search, BookOpen, ChevronRight, HelpCircle
+  Tag, Filter, Layers, Search, BookOpen, ChevronRight, HelpCircle, Download
 } from 'lucide-react';
 import {
   DEMO_PROBLEMS,
@@ -590,6 +590,7 @@ export function StudentMyProblemPage() {
 
 export function StudentProfilePage() {
   const s = useCurrentStudent();
+  const { showActionInfo } = useActionInfo();
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -599,6 +600,53 @@ export function StudentProfilePage() {
         subtitle="Official campus registrar information, academic credentials, and institutional contact"
         sessionText="Registrar Record"
         standingChip={{ text: 'Verified', variant: 'success' }}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                showActionInfo({
+                  title: `Official Academic Transcript Export: ${s.name}`,
+                  badge: `${s.roll_no} · ${s.semester}`,
+                  category: 'export',
+                  message: `Official semester marksheet and consolidated grade card generated for ${s.name} (${s.roll_no}). Authenticated with university digital seal.`,
+                  details: [
+                    `Student: ${s.name}`,
+                    `Current CGPA: ${s.cgpa.toFixed(2)}`,
+                    `Overall Attendance: ${s.overall_attendance}%`,
+                    `Active Backlogs: ${s.backlogs ?? 0}`,
+                    `Format: Digital Verifiable Transcript (PDF)`
+                  ]
+                });
+              }}
+              className="btn-spec-primary text-xs py-2 px-3.5 flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Generate Official Transcript"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Transcript</span>
+            </button>
+            <button
+              onClick={() => {
+                showActionInfo({
+                  title: 'Faculty Mentor Consultation Protocol',
+                  badge: 'Dr. Priya Menon',
+                  category: 'info',
+                  message: 'Your appointed departmental academic mentor is Dr. Priya Menon. Office hours are Tuesday & Thursday 2:00 PM - 4:00 PM in Room 412.',
+                  details: [
+                    'Mentor: Dr. Priya Menon (Dept of CSE)',
+                    'Office Location: Tech Block Room 412',
+                    'Contact: priya.menon@campus.edu',
+                    'Direct Booking: Dispatched through My Problem Requests tab'
+                  ]
+                });
+              }}
+              className="btn-spec-secondary text-xs py-2 px-3.5 flex items-center gap-1.5 cursor-pointer"
+              title="Contact Appointed Faculty Mentor"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Contact Mentor</span>
+            </button>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-12 gap-4">
@@ -654,6 +702,7 @@ export function StudentProfilePage() {
 
 export function StudentSettingsPage() {
   const { theme, toggleTheme } = useTheme();
+  const { showActionInfo } = useActionInfo();
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -698,6 +747,30 @@ export function StudentSettingsPage() {
               <input type="checkbox" defaultChecked className="accent-[var(--accent)]" />
               <span className="text-xs text-text font-medium">Placement drive qualification alerts</span>
             </label>
+          </div>
+
+          <div className="pt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                showActionInfo({
+                  title: 'Student Notification Preferences Saved',
+                  badge: 'Preferences Synced',
+                  category: 'success',
+                  message: 'Your automated alert thresholds and AI digest settings have been saved to local preferences.',
+                  details: [
+                    '75% Attendance Drop Alerts: ENABLED',
+                    'Weekly AI Synthesis Notifications: ENABLED',
+                    'Placement Drive Qualification Radar: ENABLED',
+                    'Delivery Channel: Institutional Email & Portal Toast'
+                  ]
+                });
+              }}
+              className="btn-spec-primary text-xs py-2 px-5 cursor-pointer shadow-sm"
+              title="Save Student Notification Preferences"
+            >
+              Save Notification Preferences
+            </button>
           </div>
         </div>
       </div>

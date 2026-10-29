@@ -334,7 +334,7 @@ export const StudentShell: React.FC<StudentShellProps> = ({
               <input
                 type="text"
                 placeholder="Search courses, exams, attendance..."
-                className="w-full bg-card border border-border rounded-full pl-9 pr-4 py-1.5 text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-accent"
+                className="w-full bg-card border border-border rounded-full pl-10 pr-4 py-1.5 text-xs text-text placeholder:text-text-muted focus:outline-none focus:border-accent"
               />
             </div>
           </div>

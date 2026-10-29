@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Shield
 } from 'lucide-react';
+import { useActionInfo } from '../../context/ActionInfoContext';
 
 export type NavigationPage =
   | 'overview'
@@ -177,6 +178,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 setMobileOpen(false);
               }}
               className="w-full btn-spec-primary text-xs py-1.5 px-3"
+              data-info-title="AI Campus Strategic Analyst"
+              data-info-badge="Natural Language Query Engine"
+              data-info-category="info"
+              data-info-message="Interactive institutional query engine powered by real-time cohort statistics, academic risk matrices, and placement tracking."
             >
               Ask Campus Analyst
             </button>
@@ -192,6 +197,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 isCollapsed ? 'justify-center' : ''
               }`}
               title="Switch Portal / Log Out"
+              data-info-title="Institutional Session Management"
+              data-info-badge="Role De-authentication"
+              data-info-category="audit"
+              data-info-message="Terminates current session token and returns to Institutional Gateway for role switching (Student, Faculty, TPO, Admin)."
             >
               <LogOut className="w-4 h-4 flex-shrink-0" />
               {!isCollapsed && <span>Switch Portal / Log Out</span>}

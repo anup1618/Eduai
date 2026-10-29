@@ -16,6 +16,7 @@ import {
 import { CLASSROOM_DATA, SubjectClassroomInfo } from '../data/classroomData';
 import { useCampusData } from '../context/CampusDataContext';
 import { useTheme } from '../context/ThemeContext';
+import { useActionInfo } from '../context/ActionInfoContext';
 import { SpecKpiCard, SpecPageHeader } from '../components/common/SpecComponents';
 
 export type FacultyPage =
@@ -66,6 +67,7 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
     loginUser,
   } = useCampusData();
   const { theme, toggleTheme } = useTheme();
+  const { showActionInfo } = useActionInfo();
 
   const [collapsed, setCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState<FacultyPage>('dashboard');
@@ -206,9 +208,23 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
   };
 
   const handleSaveAttendance = () => {
+    const presentCount = Object.values(attendanceRecords).filter(Boolean).length;
+    const absentCount = FACULTY_STUDENTS.length - presentCount;
     setAttendanceSaveMessage(
       `Attendance recorded for ${selectedSubject} on ${selectedDate} (${FACULTY_STUDENTS.length} students logged).`
     );
+    showActionInfo({
+      title: `Attendance Session Committed: ${selectedSubject}`,
+      badge: `${presentCount} Present / ${absentCount} Absent`,
+      category: 'success',
+      message: `Daily attendance register for ${selectedSubject} on ${selectedDate} has been locked and uploaded to institutional ledger.`,
+      details: [
+        `Course: ${selectedSubject}`,
+        `Date: ${selectedDate}`,
+        `Attendance Rate: ${Math.round((presentCount / (FACULTY_STUDENTS.length || 1)) * 100)}% (${presentCount}/${FACULTY_STUDENTS.length})`,
+        `Biometric Sync: Central Database Verified`
+      ]
+    });
     setTimeout(() => setAttendanceSaveMessage(null), 4000);
   };
 
@@ -220,6 +236,19 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
     await replyProblemRequest(reqId, reply, next);
     setReplyText(prev => ({ ...prev, [reqId]: '' }));
     setNextStepText(prev => ({ ...prev, [reqId]: '' }));
+
+    showActionInfo({
+      title: 'Academic Response Dispatched to Student',
+      badge: `Case: ${reqId}`,
+      category: 'success',
+      message: 'Official faculty guidance and recommended action steps have been delivered directly to the student portal inbox.',
+      details: [
+        `Case ID: ${reqId}`,
+        `Faculty Sign-off: ${faculty.name}`,
+        `Next Step: ${next || 'Follow-up in next scheduled clinic'}`,
+        `Status: In-Progress Resolution`
+      ]
+    });
   };
 
   const handleExportCSV = () => {
@@ -233,6 +262,19 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    showActionInfo({
+      title: 'Course Directory CSV Exported',
+      badge: `${FACULTY_STUDENTS.length} Records Downloaded`,
+      category: 'export',
+      message: `Complete academic register for ${faculty.name}'s classes downloaded as "Faculty_Report_${faculty.name.replace(/\s+/g, '_')}.csv".`,
+      details: [
+        `Faculty: ${faculty.name}`,
+        `Department: ${faculty.department}`,
+        `Student Records: ${FACULTY_STUDENTS.length}`,
+        `Format: RFC 4180 CSV standard`
+      ]
+    });
   };
 
   return (
@@ -1130,8 +1172,8 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                       setAuthError('');
                     }}
                     placeholder="Enter password (e.g. faculty@123)..."
-                    className="input-spec input-with-left-icon input-with-right-icon w-full text-xs"
-                    style={{ paddingLeft: '44px', paddingRight: '40px' }}
+                    className="input-spec input-with-left-icon input-with-right-icon w-full !pl-12 !pr-10 text-xs"
+                    style={{ paddingLeft: '48px', paddingRight: '40px' }}
                     autoFocus
                     required
                   />

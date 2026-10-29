@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCampusData } from '../context/CampusDataContext';
+import { useActionInfo } from '../context/ActionInfoContext';
 import { evaluateAcademicRisk } from '../engine/academicRiskEngine';
 import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
 import { Badge } from '../components/common/Badge';
@@ -18,6 +19,7 @@ import {
 
 export const RiskAnalysisPage: React.FC = () => {
   const { filteredStudents, academicThresholds, placementThresholds, setSelectedStudent } = useCampusData();
+  const { showActionInfo } = useActionInfo();
 
   const [activeTab, setActiveTab] = useState<'matrix' | 'academic' | 'placement'>('matrix');
   const [selectedStudentForIntervention, setSelectedStudentForIntervention] = useState<UnifiedStudent | null>(null);
@@ -138,17 +140,71 @@ export const RiskAnalysisPage: React.FC = () => {
                     <td className="p-3 font-bold text-left text-rose-700 bg-rose-50/50 border border-slate-200">
                       Academic High
                     </td>
-                    <td className="p-4 border border-slate-200 bg-rose-100/40">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.High.High;
+                        showActionInfo({
+                          title: 'Urgent Dual Intervention Cohort (High Academic + High Placement Risk)',
+                          badge: `${cohort.length} Candidates Flagged`,
+                          category: 'danger',
+                          message: 'Students in this quadrant face severe academic retention risk combined with acute career placement deficiencies. Urgent multidisciplinary faculty and TPO intervention required.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students (${Math.round((cohort.length / (filteredStudents.length || 1)) * 100)}% of cohort)`,
+                            `Academic Indicators: CGPA < 6.5, Backlogs > 0, Attendance < 75%`,
+                            `Placement Indicators: Coding Score < 50, Resume ATS < 60`,
+                            `Sample Students: ${cohort.slice(0, 3).map(s => s.name).join(', ') || 'None in current filter'}`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-rose-100/40 hover:bg-rose-200/60 transition cursor-pointer"
+                      title="Click for Urgent Dual Intervention Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-rose-800">{matrix.High.High.length}</div>
                       <div className="text-[10px] text-rose-600 font-semibold uppercase tracking-wider mt-0.5">
                         Urgent Dual Intervention
                       </div>
                     </td>
-                    <td className="p-4 border border-slate-200 bg-rose-50/20">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.High.Moderate;
+                        showActionInfo({
+                          title: 'Academic Focus First Cohort (High Academic + Moderate Placement Risk)',
+                          badge: `${cohort.length} Candidates Flagged`,
+                          category: 'warning',
+                          message: 'Students possess foundational career potential but are in danger of semester debarment or low degree completion probability. Focus on clearing backlogs and attendance recovery.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students`,
+                            `Priority: Assign departmental remedial mentor`,
+                            `Action: Attendance recovery contract & remedial tutorials`,
+                            `Sample Students: ${cohort.slice(0, 3).map(s => s.name).join(', ') || 'None in current filter'}`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-rose-50/20 hover:bg-rose-100/40 transition cursor-pointer"
+                      title="Click for Academic Focus First Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-rose-700">{matrix.High.Moderate.length}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">Academic Focus First</div>
                     </td>
-                    <td className="p-4 border border-slate-200 bg-amber-50/30">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.High.Low;
+                        showActionInfo({
+                          title: 'Good Skills, Clear Arrears Cohort (High Academic + Low Placement Risk)',
+                          badge: `${cohort.length} Candidates`,
+                          category: 'warning',
+                          message: 'Technically competent students with high coding scores and placement aptitude who are held back exclusively by academic backlogs or attendance deficits.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students`,
+                            `Insight: Strong employability if academic arrears are cleared`,
+                            `Target: Accelerated backlog clearance before final year placement drive`,
+                            `Sample Students: ${cohort.slice(0, 3).map(s => s.name).join(', ') || 'None in current filter'}`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-amber-50/30 hover:bg-amber-100/50 transition cursor-pointer"
+                      title="Click for Skill vs Arrears Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-amber-700">{matrix.High.Low.length}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">Good Skills, Clear Arrears</div>
                     </td>
@@ -159,15 +215,66 @@ export const RiskAnalysisPage: React.FC = () => {
                     <td className="p-3 font-bold text-left text-amber-700 bg-amber-50/50 border border-slate-200">
                       Academic Moderate
                     </td>
-                    <td className="p-4 border border-slate-200 bg-rose-50/20">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.Moderate.High;
+                        showActionInfo({
+                          title: 'Placement Priority Cohort (Moderate Academic + High Placement Risk)',
+                          badge: `${cohort.length} Candidates`,
+                          category: 'placement',
+                          message: 'Students maintaining fair academic passing marks but lacking practical problem-solving speed, technical projects, and interview preparation.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students`,
+                            `TPO Recommendation: Mandatory Coding Bootcamp & Resume Clinic`,
+                            `Sample Students: ${cohort.slice(0, 3).map(s => s.name).join(', ') || 'None in current filter'}`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-rose-50/20 hover:bg-rose-100/40 transition cursor-pointer"
+                      title="Click for Placement Priority Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-amber-800">{matrix.Moderate.High.length}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">Placement Priority</div>
                     </td>
-                    <td className="p-4 border border-slate-200 bg-amber-50/20">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.Moderate.Moderate;
+                        showActionInfo({
+                          title: 'Balanced Support Cohort (Moderate Academic + Moderate Placement Risk)',
+                          badge: `${cohort.length} Candidates`,
+                          category: 'info',
+                          message: 'Core mainstream cohort maintaining baseline progression across academics and skills. Routine academic advisement ensures trajectory remains positive.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students`,
+                            `Status: Balanced Trajectory`,
+                            `Target: Push into Top Quartile through structured peer mentoring`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-amber-50/20 hover:bg-amber-100/40 transition cursor-pointer"
+                      title="Click for Balanced Support Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-amber-700">{matrix.Moderate.Moderate.length}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">Balanced Support</div>
                     </td>
-                    <td className="p-4 border border-slate-200 bg-emerald-50/20">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.Moderate.Low;
+                        showActionInfo({
+                          title: 'Monitor Attendance Cohort (Moderate Academic + Low Placement Risk)',
+                          badge: `${cohort.length} Candidates`,
+                          category: 'info',
+                          message: 'Students with reliable placement profiles whose academic performance is stable but requires attendance vigilance.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students`,
+                            `Placement Readiness: High`,
+                            `Attendance Floor: Keep above 75% statutory boundary`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-emerald-50/20 hover:bg-emerald-100/40 transition cursor-pointer"
+                      title="Click for Monitor Attendance Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-teal-700">{matrix.Moderate.Low.length}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">Monitor Attendance</div>
                     </td>
@@ -178,17 +285,70 @@ export const RiskAnalysisPage: React.FC = () => {
                     <td className="p-3 font-bold text-left text-emerald-700 bg-emerald-50/50 border border-slate-200">
                       Academic Low
                     </td>
-                    <td className="p-4 border border-slate-200 bg-amber-50/40">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.Low.High;
+                        showActionInfo({
+                          title: 'High GPA / Low Skill Gap Cohort (Low Academic + High Placement Risk)',
+                          badge: `${cohort.length} Candidates`,
+                          category: 'placement',
+                          message: 'High academic achievers (CGPA >= 7.5) with a critical practical skill bottleneck. They risk missing Tier-1 software engineering shortlists due to low coding assessment scores.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students`,
+                            `Anomaly Type: Academic Overperformance / Practical Underperformance`,
+                            `Immediate Fix: Data Structures & Algorithms intensive preparation`,
+                            `Sample Students: ${cohort.slice(0, 3).map(s => s.name).join(', ') || 'None in current filter'}`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-amber-50/40 hover:bg-amber-100/60 transition cursor-pointer"
+                      title="Click for High GPA / Low Skill Gap Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-amber-800">{matrix.Low.High.length}</div>
                       <div className="text-[10px] text-amber-700 font-semibold uppercase tracking-wider mt-0.5">
                         High GPA / Low Skill Gap
                       </div>
                     </td>
-                    <td className="p-4 border border-slate-200 bg-emerald-50/20">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.Low.Moderate;
+                        showActionInfo({
+                          title: 'Placement Preparation Needed Cohort',
+                          badge: `${cohort.length} Candidates`,
+                          category: 'info',
+                          message: 'Solid academic students needing dedicated placement preparation: mock interview cycles and portfolio review.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students`,
+                            `Academic Status: Good Standing (CGPA >= 7.0)`,
+                            `Target: Elevate mock interview score above 75%`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-emerald-50/20 hover:bg-emerald-100/40 transition cursor-pointer"
+                      title="Click for Prep Needed Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-teal-700">{matrix.Low.Moderate.length}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">Prep Needed</div>
                     </td>
-                    <td className="p-4 border border-slate-200 bg-emerald-100/50">
+                    <td
+                      onClick={() => {
+                        const cohort = matrix.Low.Low;
+                        showActionInfo({
+                          title: 'Dual Excellence Cohort (Low Academic Risk + Low Placement Risk)',
+                          badge: `${cohort.length} Candidates`,
+                          category: 'success',
+                          message: 'Top institutional performers with exemplary academic CGPA, consistent 85%+ attendance, and top-tier placement test scores. Prime candidates for Tier-1 dream company placements.',
+                          details: [
+                            `Cohort Size: ${cohort.length} students (${Math.round((cohort.length / (filteredStudents.length || 1)) * 100)}% of cohort)`,
+                            `Average CGPA: ${(cohort.reduce((acc, s) => acc + (s.academic.cgpa || 0), 0) / (cohort.length || 1)).toFixed(2)}`,
+                            `Average Attendance: ${(cohort.reduce((acc, s) => acc + (s.attendance.overall_attendance || 0), 0) / (cohort.length || 1)).toFixed(0)}%`,
+                            `Career Pathway: Leadership & High-Package Shortlists`
+                          ]
+                        });
+                      }}
+                      className="p-4 border border-slate-200 bg-emerald-100/50 hover:bg-emerald-200/60 transition cursor-pointer"
+                      title="Click for Dual Excellence Breakdown"
+                    >
                       <div className="text-xl font-extrabold text-emerald-800">{matrix.Low.Low.length}</div>
                       <div className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider mt-0.5">
                         Dual Excellence
@@ -209,7 +369,25 @@ export const RiskAnalysisPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
               {sortedRules.slice(0, 6).map((rule, idx) => (
-                <div key={idx} className="p-3 rounded-lg border border-slate-200/80 bg-slate-50/50 flex items-center justify-between">
+                <div
+                  key={idx}
+                  onClick={() => {
+                    showActionInfo({
+                      title: `Risk Rule Trigger: ${rule.name}`,
+                      badge: `${rule.count} Students Impacted`,
+                      category: rule.severity === 'High' ? 'danger' : 'warning',
+                      message: `Rule "${rule.name}" belongs to the ${rule.category} telemetry category. Currently triggered across ${rule.count} students in active enrollment.`,
+                      details: [
+                        `Category: ${rule.category}`,
+                        `Severity Level: ${rule.severity}`,
+                        `Impacted Roster: ${rule.count} students (${Math.round((rule.count / (filteredStudents.length || 1)) * 100)}% of cohort)`,
+                        `Recommended Mitigation: Target structured remedial assignments and departmental tutoring`
+                      ]
+                    });
+                  }}
+                  className="p-3 rounded-lg border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/70 hover:border-teal-400 transition cursor-pointer flex items-center justify-between"
+                  title="Click for Rule Details and Remedial Strategy"
+                >
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-slate-900">{rule.name}</span>
