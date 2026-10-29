@@ -528,7 +528,7 @@ export const DEMO_RESUME_VERIFICATIONS: ResumeVerificationItem[] = [
     submittedDate: '2025-10-24',
     status: 'Pending Review',
     atsScore: 71,
-    skills: ['React.js', 'Node.js', 'MongoDB', 'Tailwind CSS'],
+    skills: ['React.js', 'Node.js', 'Database Systems', 'Tailwind CSS'],
     notes: '2 backlogs noted on transcript; check if backlogs are cleared before approving for Tier 1 companies.',
   },
   {

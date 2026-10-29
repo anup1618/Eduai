@@ -344,7 +344,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
           <div className="hidden lg:flex items-center gap-6 text-xs text-text-muted font-medium">
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 text-[#10B981]">
               <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="font-semibold">MongoDB Atlas: Connected ({students.length} Students)</span>
+              <span className="font-semibold">Cloud Database: Connected ({students.length} Students)</span>
             </div>
             <div className="flex items-center gap-1.5 text-text-muted">
               <Clock className="w-3.5 h-3.5 text-text-muted" />
@@ -386,7 +386,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
             <span className="text-sm">🍉</span>
             <span className="text-text font-bold">EduPulse Institutional Intelligence OS</span>
             <span className="text-text-muted">•</span>
-            <span className="text-[#10B981] font-bold">100% MongoDB Atlas Connected</span>
+            <span className="text-[#10B981] font-bold">100% Cloud Enterprise Connected</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-text tracking-tight leading-[1.12]">
@@ -398,7 +398,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
 
           <p className="text-sm sm:text-base md:text-lg text-text-muted max-w-2xl mx-auto leading-relaxed">
             The institutional operating system for real-time academic retention,
-            attendance drop detection, placement acceleration, and MongoDB-backed student records.
+            attendance drop detection, placement acceleration, and central institutional records.
           </p>
 
           {/* Action CTAs */}
@@ -432,7 +432,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
             </div>
 
             <div className="spec-card p-3.5 border-l-4 border-l-[#10B981] bg-card/60 backdrop-blur-md">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">MongoDB Atlas</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Cloud Registry</span>
               <div className="text-xl font-black text-text mt-0.5">{students.length} Students</div>
               <span className="text-[10px] text-[#10B981] font-semibold">● Live Cloud Persisted</span>
             </div>
@@ -711,14 +711,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                     </span>
                   </div>
                   <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                    Institutional governance: NAAC accreditation reports, bulk spreadsheet ingestion, manual student creator, and MongoDB sync.
+                    Institutional governance: NAAC accreditation reports, bulk spreadsheet ingestion, manual student creator, and real-time cloud sync.
                   </p>
                 </div>
 
                 <ul className="text-[11px] text-text-muted space-y-1.5 pt-2">
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
-                    <span>Live MongoDB Atlas Cloud Sync</span>
+                    <span>Live Central Cloud Sync</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
@@ -769,9 +769,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                 <div className="w-9 h-9 rounded-xl bg-[#10B981]/15 text-[#10B981] flex items-center justify-center">
                   <Database className="w-5 h-5" />
                 </div>
-                <h4 className="text-sm font-bold text-text">Direct MongoDB Atlas</h4>
+                <h4 className="text-sm font-bold text-text">Direct Cloud Database</h4>
                 <p className="text-xs text-text-muted leading-relaxed">
-                  Every student created via Excel or manual form is persisted directly with real-time WiredTiger storage.
+                  Every student created via Excel or manual form is persisted directly with encrypted enterprise cloud storage.
                 </p>
               </div>
 
@@ -926,7 +926,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
             <p>© 2026 EduPulse AI Corporation. Watermelon Intelligence Platform.</p>
           </div>
           <div className="flex items-center justify-center gap-4 text-[11px]">
-            <span className="text-[#10B981] font-semibold">● MongoDB Cluster: Connected</span>
+            <span className="text-[#10B981] font-semibold">● Cloud Database Cluster: Connected</span>
             <span className="hover:text-text cursor-pointer">Security Protocol</span>
             <span className="hover:text-text cursor-pointer">NEP 2020 Compliance</span>
           </div>
@@ -1076,7 +1076,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         </label>
                         <span className="text-[10px] text-[#10B981] font-mono">Database Match</span>
                       </div>
-                      <div className="relative">
+                      <div className="relative flex items-center">
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-student-name"
@@ -1088,7 +1088,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setStudentInput(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
                           style={{ paddingLeft: '44px' }}
@@ -1119,7 +1119,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         </label>
                         <span className="text-[10px] text-[#10B981] font-mono">Directory Match</span>
                       </div>
-                      <div className="relative">
+                      <div className="relative flex items-center">
                         <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-faculty-name"
@@ -1131,7 +1131,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setFacultyInput(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
                           style={{ paddingLeft: '44px' }}
@@ -1162,7 +1162,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         </label>
                         <span className="text-[10px] text-[#059669] font-mono">TPO Cell</span>
                       </div>
-                      <div className="relative">
+                      <div className="relative flex items-center">
                         <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-tpo-email"
@@ -1174,7 +1174,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setTpoEmail(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
                           style={{ paddingLeft: '44px' }}
@@ -1198,7 +1198,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                       <label htmlFor="modal-admin-email" className="label-spec text-[10px]">
                         Administrator Campus Email
                       </label>
-                      <div className="relative">
+                      <div className="relative flex items-center">
                         <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-admin-email"
@@ -1210,7 +1210,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setAdminEmail(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
+                          className={`input-spec input-with-left-icon w-full pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
                           style={{ paddingLeft: '44px' }}
@@ -1236,7 +1236,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                       </label>
                       <span className="text-[10px] text-text-muted font-mono">Protected</span>
                     </div>
-                    <div className="relative">
+                    <div className="relative flex items-center">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                       <input
                         id="modal-password"
@@ -1244,7 +1244,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         placeholder="••••••••"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="input-spec w-full !pl-11 !pr-11 text-xs"
+                        className="input-spec input-with-left-icon input-with-right-icon w-full text-xs"
                         style={{ paddingLeft: '44px', paddingRight: '44px' }}
                       />
                       <button
@@ -1268,7 +1268,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                       {isLoading ? (
                         <>
                           <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Verifying with MongoDB…</span>
+                          <span>Verifying Institutional Credentials…</span>
                         </>
                       ) : (
                         <>

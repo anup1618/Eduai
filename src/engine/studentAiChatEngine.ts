@@ -213,7 +213,7 @@ export function queryStudentAiAssistant(
 
   if (total === 0) {
     return {
-      replyText: 'No student records are currently loaded in the database. Please import student data via the Data Integration Hub or verify the MongoDB connection.',
+      replyText: 'No student records are currently loaded in the database. Please import student data via the Data Integration Hub or verify the database connection.',
       intent: 'general_help',
       suggestedPrompts: ['How to add students?', 'Check database connection'],
     };
@@ -614,7 +614,7 @@ export function queryStudentAiAssistant(
     replyText: `👋 **EduPulse AI Student Assistant (${context === 'tpo' ? 'TPO Placement Cell' : 'Admin Operations'})**:\n\nI can instantly look up **any student details** and provide institutional information. Try asking:\n\n• **Direct Student Query:** "Show details for ${sampleStudent.name}" or "What is ${sampleStudent.student_id}'s attendance?"\n• **Academic & Attendance:** "Who has attendance below 75%?" or "Students with active backlogs"\n• **Placement & Careers:** "Show Tier 1 placement candidates" or "Who is eligible for Google?"\n• **Risk & Mentorship:** "List all high-risk students" or "Who is mentoring ${sampleStudent.student_id}?"`,
     intent: 'general_help',
     metrics: [
-      { label: 'Enrolled Database', value: total, sublabel: 'MongoDB Verified' },
+      { label: 'Enrolled Database', value: total, sublabel: 'Cloud Verified' },
       { label: 'Campus Avg CGPA', value: avgCampusCgpa },
       { label: 'Campus Avg Attendance', value: `${avgCampusAtt}%` },
       { label: 'High Risk Alert Flags', value: highRiskTotal, sublabel: 'Needs Review' },

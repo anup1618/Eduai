@@ -291,18 +291,18 @@ export const StudentIntelligencePage: React.FC = () => {
                               setStudentToEdit(student);
                               setIsFormModalOpen(true);
                             }}
-                            title="Edit Student in MongoDB"
+                            title="Edit Student Record"
                             className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/15 rounded-lg transition"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={async () => {
-                              if (window.confirm(`Are you sure you want to delete student "${student.name}" (${student.student_id}) from MongoDB?`)) {
+                              if (window.confirm(`Are you sure you want to delete student "${student.name}" (${student.student_id}) from Central Database?`)) {
                                 await deleteStudent(student.student_id);
                               }
                             }}
-                            title="Delete Student from MongoDB"
+                            title="Delete Student Record"
                             className="p-1.5 text-text-muted hover:text-status-danger hover:bg-status-danger/15 rounded-lg transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -403,18 +403,18 @@ export const StudentIntelligencePage: React.FC = () => {
                         setIsFormModalOpen(true);
                       }}
                       className="p-1 text-text-muted hover:text-accent rounded-lg"
-                      title="Edit in MongoDB"
+                      title="Edit Student Record"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={async () => {
-                        if (window.confirm(`Are you sure you want to delete student "${student.name}" (${student.student_id}) from MongoDB?`)) {
+                        if (window.confirm(`Are you sure you want to delete student "${student.name}" (${student.student_id}) from Central Database?`)) {
                           await deleteStudent(student.student_id);
                         }
                       }}
                       className="p-1 text-text-muted hover:text-status-danger rounded-lg"
-                      title="Delete from MongoDB"
+                      title="Delete Student Record"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -447,7 +447,7 @@ export const StudentIntelligencePage: React.FC = () => {
         </div>
       )}
 
-      {/* Student Add/Edit Modal with MongoDB persistence */}
+      {/* Student Add/Edit Modal with database persistence */}
       <StudentFormModal
         isOpen={isFormModalOpen}
         onClose={() => {

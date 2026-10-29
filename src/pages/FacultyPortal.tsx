@@ -1120,7 +1120,7 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                   <span>Security Password:</span>
                   <span className="text-[10px] text-text-muted">Credential Verification</span>
                 </label>
-                <div className="relative">
+                <div className="relative flex items-center">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                   <input
                     type={showAuthPassword ? 'text' : 'password'}
@@ -1130,7 +1130,7 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                       setAuthError('');
                     }}
                     placeholder="Enter password (e.g. faculty@123)..."
-                    className="input-spec w-full !pl-11 !pr-10 text-xs"
+                    className="input-spec input-with-left-icon input-with-right-icon w-full text-xs"
                     style={{ paddingLeft: '44px', paddingRight: '40px' }}
                     autoFocus
                     required

@@ -209,7 +209,7 @@ export const DataIntegrationPage: React.FC = () => {
       details: [
         `Schema: ${CATEGORY_SCHEMAS[selectedCategory].name}`,
         `Status: Formatted & Range Validated`,
-        `Next Step: Review data table below and click "Commit Dataset to MongoDB"`,
+        `Next Step: Review data table below and click "Commit Dataset to Cloud Database"`,
       ],
     });
   };
@@ -220,7 +220,7 @@ export const DataIntegrationPage: React.FC = () => {
       title: `${mode === 'template' ? 'Blank Schema Template' : 'Sample Dataset'} Exported`,
       badge: `${cat.toUpperCase()} (${format.toUpperCase()})`,
       category: 'export',
-      message: `Generated official institutional ${format.toUpperCase()} file for ${CATEGORY_SCHEMAS[cat].name}. Compatible with Excel, Google Sheets, and MongoDB bulk ingestion pipelines.`,
+      message: `Generated official institutional ${format.toUpperCase()} file for ${CATEGORY_SCHEMAS[cat].name}. Compatible with Excel, Google Sheets, and enterprise bulk ingestion pipelines.`,
       details: [
         `Category: ${CATEGORY_SCHEMAS[cat].name}`,
         `File Format: .${format}`,
@@ -346,11 +346,11 @@ export const DataIntegrationPage: React.FC = () => {
     setIsQuickSubmitting(false);
 
     if (res.success) {
-      setQuickStatusMsg({ type: 'success', text: `Student "${newStudent.name}" (${sId}) committed directly to MongoDB!` });
+      setQuickStatusMsg({ type: 'success', text: `Student "${newStudent.name}" (${sId}) committed directly to Central Database!` });
       setQuickName('');
       setQuickFeedback('');
     } else {
-      setQuickStatusMsg({ type: 'error', text: res.error || 'Failed to save student to MongoDB.' });
+      setQuickStatusMsg({ type: 'error', text: res.error || 'Failed to save student to database.' });
     }
   };
 
@@ -363,7 +363,7 @@ export const DataIntegrationPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner: MongoDB Atlas Status & Campus Roster Health */}
+      {/* Top Banner: Central Cloud Database Status & Campus Roster Health */}
       <div className="spec-card rounded-2xl p-5 border border-border bg-card shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="p-3 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20">
@@ -371,11 +371,11 @@ export const DataIntegrationPage: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-text">Database & Data Integration Engine</h2>
+              <h2 className="text-base font-bold text-text">Database &amp; Data Integration Engine</h2>
               {dbStatus === 'connected' ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  MongoDB Atlas Connected
+                  Central Cloud Database Connected
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
@@ -385,13 +385,13 @@ export const DataIntegrationPage: React.FC = () => {
               )}
             </div>
             <p className="text-xs text-text-muted mt-0.5">
-              Target Cluster: <code className="font-mono text-text font-medium">{dbHealth?.host || 'edupulse.qvemhsb.mongodb.net'}</code> &bull; Total records in MongoDB:{' '}
+              Repository: <code className="font-mono text-text font-medium">{dbHealth?.host ? 'Enterprise Cloud Cluster' : 'Local Offline Cache'}</code> &bull; Total records in Database:{' '}
               <strong className="text-text">{dbHealth?.studentCount ?? students.length}</strong> students
             </p>
             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/60 text-[11px] text-text-muted">
               <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>
-                <strong>MongoDB Direct Persistence:</strong> Both bulk spreadsheets and manual record entries are validated and saved directly into the MongoDB collection.
+                <strong>Direct Database Persistence:</strong> Both bulk spreadsheets and manual record entries are validated and saved directly into the campus database.
               </span>
             </div>
           </div>
@@ -402,10 +402,10 @@ export const DataIntegrationPage: React.FC = () => {
             onClick={() => refreshFromDatabase()}
             disabled={isSyncing}
             className="w-full md:w-auto px-3.5 py-2 rounded-xl text-xs font-semibold border border-border hover:bg-card-hover text-text transition flex items-center justify-center gap-2 disabled:opacity-50"
-            title="Refresh latest student records from MongoDB Atlas"
+            title="Refresh latest student records from Cloud Database"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-teal-600' : 'text-text-muted'}`} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync with MongoDB'}</span>
+            <span>{isSyncing ? 'Syncing...' : 'Sync with Database'}</span>
           </button>
         </div>
       </div>
@@ -445,11 +445,11 @@ export const DataIntegrationPage: React.FC = () => {
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-accent/15 text-accent border border-accent/30 mb-1">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Direct MongoDB Entry Console</span>
+                <span>Central Database Entry Console</span>
               </div>
               <h3 className="text-base font-bold text-text">Manually Add or Edit Student Records</h3>
               <p className="text-xs text-text-muted max-w-xl">
-                Add individual students with comprehensive metrics across academics, attendance, placement readiness, skills, and faculty observations. Changes are committed straight to your MongoDB database.
+                Add individual students with comprehensive metrics across academics, attendance, placement readiness, skills, and faculty observations. Changes are committed straight to your central institutional database.
               </p>
             </div>
 
@@ -471,7 +471,7 @@ export const DataIntegrationPage: React.FC = () => {
                   Quick Student Record Creator
                 </h4>
                 <p className="text-xs text-text-muted mt-0.5">
-                  Rapidly create a new student profile and immediately push it to MongoDB.
+                  Rapidly create a new student profile and immediately push it to the central database.
                 </p>
               </div>
               <span className="text-[11px] text-text-muted">Fields marked * are required</span>
@@ -630,12 +630,12 @@ export const DataIntegrationPage: React.FC = () => {
                   {isQuickSubmitting ? (
                     <>
                       <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Saving to MongoDB...</span>
+                      <span>Saving to Database...</span>
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      <span>Commit Record to MongoDB</span>
+                      <span>Commit Record to Database</span>
                     </>
                   )}
                 </button>
@@ -1028,12 +1028,12 @@ export const DataIntegrationPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Primary Action Button: Commit to MongoDB Atlas */}
+          {/* Primary Action Button: Commit to Central Cloud Database */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
             <div className="text-xs text-text-muted flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
               <span>
-                All valid rows will be committed directly to MongoDB Atlas cluster and synced across the campus dashboard.
+                All valid rows will be committed directly to Central Cloud Database and synced across the campus dashboard.
               </span>
             </div>
 
@@ -1045,13 +1045,13 @@ export const DataIntegrationPage: React.FC = () => {
               {isCommitting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Committing to MongoDB Atlas...</span>
+                  <span>Committing to Cloud Database...</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
                   <span>
-                    Commit & Save {validationResult.validRows} Records to MongoDB Atlas
+                    Commit &amp; Save {validationResult.validRows} Records to Central Database
                   </span>
                 </>
               )}
@@ -1060,7 +1060,7 @@ export const DataIntegrationPage: React.FC = () => {
         </div>
       )}
 
-      {/* Ingestion & MongoDB Atlas Success Card */}
+      {/* Ingestion Success Card */}
       {ingestionResult && importStatus === 'success' && (
         <div className="spec-card rounded-2xl p-6 border border-emerald-500/30 bg-emerald-500/10 shadow-sm space-y-4 animate-in fade-in duration-300">
           <div className="flex items-start gap-3.5">
@@ -1069,7 +1069,7 @@ export const DataIntegrationPage: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h4 className="text-base font-bold text-emerald-800 dark:text-emerald-300">
-                Dataset Ingested & Saved to MongoDB Atlas Successfully!
+                Dataset Ingested &amp; Saved to Central Database Successfully!
               </h4>
               <p className="text-xs text-emerald-700 dark:text-emerald-400 leading-relaxed">
                 The spreadsheet data was parsed, validated, and persisted. All student risk profiles, intervention triggers, and telemetry are immediately updated.
@@ -1101,7 +1101,7 @@ export const DataIntegrationPage: React.FC = () => {
             </div>
 
             <div className="p-3 rounded-xl bg-card border border-emerald-500/20">
-              <span className="text-[10px] font-bold uppercase text-text-muted">MongoDB Sync Status</span>
+              <span className="text-[10px] font-bold uppercase text-text-muted">Database Sync Status</span>
               <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
                 <Check className="w-3.5 h-3.5" />
                 {ingestionResult.dbSync?.success ? 'Cluster Updated' : 'Local Saved'}

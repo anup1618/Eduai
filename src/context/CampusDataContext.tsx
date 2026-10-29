@@ -664,7 +664,7 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return { success: true, data: saved || student };
     } catch (err: any) {
-      console.warn('[CampusDataContext] MongoDB saveStudent fallback (saved locally):', err.message);
+      console.warn('[CampusDataContext] Database saveStudent fallback (saved locally):', err.message);
       return { success: true, data: student, error: `Saved in local storage. Backend note: ${err.message}` };
     }
   };
@@ -686,7 +686,7 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return { success: true };
     } catch (err: any) {
-      console.warn('[CampusDataContext] MongoDB deleteStudent error:', err.message);
+      console.warn('[CampusDataContext] Database deleteStudent error:', err.message);
       return { success: true, error: `Removed locally. Backend note: ${err.message}` };
     }
   };
@@ -833,12 +833,12 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         };
       }
     } catch (err: any) {
-      console.warn('[EduPulse] MongoDB sync on merge had an issue:', err.message);
+      console.warn('[EduPulse] Database sync on merge had an issue:', err.message);
       dbSync = {
         success: false,
         upserted: 0,
         modified: 0,
-        error: err.message || 'Could not connect to MongoDB server',
+        error: err.message || 'Could not connect to central database server',
       };
     }
 

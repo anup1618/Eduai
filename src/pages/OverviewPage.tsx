@@ -204,7 +204,7 @@ export const OverviewPage: React.FC = () => {
               title: 'Total Enrolled Cohort Telemetry',
               badge: `${totalStudents} Active Students`,
               category: 'info',
-              message: `Tracking ${totalStudents} active student records across ${new Set(filteredStudents.map(s => s.department)).size} campus departments. All profile data is synchronized with MongoDB Atlas.`,
+              message: `Tracking ${totalStudents} active student records across ${new Set(filteredStudents.map(s => s.department)).size} campus departments. All profile data is synchronized with Central Cloud Registry.`,
               details: [
                 `Active Departments: ${Array.from(new Set(filteredStudents.map(s => s.department))).join(', ')}`,
                 `Average Campus Attendance: ${Math.round(filteredStudents.reduce((a, s) => a + (s.attendance.overall_attendance ?? 0), 0) / (totalStudents || 1))}%`,

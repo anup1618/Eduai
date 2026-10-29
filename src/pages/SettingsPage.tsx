@@ -115,28 +115,28 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleSyncFromDatabase = async () => {
-    setDbNotice({ message: 'Syncing students and configurations from MongoDB...', type: 'info' });
+    setDbNotice({ message: 'Syncing students and configurations from Cloud Database...', type: 'info' });
     const success = await refreshFromDatabase();
     if (success) {
-      setDbNotice({ message: 'Successfully synced all records from MongoDB database!', type: 'success' });
+      setDbNotice({ message: 'Successfully synced all records from Central Database!', type: 'success' });
       showActionInfo({
-        title: 'MongoDB Atlas Cloud Synchronization Successful',
+        title: 'Cloud Database Synchronization Successful',
         badge: `${students.length} Records Verified`,
         category: 'success',
         message: 'Synchronized latest student records, department structures, and scoring configurations from cloud database.',
         details: [
-          `Active MongoDB Database: edupulse-ai`,
+          `Active Central Database: edupulse-ai`,
           `Collections Synced: students, users, configurations`,
-          `Connection Mode: Mongoose v8.19 Atlas Cloud Active`,
+          `Connection Mode: Enterprise Secure Cloud Cluster Active`,
         ],
       });
     } else {
       setDbNotice({
-        message: 'Could not connect to MongoDB server. Falling back to local offline storage.',
+        message: 'Could not connect to database server. Falling back to local offline storage.',
         type: 'error',
       });
       showActionInfo({
-        title: 'MongoDB Offline Fallback Active',
+        title: 'Offline Storage Fallback Active',
         badge: 'Local Storage Persistent',
         category: 'warning',
         message: 'Backend server is currently operating in offline mode. All student changes are safely stored in browser local persistence and will sync when server reconnects.',
@@ -150,13 +150,13 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleSeedDatabase = async () => {
-    if (!window.confirm('Seed / reset MongoDB database with standard university demo dataset (135 students)?')) return;
-    setDbNotice({ message: 'Seeding MongoDB database...', type: 'info' });
+    if (!window.confirm('Seed / reset database with standard university demo dataset (135 students)?')) return;
+    setDbNotice({ message: 'Seeding database collection...', type: 'info' });
     const success = await seedToDatabase();
     if (success) {
-      setDbNotice({ message: 'MongoDB database initialized with 135 student records!', type: 'success' });
+      setDbNotice({ message: 'Central database initialized with 135 student records!', type: 'success' });
       showActionInfo({
-        title: 'MongoDB Database Seeded Successfully',
+        title: 'Central Database Seeded Successfully',
         badge: '135 Students Initialized',
         category: 'success',
         message: 'Initialized university dataset with 135 verified students across 5 engineering departments.',
@@ -168,7 +168,7 @@ export const SettingsPage: React.FC = () => {
       });
     } else {
       setDbNotice({
-        message: 'Database seeding failed. Ensure MongoDB server is active (npm run server).',
+        message: 'Database seeding failed. Ensure backend server is active (npm run server).',
         type: 'error',
       });
     }
@@ -177,7 +177,7 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-5xl animate-fade-up">
-      {/* 0. MongoDB Fullstack Persistence & Sync Panel */}
+      {/* 0. Enterprise Database Persistence & Sync Panel */}
       <div className="spec-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-4">
           <div className="flex items-center gap-3">
@@ -186,7 +186,7 @@ export const SettingsPage: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-text">MongoDB Database & Fullstack API</h3>
+                <h3 className="text-sm font-bold text-text">Enterprise Cloud Database &amp; Fullstack API</h3>
                 <span
                   className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
                     dbStatus === 'connected'
@@ -200,7 +200,7 @@ export const SettingsPage: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-text-muted mt-0.5">
-                Full CRUD persistence over Express REST API & Mongoose schemas with seamless local fallback.
+                Full CRUD persistence over Express REST API &amp; cloud database schemas with seamless local fallback.
               </p>
             </div>
           </div>
@@ -210,7 +210,7 @@ export const SettingsPage: React.FC = () => {
               onClick={handleSyncFromDatabase}
               disabled={isSyncing}
               className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-card border border-border hover:border-accent hover:text-accent transition disabled:opacity-50"
-              title="Refresh from MongoDB database"
+              title="Refresh from cloud database"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-accent' : ''}`} />
               <span>{isSyncing ? 'Syncing...' : 'Sync DB'}</span>
@@ -220,7 +220,7 @@ export const SettingsPage: React.FC = () => {
               onClick={handleSeedDatabase}
               disabled={isSyncing}
               className="btn-spec-primary text-xs py-2 px-3.5 flex items-center gap-1.5"
-              title="Seed MongoDB database collection"
+              title="Seed database collection"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Seed DB</span>
@@ -239,7 +239,7 @@ export const SettingsPage: React.FC = () => {
           <div className="p-3 rounded-xl bg-card border border-border">
             <span className="text-[10px] uppercase font-bold text-text-muted block">Engine Mode</span>
             <strong className="text-accent">
-              {dbHealth?.mode === 'embedded-persistent' ? 'Embedded (WiredTiger)' : 'External / Atlas'}
+              {dbHealth?.mode === 'embedded-persistent' ? 'Embedded Local Cache' : 'Cloud Cluster'}
             </strong>
           </div>
           <div className="p-3 rounded-xl bg-card border border-border">
@@ -247,7 +247,7 @@ export const SettingsPage: React.FC = () => {
             <strong className="text-text font-mono">{dbHealth?.name || 'edupulse'}</strong>
           </div>
           <div className="p-3 rounded-xl bg-card border border-border">
-            <span className="text-[10px] uppercase font-bold text-text-muted block">MongoDB Students</span>
+            <span className="text-[10px] uppercase font-bold text-text-muted block">Enrolled Students</span>
             <strong className="text-accent font-mono">{dbHealth?.studentCount ?? students.length} Records</strong>
           </div>
           <div className="p-3 rounded-xl bg-card border border-border">
@@ -593,7 +593,7 @@ export const SettingsPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-text-muted block">Data Layer</span>
-            <strong className="text-status-success font-semibold">MongoDB + Local Cache</strong>
+            <strong className="text-status-success font-semibold">Enterprise Cloud + Local Cache</strong>
           </div>
         </div>
       </div>

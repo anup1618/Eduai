@@ -246,7 +246,7 @@ export const Watermelon3DModel: React.FC<Watermelon3DModelProps> = ({
     nodesGroupRef.current = nodesGroup;
 
     const telemetryNodes = [
-      { name: 'MongoDB Cloud Sync', color: 0x10b981, size: 0.1, ring: 1, angle: 0 },
+      { name: 'Secure Cloud Sync', color: 0x10b981, size: 0.1, ring: 1, angle: 0 },
       { name: 'Academic Early-Warning', color: 0xff3b5c, size: 0.11, ring: 1, angle: Math.PI },
       { name: 'Placement Acceleration', color: 0x3b82f6, size: 0.09, ring: 2, angle: Math.PI / 2 },
       { name: 'Attendance Pulse Radar', color: 0xf59e0b, size: 0.09, ring: 2, angle: (3 * Math.PI) / 2 },
