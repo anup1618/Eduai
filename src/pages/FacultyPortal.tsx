@@ -344,10 +344,11 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
         }`}
       >
         {/* Top Header */}
-        <header className="sticky top-0 z-30 h-16 bg-bg/85 backdrop-blur-md border-b border-border flex items-center px-4 sm:px-6 gap-4">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-text-muted hover:text-text p-1.5 rounded-lg bg-card border border-border">
-            <Menu className="w-5 h-5" />
-          </button>
+        <header className="sticky top-0 z-30 h-16 bg-bg/85 backdrop-blur-md border-b border-border flex items-center px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto w-full flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-text-muted hover:text-text p-1.5 rounded-lg bg-card border border-border">
+              <Menu className="w-5 h-5" />
+            </button>
 
           {/* Faculty Profile Switcher with Security Protection */}
           <div className="flex items-center gap-2">
@@ -394,6 +395,7 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                 <p className="text-text-muted">Class attendance for yesterday pending submission.</p>
               </div>
             )}
+          </div>
           </div>
         </header>
 
@@ -1119,7 +1121,7 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                   <span className="text-[10px] text-text-muted">Credential Verification</span>
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                   <input
                     type={showAuthPassword ? 'text' : 'password'}
                     value={authPassword}
@@ -1128,7 +1130,8 @@ export const FacultyPortal: React.FC<FacultyPortalProps> = ({ onLogout }) => {
                       setAuthError('');
                     }}
                     placeholder="Enter password (e.g. faculty@123)..."
-                    className="input-spec w-full pl-9 pr-10 text-xs"
+                    className="input-spec w-full !pl-11 !pr-10 text-xs"
+                    style={{ paddingLeft: '44px', paddingRight: '40px' }}
                     autoFocus
                     required
                   />

@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 bg-bg/85 backdrop-blur-md border-b border-border px-4 sm:px-6 py-3">
-      <div className="flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4">
         {/* Left: Mobile Toggle & Page Title */}
         <div className="flex items-center gap-3">
           <button

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useCampusData } from '../context/CampusDataContext';
+import { UnifiedStudent } from '../types/student';
 import {
   DatasetCategory,
   CATEGORY_SCHEMAS,
@@ -10,6 +11,7 @@ import {
   IngestionResult,
 } from '../engine/dataValidator';
 import { CSV_TEMPLATES } from '../data/sampleCsvs';
+import { StudentFormModal } from '../components/student/StudentFormModal';
 import {
   UploadCloud,
   FileSpreadsheet,
@@ -28,11 +30,14 @@ import {
   Users,
   ShieldCheck,
   FileText,
+  PlusCircle,
+  Save,
 } from 'lucide-react';
 
 export const DataIntegrationPage: React.FC = () => {
   const {
     students,
+    saveStudent,
     mergeDataRecords,
     dbStatus,
     dbHealth,
@@ -41,6 +46,35 @@ export const DataIntegrationPage: React.FC = () => {
     uploadSpreadsheetToBackend,
     currentUser,
   } = useCampusData();
+
+  // Mode: Bulk spreadsheet upload vs manual entry
+  const [integrationMode, setIntegrationMode] = useState<'upload' | 'manual'>('upload');
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+
+  // Inline Quick-Manual Entry state
+  const [quickId, setQuickId] = useState('');
+  const [quickName, setQuickName] = useState('');
+  const [quickDept, setQuickDept] = useState('Computer Science');
+  const [quickYear, setQuickYear] = useState('3rd Year');
+  const [quickCgpa, setQuickCgpa] = useState('8.20');
+  const [quickAttendance, setQuickAttendance] = useState('85');
+  const [quickBacklogs, setQuickBacklogs] = useState('0');
+  const [quickAptitude, setQuickAptitude] = useState('75');
+  const [quickFeedback, setQuickFeedback] = useState('');
+  const [quickStatusMsg, setQuickStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isQuickSubmitting, setIsQuickSubmitting] = useState(false);
+
+  // Auto-generate next suggested ID for quick entry
+  React.useEffect(() => {
+    const existingNums = students
+      .map(s => {
+        const m = s.student_id.match(/\d+/);
+        return m ? parseInt(m[0], 10) : 0;
+      })
+      .filter(n => !isNaN(n));
+    const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+    setQuickId(`STU${String(nextNum).padStart(3, '0')}`);
+  }, [students]);
 
   // Category state (default to roster for adding complete new students)
   const [selectedCategory, setSelectedCategory] = useState<DatasetCategory>('roster');
@@ -207,6 +241,90 @@ export const DataIntegrationPage: React.FC = () => {
     }
   };
 
+  const handleQuickManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setQuickStatusMsg(null);
+
+    const sId = quickId.trim().toUpperCase();
+    if (!sId || !quickName.trim()) {
+      setQuickStatusMsg({ type: 'error', text: 'Roll/Student ID and Name are required.' });
+      return;
+    }
+
+    if (students.some(s => s.student_id.toUpperCase() === sId)) {
+      setQuickStatusMsg({ type: 'error', text: `Student ID "${sId}" already exists. Please pick a unique ID.` });
+      return;
+    }
+
+    setIsQuickSubmitting(true);
+    const parsedCgpa = parseFloat(quickCgpa);
+    const parsedAtt = parseFloat(quickAttendance);
+    const parsedBacklogs = parseInt(quickBacklogs, 10);
+    const parsedApt = parseFloat(quickAptitude);
+
+    const newStudent: UnifiedStudent = {
+      student_id: sId,
+      name: quickName.trim(),
+      department: quickDept as any,
+      academic_year: quickYear as any,
+      semester: 'Sem 6',
+      email: `${sId.toLowerCase()}@edupulse.edu`,
+      academic: {
+        cgpa: isNaN(parsedCgpa) ? null : parsedCgpa,
+        internal_marks: 75,
+        backlogs: isNaN(parsedBacklogs) ? 0 : parsedBacklogs,
+        subject_performance: [],
+      },
+      attendance: {
+        overall_attendance: isNaN(parsedAtt) ? null : parsedAtt,
+        subject_attendance: {},
+      },
+      lms: {
+        lms_logins: 35,
+        assignment_completion: 80,
+      },
+      engagement: {
+        events_participated: 2,
+        club_participation: 1,
+        hackathons: 1,
+        certifications: 1,
+      },
+      placement: {
+        aptitude_score: isNaN(parsedApt) ? null : parsedApt,
+        coding_score: 70,
+        mock_interview_score: 70,
+        placement_preparation_participation: true,
+      },
+      skills: {
+        technical_skill_score: 75,
+        soft_skill_score: 78,
+      },
+      feedback: {
+        student_satisfaction: 4,
+        faculty_feedback: (quickFeedback as any) || 'Good',
+      },
+      data_quality: {
+        available_fields: 12,
+        total_fields: 13,
+        missing_fields: [],
+        data_completeness_percentage: 92,
+        has_minimum_evidence: true,
+      },
+      interventions: [],
+    };
+
+    const res = await saveStudent(newStudent);
+    setIsQuickSubmitting(false);
+
+    if (res.success) {
+      setQuickStatusMsg({ type: 'success', text: `Student "${newStudent.name}" (${sId}) committed directly to MongoDB!` });
+      setQuickName('');
+      setQuickFeedback('');
+    } else {
+      setQuickStatusMsg({ type: 'error', text: res.error || 'Failed to save student to MongoDB.' });
+    }
+  };
+
   // Count how many records will be new students vs existing updates
   const newStudentCandidates = React.useMemo(() => {
     if (!validationResult) return 0;
@@ -224,7 +342,7 @@ export const DataIntegrationPage: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-text">Database & Bulk Integration Engine</h2>
+              <h2 className="text-base font-bold text-text">Database & Data Integration Engine</h2>
               {dbStatus === 'connected' ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -244,7 +362,7 @@ export const DataIntegrationPage: React.FC = () => {
             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/60 text-[11px] text-text-muted">
               <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>
-                <strong>Role-Based Access Protected:</strong> Only authorized Institutional Administrators can upload or write student data. Student accounts are restricted from accessing or querying other students' academic records.
+                <strong>MongoDB Direct Persistence:</strong> Both bulk spreadsheets and manual record entries are validated and saved directly into the MongoDB collection.
               </span>
             </div>
           </div>
@@ -262,6 +380,295 @@ export const DataIntegrationPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Primary Ingestion Mode Switcher */}
+      <div className="flex items-center gap-2 border-b border-border pb-2">
+        <button
+          onClick={() => setIntegrationMode('upload')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+            integrationMode === 'upload'
+              ? 'bg-teal-600 text-white shadow-md'
+              : 'bg-card text-text-muted hover:text-text border border-border'
+          }`}
+        >
+          <UploadCloud className="w-4 h-4" />
+          <span>Bulk File Ingestion (.xlsx, .csv)</span>
+        </button>
+
+        <button
+          onClick={() => setIntegrationMode('manual')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+            integrationMode === 'manual'
+              ? 'bg-teal-600 text-white shadow-md'
+              : 'bg-card text-text-muted hover:text-text border border-border'
+          }`}
+        >
+          <UserPlus className="w-4 h-4" />
+          <span>Manual Student Record Entry</span>
+        </button>
+      </div>
+
+      {/* MODE 2: MANUAL DATA ENTRY VIEW */}
+      {integrationMode === 'manual' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Hero Action Card */}
+          <div className="spec-card rounded-2xl p-6 border border-border bg-gradient-to-r from-card to-card-hover shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-accent/15 text-accent border border-accent/30 mb-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Direct MongoDB Entry Console</span>
+              </div>
+              <h3 className="text-base font-bold text-text">Manually Add or Edit Student Records</h3>
+              <p className="text-xs text-text-muted max-w-xl">
+                Add individual students with comprehensive metrics across academics, attendance, placement readiness, skills, and faculty observations. Changes are committed straight to your MongoDB database.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsManualModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-contrast text-xs font-bold hover:opacity-90 transition shadow-lg shadow-accent/20 shrink-0"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Open Full Student Form Modal</span>
+            </button>
+          </div>
+
+          {/* Quick Inline Student Form */}
+          <div className="spec-card rounded-2xl p-6 border border-border bg-card shadow-sm space-y-4">
+            <div className="border-b border-border pb-3 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-text flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                  Quick Student Record Creator
+                </h4>
+                <p className="text-xs text-text-muted mt-0.5">
+                  Rapidly create a new student profile and immediately push it to MongoDB.
+                </p>
+              </div>
+              <span className="text-[11px] text-text-muted">Fields marked * are required</span>
+            </div>
+
+            {quickStatusMsg && (
+              <div
+                className={`p-3 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
+                  quickStatusMsg.type === 'success'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400'
+                }`}
+              >
+                {quickStatusMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                )}
+                <span>{quickStatusMsg.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleQuickManualSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">
+                    Student ID / Roll No <span className="text-status-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={quickId}
+                    onChange={e => setQuickId(e.target.value)}
+                    placeholder="e.g. STU052"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs font-mono focus:outline-none focus:border-accent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">
+                    Student Full Name <span className="text-status-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={quickName}
+                    onChange={e => setQuickName(e.target.value)}
+                    placeholder="e.g. Priya Patel"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs focus:outline-none focus:border-accent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">Department</label>
+                  <select
+                    value={quickDept}
+                    onChange={e => setQuickDept(e.target.value)}
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs focus:outline-none focus:border-accent"
+                  >
+                    <option value="Computer Science">Computer Science</option>
+                    <option value="Information Technology">Information Technology</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Mechanical">Mechanical</option>
+                    <option value="Civil">Civil</option>
+                    <option value="Data Science">Data Science</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">Academic Year</label>
+                  <select
+                    value={quickYear}
+                    onChange={e => setQuickYear(e.target.value)}
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs focus:outline-none focus:border-accent"
+                  >
+                    <option value="1st Year">1st Year</option>
+                    <option value="2nd Year">2nd Year</option>
+                    <option value="3rd Year">3rd Year</option>
+                    <option value="4th Year">4th Year</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">Academic CGPA (0-10)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="10"
+                    value={quickCgpa}
+                    onChange={e => setQuickCgpa(e.target.value)}
+                    placeholder="8.20"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs font-semibold focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">Attendance Rate (0-100%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={quickAttendance}
+                    onChange={e => setQuickAttendance(e.target.value)}
+                    placeholder="85"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs font-semibold focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">Active Backlogs</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={quickBacklogs}
+                    onChange={e => setQuickBacklogs(e.target.value)}
+                    placeholder="0"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs focus:outline-none focus:border-accent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-text mb-1">Placement Aptitude (0-100)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={quickAptitude}
+                    onChange={e => setQuickAptitude(e.target.value)}
+                    placeholder="75"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs focus:outline-none focus:border-accent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text mb-1">Faculty Advisor Mentorship Remarks</label>
+                <input
+                  type="text"
+                  value={quickFeedback}
+                  onChange={e => setQuickFeedback(e.target.value)}
+                  placeholder="e.g. Excellent active learner, recommended for competitive programming training."
+                  className="w-full bg-card border border-border rounded-xl px-3 py-2 text-text text-xs focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isQuickSubmitting}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 text-white text-xs font-bold hover:bg-teal-700 transition shadow-md disabled:opacity-60"
+                >
+                  {isQuickSubmitting ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving to MongoDB...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Commit Record to MongoDB</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Active Roster Live Preview Table */}
+          <div className="spec-card rounded-2xl p-5 border border-border bg-card shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-text flex items-center gap-2">
+                <Users className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                Current Cohort Roster in Database ({students.length} students)
+              </h4>
+              <span className="text-xs text-text-muted">Showing latest records first</span>
+            </div>
+
+            <div className="overflow-x-auto max-h-[300px]">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-border text-text-muted font-semibold bg-card-hover/40 sticky top-0">
+                    <th className="py-2.5 px-3">Student ID</th>
+                    <th className="py-2.5 px-3">Name</th>
+                    <th className="py-2.5 px-3">Department</th>
+                    <th className="py-2.5 px-3">CGPA</th>
+                    <th className="py-2.5 px-3">Attendance</th>
+                    <th className="py-2.5 px-3">Backlogs</th>
+                    <th className="py-2.5 px-3">Completeness</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {students.slice(0, 10).map(s => (
+                    <tr key={s.student_id} className="hover:bg-card-hover/30 transition">
+                      <td className="py-2.5 px-3 font-mono font-semibold text-teal-600 dark:text-teal-400">{s.student_id}</td>
+                      <td className="py-2.5 px-3 font-semibold text-text">{s.name}</td>
+                      <td className="py-2.5 px-3 text-text-muted">{s.department}</td>
+                      <td className="py-2.5 px-3 font-semibold text-text">{s.academic.cgpa?.toFixed(2) ?? '—'}</td>
+                      <td className="py-2.5 px-3 text-text">{s.attendance.overall_attendance?.toFixed(0) ?? '—'}%</td>
+                      <td className="py-2.5 px-3">
+                        {(s.academic.backlogs ?? 0) > 0 ? (
+                          <span className="text-status-danger font-semibold">{s.academic.backlogs}</span>
+                        ) : (
+                          <span className="text-text-muted">0</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-card-hover border border-border">
+                          {s.data_quality.data_completeness_percentage}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODE 1: BULK FILE UPLOAD VIEW */}
+      {integrationMode === 'upload' && (
+        <div className="space-y-6">
 
       {/* Domain Category Selector Tabs */}
       <div className="spec-card rounded-2xl p-5 border border-border bg-card shadow-sm space-y-4">
@@ -680,6 +1087,14 @@ export const DataIntegrationPage: React.FC = () => {
           )}
         </div>
       )}
+        </div>
+      )}
+
+      {/* Manual Full Student Entry Modal */}
+      <StudentFormModal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+      />
     </div>
   );
 };

@@ -14,6 +14,8 @@ import {
 } from '../../data/portalData';
 import { useCurrentStudent } from '../../context/CampusDataContext';
 import { SpecKpiCard, SpecPageHeader, SpecProgressBar } from '../../components/common/SpecComponents';
+import { MotionCounter } from '../../components/common/MotionCounter';
+import { StudentNeuralOrb } from '../../components/3d/StudentNeuralOrb';
 
 // ─── TOOLTIP STYLE ACCORDING TO SPEC ──────────────────────────────────────────
 const CHART_TOOLTIP_STYLE = {
@@ -76,11 +78,73 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
 
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* ─── MOTION UI: INTERACTIVE STUDENT COPILOT BANNER ─────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-r from-card via-card-hover to-card p-5 shadow-spec motion-card">
+        {/* Ambient accent background glow */}
+        <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-accent/10 to-transparent pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            {/* Interactive 3D Personal AI Learning Orb */}
+            <div className="hidden sm:block animate-float-slow shrink-0">
+              <StudentNeuralOrb score={s.success_score} size={110} />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                  AI Learning Diagnostics Active
+                </span>
+                <span className="text-xs text-text-muted">
+                  Roll: <span className="font-mono text-text font-bold">{s.roll_no}</span> · {s.department}
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-black text-text tracking-tight flex items-center gap-2">
+                Welcome back, <span className="text-accent">{s.name}</span>!
+              </h2>
+
+              {/* Live Schedule Pulse Ticker */}
+              <div className="flex items-center gap-2 text-xs text-text-muted pt-0.5 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 text-[#10B981] font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse-dot" />
+                  Live Academic Pulse:
+                </span>
+                <span className="text-text font-medium">DBMS Lab in Room 402</span>
+                <span>•</span>
+                <span className="text-accent font-semibold">{s.subjects.length} Enrolled Courses</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Quick Action Pills with Motion Pressable Effect */}
+          <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-2 w-full sm:w-auto shrink-0">
+            <button
+              onClick={() => onNavigateTab && onNavigateTab('study-assistant')}
+              className="btn-spec-primary text-xs py-2 px-4 shadow-sm motion-pressable flex items-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Launch AI Tutor</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="flex items-center gap-2 text-[11px] text-text-muted">
+              <span>Success Score:</span>
+              <span className="font-bold text-accent text-sm">
+                <MotionCounter value={s.success_score} suffix="/100" />
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-bold">Top 15%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* PAGE HEADER (DESIGN SPEC) */}
       <SpecPageHeader
         title="Student Cockpit"
         semesterChip={s.semester}
-        subtitle={`Welcome back, ${s.name} · ${s.department} · ${s.roll_no}`}
+        subtitle={`Semester Overview · ${s.department} · Academic Year 2025-26`}
         sessionText="Active Session · 2025-26"
         standingChip={{
           text: standingLabel,
@@ -88,13 +152,13 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
         }}
       />
 
-      {/* 12-COLUMN BENTO GRID: ROW 1 - 4 KPI CARDS (3 cols each) */}
+      {/* 12-COLUMN BENTO GRID: ROW 1 - 4 KPI CARDS (3 cols each) WITH MOTION COUNTERS */}
       <div className="grid grid-cols-12 gap-4">
         {/* KPI 1: Success Score */}
         <SpecKpiCard
           icon={<Award className="w-5 h-5 text-accent" />}
           statusChip={{ text: 'Top 15%', variant: 'accent' }}
-          number={`${s.success_score}/100`}
+          number={<MotionCounter value={s.success_score} suffix="/100" />}
           caption="Composite AI Readiness Index"
           label="AI PROGRESS TRACKER"
           percent={s.success_score}
@@ -108,7 +172,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
             text: s.cgpa >= 8.5 ? 'Tier 1' : s.cgpa >= 7.0 ? 'Tier 2' : 'Tier 3',
             variant: s.cgpa >= 8.0 ? 'success' : 'warning',
           }}
-          number={s.cgpa.toFixed(2)}
+          number={<MotionCounter value={s.cgpa} decimals={2} />}
           caption="Cumulative Overall (5 Semesters)"
           label="VIEW PERFORMANCE"
           percent={(s.cgpa / 10) * 100}
@@ -122,7 +186,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
             text: s.overall_attendance >= 75 ? 'Safe Standing' : 'Critical Risk',
             variant: s.overall_attendance >= 75 ? 'success' : 'danger',
           }}
-          number={`${s.overall_attendance}%`}
+          number={<MotionCounter value={s.overall_attendance} suffix="%" />}
           caption={`${s.classes_attended}/${s.classes_conducted} Lectures Attended`}
           label="VIEW ATTENDANCE"
           percent={s.overall_attendance}
@@ -136,7 +200,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
             text: s.overall_attendance < 75 ? 'Action Needed' : 'All Clear',
             variant: s.overall_attendance < 75 ? 'danger' : 'success',
           }}
-          number={s.overall_attendance < 75 ? 2 : 0}
+          number={<MotionCounter value={s.overall_attendance < 75 ? 2 : 0} />}
           caption={s.overall_attendance < 75 ? 'Attendance below threshold' : 'No active alerts'}
           label="VIEW ANALYTICS"
           onClick={() => onNavigateTab && onNavigateTab('analytics')}
@@ -146,7 +210,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
       {/* AI Study Assistant & Classroom Quick Access Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Card 1: AI Study Assistant */}
-        <div className="p-4 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-spec hover:border-accent transition-colors">
+        <div className="p-4 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-spec hover:border-accent motion-card transition-colors">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0">
               <Sparkles className="w-5 h-5 text-accent animate-pulse" />
@@ -165,7 +229,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
           </div>
           <button
             onClick={() => onNavigateTab && onNavigateTab('study-assistant')}
-            className="btn-spec-primary text-xs py-2 px-3.5 flex items-center gap-1.5 shrink-0"
+            className="btn-spec-primary text-xs py-2 px-3.5 flex items-center gap-1.5 shrink-0 motion-pressable"
           >
             <span>Ask AI</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -173,7 +237,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
         </div>
 
         {/* Card 2: Academic Classroom Hub */}
-        <div className="p-4 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-spec hover:border-cyan-400 transition-colors">
+        <div className="p-4 rounded-2xl bg-card border border-border flex items-center justify-between gap-3 shadow-spec hover:border-cyan-400 motion-card transition-colors">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
               <GraduationCap className="w-5 h-5 text-cyan-400" />
@@ -192,7 +256,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
           </div>
           <button
             onClick={() => onNavigateTab && onNavigateTab('classroom')}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 transition-colors flex items-center gap-1.5 shrink-0 shadow-sm"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-black hover:bg-cyan-400 transition-colors flex items-center gap-1.5 shrink-0 shadow-sm motion-pressable"
           >
             <span>Enter Classroom</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -358,7 +422,7 @@ export function StudentDashboardPage({ onNavigateTab }: StudentDashboardProps) {
                   <button
                     key={day}
                     onClick={() => setSelectedDate(isSelected ? null : key)}
-                    className={`aspect-square flex items-center justify-center text-xs rounded-xl transition-all duration-150 ${cellClass}`}
+                    className={`aspect-square flex items-center justify-center text-xs rounded-xl motion-pressable hover:scale-110 active:scale-95 transition-all duration-150 ${cellClass}`}
                   >
                     {day}
                   </button>

@@ -74,6 +74,63 @@ export interface ResumeVerificationItem {
   notes?: string;
 }
 
+export type OpportunityType =
+  | 'Campus Placement Drive'
+  | 'Elite Summer Internship'
+  | 'Pre-Placement Fast-track Bootcamp'
+  | 'Dean TPO Corporate Referral'
+  | 'Industry Hackathon & Research Sponsorship';
+
+export type AllocationStatus =
+  | 'Invited'
+  | 'Directly Nominated'
+  | 'Shortlisted'
+  | 'Assessment Scheduled'
+  | 'Offer Extended';
+
+export interface OpportunityOption {
+  id: string;
+  title: string;
+  companyOrPartner: string;
+  type: OpportunityType;
+  tier?: PlacementTier;
+  ctcOrStipend: string;
+  minCgpa: number;
+  maxBacklogs: number;
+  minCodingScore: number;
+  minAptitudeScore: number;
+  eligibleDepts: Department[];
+  deadline: string;
+  badgeBg: string;
+  description: string;
+}
+
+export interface StudentOpportunityAllocation {
+  id: string;
+  studentId: string;
+  studentName: string;
+  department: Department;
+  opportunityId: string;
+  opportunityTitle: string;
+  opportunityType: OpportunityType;
+  companyOrPartner: string;
+  ctcOrStipend?: string;
+  tier?: PlacementTier;
+  status: AllocationStatus;
+  allocatedDate: string;
+  allocatedBy: string;
+  tpoNote?: string;
+  matchedCriteria: string[];
+}
+
+export interface OpportunityMatchResult {
+  opportunity: OpportunityOption;
+  matchScore: number; // 0 - 100
+  isEligible: boolean;
+  matchReasons: string[];
+  gapWarnings: string[];
+}
+
 export interface TPOOfficerProfile {
   id: string;
   name: string;
@@ -88,6 +145,7 @@ export interface TPOOfficerProfile {
 
 export type TPOPage =
   | 'dashboard'
+  | 'talent'
   | 'drives'
   | 'readiness'
   | 'screening'
@@ -95,3 +153,4 @@ export type TPOPage =
   | 'offers'
   | 'resumes'
   | 'profile';
+

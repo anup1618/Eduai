@@ -3,8 +3,12 @@ import {
   PlacementTrainingProgram,
   PlacementOffer,
   ResumeVerificationItem,
-  TPOOfficerProfile
+  TPOOfficerProfile,
+  OpportunityOption,
+  StudentOpportunityAllocation,
+  OpportunityMatchResult
 } from '../types/tpo';
+import { UnifiedStudent } from '../types/student';
 
 export const DEMO_TPO_OFFICER: TPOOfficerProfile = {
   id: 'TPO-01',
@@ -559,3 +563,343 @@ export const DEPT_PLACEMENT_DATA = [
   { dept: 'Mechanical', placedPct: 68, avgCtc: 7.4, readyPct: 65 },
   { dept: 'Civil Eng', placedPct: 62, avgCtc: 6.5, readyPct: 58 },
 ];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TPO OPPORTUNITIES CATALOG (Drives, Elite Internships, Fast-Track Bootcamps, Dean Referrals)
+// ══════════════════════════════════════════════════════════════════════════════
+
+export const DEMO_OPPORTUNITIES_CATALOG: OpportunityOption[] = [
+  {
+    id: 'OPP-01',
+    title: 'Software Development Engineer - 1 (Core Cloud & AI)',
+    companyOrPartner: 'Microsoft',
+    type: 'Campus Placement Drive',
+    tier: 'Super Dream',
+    ctcOrStipend: '₹44.0 LPA (₹1,25,000 / mo)',
+    minCgpa: 8.0,
+    maxBacklogs: 0,
+    minCodingScore: 70,
+    minAptitudeScore: 75,
+    eligibleDepts: ['Computer Science', 'Information Technology', 'Electronics & Comm.'],
+    deadline: '2025-10-30',
+    badgeBg: 'from-blue-600 to-cyan-500',
+    description: 'Super Dream flagship drive for Azure Core, AI Copilot, and Distributed Systems. Direct engineering hiring with comprehensive stock grants.',
+  },
+  {
+    id: 'OPP-02',
+    title: 'Software Development Engineer - 1 (AWS Cloud Architecture)',
+    companyOrPartner: 'Amazon AWS',
+    type: 'Campus Placement Drive',
+    tier: 'Super Dream',
+    ctcOrStipend: '₹32.5 LPA (₹95,000 / mo)',
+    minCgpa: 7.5,
+    maxBacklogs: 0,
+    minCodingScore: 65,
+    minAptitudeScore: 70,
+    eligibleDepts: ['Computer Science', 'Information Technology'],
+    deadline: '2025-11-04',
+    badgeBg: 'from-amber-600 to-yellow-500',
+    description: 'AWS distributed cache, high-throughput cloud networking, and SDE talent hunt. Looking for strong system thinkers and problem solvers.',
+  },
+  {
+    id: 'OPP-03',
+    title: 'Generative AI & Machine Learning Research Fellowship',
+    companyOrPartner: 'Google Research India',
+    type: 'Elite Summer Internship',
+    tier: 'Super Dream',
+    ctcOrStipend: '₹1,25,000 / month + Pre-Placement Offer (PPO)',
+    minCgpa: 8.2,
+    maxBacklogs: 0,
+    minCodingScore: 72,
+    minAptitudeScore: 70,
+    eligibleDepts: ['Computer Science', 'Information Technology'],
+    deadline: '2025-11-15',
+    badgeBg: 'from-emerald-600 to-teal-500',
+    description: '6-month prestigious AI Research Fellowship working on multimodal models and edge inferencing directly with Google Research scientists.',
+  },
+  {
+    id: 'OPP-04',
+    title: 'Quantitative Engineering & FinTech Analyst',
+    companyOrPartner: 'Goldman Sachs',
+    type: 'Campus Placement Drive',
+    tier: 'Super Dream',
+    ctcOrStipend: '₹24.0 LPA',
+    minCgpa: 7.8,
+    maxBacklogs: 0,
+    minCodingScore: 68,
+    minAptitudeScore: 80,
+    eligibleDepts: ['Computer Science', 'Information Technology', 'Electronics & Comm.'],
+    deadline: '2025-11-08',
+    badgeBg: 'from-blue-700 to-indigo-600',
+    description: 'Algorithmic trading platforms, low-latency microservices, and quant analytics. Seeking exceptional analytical aptitude.',
+  },
+  {
+    id: 'OPP-05',
+    title: 'Full Stack & Mobile Systems Engineer',
+    companyOrPartner: 'Zomato',
+    type: 'Campus Placement Drive',
+    tier: 'Dream',
+    ctcOrStipend: '₹18.0 LPA (₹60,000 / mo)',
+    minCgpa: 7.0,
+    maxBacklogs: 0,
+    minCodingScore: 62,
+    minAptitudeScore: 60,
+    eligibleDepts: ['Computer Science', 'Information Technology'],
+    deadline: '2025-11-02',
+    badgeBg: 'from-rose-600 to-red-500',
+    description: 'High-traffic consumer app scaling, real-time dispatch systems, and reactive interfaces. Fast-paced consumer tech engineering.',
+  },
+  {
+    id: 'OPP-06',
+    title: 'Enterprise Digital Strategy & Tech Consulting',
+    companyOrPartner: 'Deloitte',
+    type: 'Campus Placement Drive',
+    tier: 'Dream',
+    ctcOrStipend: '₹11.5 LPA',
+    minCgpa: 6.8,
+    maxBacklogs: 0,
+    minCodingScore: 50,
+    minAptitudeScore: 65,
+    eligibleDepts: ['Computer Science', 'Information Technology', 'Electronics & Comm.', 'Mechanical Eng.', 'Civil Eng.'],
+    deadline: '2025-10-28',
+    badgeBg: 'from-green-600 to-emerald-500',
+    description: 'Cloud transformation, business architecture, and AI risk advisory for global enterprises. Interdisciplinary engineering profiles welcome.',
+  },
+  {
+    id: 'OPP-07',
+    title: 'Cloud Infrastructure & Networks Internship',
+    companyOrPartner: 'Cisco Systems',
+    type: 'Elite Summer Internship',
+    tier: 'Dream',
+    ctcOrStipend: '₹75,000 / month',
+    minCgpa: 7.2,
+    maxBacklogs: 0,
+    minCodingScore: 55,
+    minAptitudeScore: 60,
+    eligibleDepts: ['Computer Science', 'Information Technology', 'Electronics & Comm.'],
+    deadline: '2025-11-10',
+    badgeBg: 'from-cyan-600 to-blue-600',
+    description: 'Software Defined Networking, cloud security gateways, and high-performance routing protocols with PPO conversion chance.',
+  },
+  {
+    id: 'OPP-08',
+    title: 'LeetCode Hard Patterns & Dynamic Programming Accelerator',
+    companyOrPartner: 'TPO Corporate Skill Academy',
+    type: 'Pre-Placement Fast-track Bootcamp',
+    tier: 'Standard',
+    ctcOrStipend: 'Free (Sponsored by College Placement Cell)',
+    minCgpa: 6.0,
+    maxBacklogs: 2,
+    minCodingScore: 30,
+    minAptitudeScore: 40,
+    eligibleDepts: ['Computer Science', 'Information Technology', 'Electronics & Comm.', 'Mechanical Eng.', 'Civil Eng.'],
+    deadline: '2025-11-20',
+    badgeBg: 'from-purple-600 to-violet-500',
+    description: 'Fast-track 40-hour intensive problem solving bootcamp to elevate students from Standard to Dream qualification.',
+  },
+  {
+    id: 'OPP-09',
+    title: 'Dean TPO Direct Letter of Recommendation & CTO Network Referral',
+    companyOrPartner: 'TPO Corporate Advisory Board',
+    type: 'Dean TPO Corporate Referral',
+    tier: 'Super Dream',
+    ctcOrStipend: 'Direct Executive Interview Slot',
+    minCgpa: 8.5,
+    maxBacklogs: 0,
+    minCodingScore: 75,
+    minAptitudeScore: 75,
+    eligibleDepts: ['Computer Science', 'Information Technology', 'Electronics & Comm.', 'Mechanical Eng.', 'Civil Eng.'],
+    deadline: '2025-11-30',
+    badgeBg: 'from-amber-500 to-orange-500',
+    description: 'Official nomination letter sent directly to Tier-1 CTOs & Vice Presidents by Chief Placement Officer Prof. Vikram Malhotra.',
+  },
+  {
+    id: 'OPP-10',
+    title: 'Smart India Hackathon & Global ICPC Fast-Track Sponsorship',
+    companyOrPartner: 'EduPulse Institutional Research Foundation',
+    type: 'Industry Hackathon & Research Sponsorship',
+    tier: 'Dream',
+    ctcOrStipend: '₹50,000 Project Grant + Travel Sponsorship',
+    minCgpa: 7.0,
+    maxBacklogs: 1,
+    minCodingScore: 65,
+    minAptitudeScore: 60,
+    eligibleDepts: ['Computer Science', 'Information Technology', 'Electronics & Comm.'],
+    deadline: '2025-11-25',
+    badgeBg: 'from-indigo-600 to-purple-600',
+    description: 'Financial sponsorship and elite faculty mentoring for national & international coding competitions and innovation sprints.',
+  },
+];
+
+// Initial realistic allocations given by the TPO
+export const INITIAL_STUDENT_OPPORTUNITY_ALLOCATIONS: StudentOpportunityAllocation[] = [
+  {
+    id: 'ALLOC-01',
+    studentId: 'STU006',
+    studentName: 'Sneha Joshi',
+    department: 'Computer Science',
+    opportunityId: 'OPP-01',
+    opportunityTitle: 'Software Development Engineer - 1 (Core Cloud & AI)',
+    opportunityType: 'Campus Placement Drive',
+    companyOrPartner: 'Microsoft',
+    ctcOrStipend: '₹44.0 LPA',
+    tier: 'Super Dream',
+    status: 'Offer Extended',
+    allocatedDate: '2025-10-12',
+    allocatedBy: 'Prof. Vikram Malhotra (TPO)',
+    tpoNote: 'Exceptional academic consistency (CGPA 9.42) and top coding score (88/100). Directly nominated for Cloud AI track.',
+    matchedCriteria: ['CGPA 9.42', 'Coding 88/100', 'Zero Backlogs', 'Top 5% Cohort'],
+  },
+  {
+    id: 'ALLOC-02',
+    studentId: 'STU001',
+    studentName: 'Aarav Patel',
+    department: 'Computer Science',
+    opportunityId: 'OPP-02',
+    opportunityTitle: 'Software Development Engineer - 1 (AWS Cloud Architecture)',
+    opportunityType: 'Campus Placement Drive',
+    companyOrPartner: 'Amazon AWS',
+    ctcOrStipend: '₹32.5 LPA',
+    tier: 'Super Dream',
+    status: 'Shortlisted',
+    allocatedDate: '2025-10-18',
+    allocatedBy: 'Prof. Vikram Malhotra (TPO)',
+    tpoNote: 'Recommended based on high algorithmic score (82/100) and 2 national hackathon wins.',
+    matchedCriteria: ['CGPA 8.45', 'Coding 82/100', '2 Hackathons Won', 'Zero Backlogs'],
+  },
+  {
+    id: 'ALLOC-03',
+    studentId: 'STU004',
+    studentName: 'Priya Sharma',
+    department: 'Electronics & Comm.',
+    opportunityId: 'OPP-06',
+    opportunityTitle: 'Enterprise Digital Strategy & Tech Consulting',
+    opportunityType: 'Campus Placement Drive',
+    companyOrPartner: 'Deloitte',
+    ctcOrStipend: '₹11.5 LPA',
+    tier: 'Dream',
+    status: 'Invited',
+    allocatedDate: '2025-10-22',
+    allocatedBy: 'Prof. Vikram Malhotra (TPO)',
+    tpoNote: 'Outstanding aptitude (85/100) and soft skills (82/100). Excellent fit for technology consulting.',
+    matchedCriteria: ['Aptitude 85/100', 'Soft Skills 82/100', 'CGPA 7.8', 'Zero Backlogs'],
+  },
+  {
+    id: 'ALLOC-04',
+    studentId: 'STU002',
+    studentName: 'Ananya Sharma',
+    department: 'Information Technology',
+    opportunityId: 'OPP-03',
+    opportunityTitle: 'Generative AI & Machine Learning Research Fellowship',
+    opportunityType: 'Elite Summer Internship',
+    companyOrPartner: 'Google Research India',
+    ctcOrStipend: '₹1,25,000 / month',
+    tier: 'Super Dream',
+    status: 'Assessment Scheduled',
+    allocatedDate: '2025-10-25',
+    allocatedBy: 'Prof. Vikram Malhotra (TPO)',
+    tpoNote: 'CGPA 9.12, 3 ML certifications, and published conference paper. Direct TPO Dean nomination.',
+    matchedCriteria: ['CGPA 9.12', 'ML Certifications', 'Coding 78/100', 'Zero Backlogs'],
+  },
+];
+
+/**
+ * Intelligent Opportunity Matcher Engine:
+ * Compares student academics (CGPA, backlogs, department) and success indicators
+ * (coding score, aptitude score, certifications) against an opportunity criteria.
+ */
+export function matchStudentToOpportunity(
+  student: UnifiedStudent,
+  opportunity: OpportunityOption
+): OpportunityMatchResult {
+  const cgpa = student.academic.cgpa ?? 0;
+  const backlogs = student.academic.backlogs ?? 0;
+  const coding = student.placement.coding_score ?? 0;
+  const aptitude = student.placement.aptitude_score ?? 0;
+  const deptOk = opportunity.eligibleDepts.length === 0 || opportunity.eligibleDepts.includes(student.department);
+
+  const cgpaOk = cgpa >= opportunity.minCgpa;
+  const backlogsOk = backlogs <= opportunity.maxBacklogs;
+  const codingOk = coding >= opportunity.minCodingScore;
+  const aptitudeOk = aptitude >= opportunity.minAptitudeScore;
+
+  const isEligible = deptOk && cgpaOk && backlogsOk && codingOk && aptitudeOk;
+
+  let score = 0;
+  const reasons: string[] = [];
+  const gapWarnings: string[] = [];
+
+  // CGPA contribution (30 pts)
+  if (opportunity.minCgpa > 0) {
+    const cgpaRatio = Math.min(1.2, cgpa / opportunity.minCgpa);
+    score += Math.round(cgpaRatio * 28);
+    if (cgpaOk) {
+      reasons.push(`CGPA (${cgpa.toFixed(2)}) meets cutoff (≥${opportunity.minCgpa})`);
+    } else {
+      gapWarnings.push(`CGPA (${cgpa.toFixed(2)}) below required ${opportunity.minCgpa}`);
+    }
+  } else {
+    score += 28;
+  }
+
+  // Coding score contribution (28 pts)
+  if (opportunity.minCodingScore > 0) {
+    const codingRatio = Math.min(1.2, coding / opportunity.minCodingScore);
+    score += Math.round(codingRatio * 26);
+    if (codingOk) {
+      reasons.push(`Coding diagnostic (${coding}/100) meets benchmark (≥${opportunity.minCodingScore})`);
+    } else {
+      gapWarnings.push(`Coding score (${coding}/100) below required ${opportunity.minCodingScore}`);
+    }
+  } else {
+    score += 26;
+  }
+
+  // Aptitude score contribution (22 pts)
+  if (opportunity.minAptitudeScore > 0) {
+    const aptRatio = Math.min(1.2, aptitude / opportunity.minAptitudeScore);
+    score += Math.round(aptRatio * 22);
+    if (aptitudeOk) {
+      reasons.push(`Aptitude (${aptitude}/100) qualifies for online assessments`);
+    } else {
+      gapWarnings.push(`Aptitude score (${aptitude}/100) below required ${opportunity.minAptitudeScore}`);
+    }
+  } else {
+    score += 22;
+  }
+
+  // Backlogs check (20 pts)
+  if (backlogsOk) {
+    score += 20;
+    if (backlogs === 0) reasons.push('Zero active backlogs clean academic record');
+  } else {
+    gapWarnings.push(`Has ${backlogs} active backlog(s) (Max allowed: ${opportunity.maxBacklogs})`);
+  }
+
+  if (!deptOk) {
+    score = Math.max(0, score - 25);
+    gapWarnings.push(`Department ${student.department} not in preferred list`);
+  } else {
+    reasons.push(`Eligible engineering discipline (${student.department})`);
+  }
+
+  // Bonus for certifications or hackathons
+  const certs = student.engagement.certifications ?? 0;
+  const hacks = student.engagement.hackathons ?? 0;
+  if (certs > 0 || hacks > 0) {
+    score = Math.min(100, score + 4);
+    if (hacks > 0) reasons.push(`${hacks} hackathon participation(s) recorded`);
+    if (certs > 0) reasons.push(`${certs} verified certification(s) logged`);
+  }
+
+  const matchScore = Math.min(99, Math.max(25, Math.round(score)));
+
+  return {
+    opportunity,
+    matchScore,
+    isEligible,
+    matchReasons: reasons,
+    gapWarnings,
+  };
+}
+

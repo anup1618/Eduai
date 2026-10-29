@@ -5,7 +5,8 @@ import {
   ChevronLeft, Building2, BookOpen, FileSpreadsheet, Shield, ArrowUpRight,
   X, Check, LogOut, Sun, Moon, Bell, Sparkles, ExternalLink, RefreshCw,
   Send, UserCheck, AlertCircle, FileText, BarChart3, Star, Layers,
-  CheckSquare, MessageSquare, Menu
+  CheckSquare, MessageSquare, Menu, GraduationCap, Eye, Square, Zap,
+  ThumbsUp, CheckCheck
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip,
@@ -14,6 +15,9 @@ import {
 import { useCampusData } from '../context/CampusDataContext';
 import { useTheme } from '../context/ThemeContext';
 import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
+import { calculateStudentSuccessScore } from '../engine/scoringEngine';
+import { evaluateAcademicRisk } from '../engine/academicRiskEngine';
+import { assignStudentSegment } from '../engine/segmentationEngine';
 import {
   DEMO_TPO_OFFICER,
   DEMO_PLACEMENT_DRIVES,
@@ -21,7 +25,10 @@ import {
   DEMO_PLACEMENT_OFFERS,
   DEMO_RESUME_VERIFICATIONS,
   CTC_TIER_DATA,
-  DEPT_PLACEMENT_DATA
+  DEPT_PLACEMENT_DATA,
+  DEMO_OPPORTUNITIES_CATALOG,
+  INITIAL_STUDENT_OPPORTUNITY_ALLOCATIONS,
+  matchStudentToOpportunity
 } from '../data/tpoData';
 import {
   PlacementDrive,
@@ -30,9 +37,14 @@ import {
   ResumeVerificationItem,
   TPOPage,
   PlacementTier,
-  DriveStatus
+  DriveStatus,
+  OpportunityOption,
+  StudentOpportunityAllocation,
+  OpportunityType,
+  AllocationStatus,
+  OpportunityMatchResult
 } from '../types/tpo';
-import { Department, UnifiedStudent } from '../types/student';
+import { UnifiedStudent } from '../types/student';
 import { SpecKpiCard, SpecPageHeader } from '../components/common/SpecComponents';
 
 interface TPOPlatformProps {
@@ -41,6 +53,7 @@ interface TPOPlatformProps {
 
 const TPO_NAV_ITEMS: { id: TPOPage; label: string; icon: React.ReactNode; badge?: string }[] = [
   { id: 'dashboard', label: 'Placement Cockpit', icon: <Briefcase className="w-5 h-5 flex-shrink-0" /> },
+  { id: 'talent', label: 'Student Academics & Opportunities', icon: <GraduationCap className="w-5 h-5 flex-shrink-0" />, badge: 'Core Hub' },
   { id: 'drives', label: 'Campus Drives', icon: <Building2 className="w-5 h-5 flex-shrink-0" />, badge: '14 Active' },
   { id: 'readiness', label: 'Student Readiness', icon: <Users className="w-5 h-5 flex-shrink-0" /> },
   { id: 'screening', label: 'Recruiter Screener', icon: <Filter className="w-5 h-5 flex-shrink-0" /> },
@@ -62,7 +75,7 @@ const CHART_TOOLTIP_STYLE = {
 };
 
 export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
-  const { students } = useCampusData();
+  const { students, weights, academicThresholds, placementThresholds } = useCampusData();
   const { theme, toggleTheme } = useTheme();
 
   // Navigation & layout state
@@ -77,6 +90,37 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
   const [offers, setOffers] = useState<PlacementOffer[]>(DEMO_PLACEMENT_OFFERS);
   const [trainingPrograms, setTrainingPrograms] = useState<PlacementTrainingProgram[]>(DEMO_TRAINING_MODULES);
   const [resumes, setResumes] = useState<ResumeVerificationItem[]>(DEMO_RESUME_VERIFICATIONS);
+
+  // Student Talent & Opportunity Allocation State
+  const [opportunityCatalog, setOpportunityCatalog] = useState<OpportunityOption[]>(DEMO_OPPORTUNITIES_CATALOG);
+  const [allocations, setAllocations] = useState<StudentOpportunityAllocation[]>(INITIAL_STUDENT_OPPORTUNITY_ALLOCATIONS);
+
+  // Filters for Talent Page
+  const [talentSearch, setTalentSearch] = useState('');
+  const [talentDeptFilter, setTalentDeptFilter] = useState<string>('All');
+  const [talentCgpaFilter, setTalentCgpaFilter] = useState<'All' | '8.5+' | '7.5-8.5' | '6.5-7.5' | '<6.5'>('All');
+  const [talentSuccessFilter, setTalentSuccessFilter] = useState<'All' | 'High' | 'Moderate' | 'Needs Attention'>('All');
+  const [talentBacklogFilter, setTalentBacklogFilter] = useState<'All' | 'Zero Backlogs' | 'Has Backlogs'>('All');
+  const [talentAllocationFilter, setTalentAllocationFilter] = useState<'All' | 'Allocated' | 'Unallocated'>('All');
+  const [talentSortBy, setTalentSortBy] = useState<'cgpa' | 'success' | 'coding' | 'name'>('cgpa');
+  const [talentSortOrder, setTalentSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Selected for Dossier modal
+  const [selectedStudentForDossier, setSelectedStudentForDossier] = useState<UnifiedStudent | null>(null);
+  const [dossierActiveTab, setDossierActiveTab] = useState<'academics' | 'success' | 'opportunities'>('academics');
+
+  // Selected for Give Opportunity modal
+  const [isGiveOpportunityOpen, setIsGiveOpportunityOpen] = useState(false);
+  const [targetStudentForOpportunity, setTargetStudentForOpportunity] = useState<UnifiedStudent | null>(null);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>(DEMO_OPPORTUNITIES_CATALOG[0].id);
+  const [allocationStatus, setAllocationStatus] = useState<AllocationStatus>('Invited');
+  const [tpoCustomNote, setTpoCustomNote] = useState('');
+  const [isCustomOpportunity, setIsCustomOpportunity] = useState(false);
+  const [customOppTitle, setCustomOppTitle] = useState('');
+  const [customOppCompany, setCustomOppCompany] = useState('');
+  const [customOppType, setCustomOppType] = useState<OpportunityType>('Campus Placement Drive');
+  const [customOppCtc, setCustomOppCtc] = useState('₹15.0 LPA');
 
   // Filter states
   const [driveTierFilter, setDriveTierFilter] = useState<'All' | PlacementTier>('All');
@@ -304,6 +348,303 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
     showToast('Placement accreditation report exported successfully.');
   };
 
+  // ── Student Academics & Opportunity Allocation Intelligence ─────────────────
+  const studentTalentDossierList = useMemo(() => {
+    return students.map(student => {
+      const successResult = calculateStudentSuccessScore(student, weights);
+      const acadRisk = evaluateAcademicRisk(student, academicThresholds);
+      const placeRisk = evaluatePlacementRisk(student, placementThresholds);
+      const segment = assignStudentSegment(student);
+
+      // Match against opportunity catalog
+      const matchResults = opportunityCatalog.map(opp => matchStudentToOpportunity(student, opp));
+      matchResults.sort((a, b) => b.matchScore - a.matchScore);
+      const bestMatch = matchResults[0] || null;
+
+      // Existing student allocations
+      const studentAllocs = allocations.filter(a => a.studentId === student.student_id);
+
+      return {
+        student,
+        successResult,
+        acadRisk,
+        placeRisk,
+        segment,
+        bestMatch,
+        allocations: studentAllocs,
+      };
+    });
+  }, [students, weights, academicThresholds, placementThresholds, opportunityCatalog, allocations]);
+
+  // Filtered & Sorted Student Talent List
+  const filteredTalentList = useMemo(() => {
+    return studentTalentDossierList.filter(item => {
+      const { student, successResult, allocations: studentAllocs } = item;
+      const cgpa = student.academic.cgpa ?? 0;
+      const backlogs = student.academic.backlogs ?? 0;
+      const successScore = successResult.final_score ?? 0;
+
+      // Search query
+      if (talentSearch.trim()) {
+        const q = talentSearch.toLowerCase();
+        const matchName = student.name.toLowerCase().includes(q);
+        const matchId = student.student_id.toLowerCase().includes(q);
+        const matchDept = student.department.toLowerCase().includes(q);
+        const matchEmail = student.email.toLowerCase().includes(q);
+        if (!matchName && !matchId && !matchDept && !matchEmail) return false;
+      }
+
+      // Department filter
+      if (talentDeptFilter !== 'All' && student.department !== talentDeptFilter) {
+        return false;
+      }
+
+      // CGPA filter
+      if (talentCgpaFilter === '8.5+' && cgpa < 8.5) return false;
+      if (talentCgpaFilter === '7.5-8.5' && (cgpa < 7.5 || cgpa >= 8.5)) return false;
+      if (talentCgpaFilter === '6.5-7.5' && (cgpa < 6.5 || cgpa >= 7.5)) return false;
+      if (talentCgpaFilter === '<6.5' && cgpa >= 6.5) return false;
+
+      // Success Score filter
+      if (talentSuccessFilter === 'High' && successScore < 75) return false;
+      if (talentSuccessFilter === 'Moderate' && (successScore < 55 || successScore >= 75)) return false;
+      if (talentSuccessFilter === 'Needs Attention' && successScore >= 55) return false;
+
+      // Backlog filter
+      if (talentBacklogFilter === 'Zero Backlogs' && backlogs > 0) return false;
+      if (talentBacklogFilter === 'Has Backlogs' && backlogs === 0) return false;
+
+      // Opportunity Allocation filter
+      if (talentAllocationFilter === 'Allocated' && studentAllocs.length === 0) return false;
+      if (talentAllocationFilter === 'Unallocated' && studentAllocs.length > 0) return false;
+
+      return true;
+    }).sort((a, b) => {
+      let valA = 0;
+      let valB = 0;
+      if (talentSortBy === 'cgpa') {
+        valA = a.student.academic.cgpa ?? 0;
+        valB = b.student.academic.cgpa ?? 0;
+      } else if (talentSortBy === 'success') {
+        valA = a.successResult.final_score ?? 0;
+        valB = b.successResult.final_score ?? 0;
+      } else if (talentSortBy === 'coding') {
+        valA = a.student.placement.coding_score ?? 0;
+        valB = b.student.placement.coding_score ?? 0;
+      } else if (talentSortBy === 'name') {
+        return talentSortOrder === 'asc'
+          ? a.student.name.localeCompare(b.student.name)
+          : b.student.name.localeCompare(a.student.name);
+      }
+
+      return talentSortOrder === 'desc' ? valB - valA : valA - valB;
+    });
+  }, [
+    studentTalentDossierList,
+    talentSearch,
+    talentDeptFilter,
+    talentCgpaFilter,
+    talentSuccessFilter,
+    talentBacklogFilter,
+    talentAllocationFilter,
+    talentSortBy,
+    talentSortOrder,
+  ]);
+
+  // High-level metrics for Talent Dashboard
+  const talentMetrics = useMemo(() => {
+    const highCgpa = students.filter(s => (s.academic.cgpa ?? 0) >= 8.5).length;
+    const zeroBacklogs = students.filter(s => (s.academic.backlogs ?? 0) === 0).length;
+    const totalAllocatedStudents = new Set(allocations.map(a => a.studentId)).size;
+    const readyUnallocated = students.filter(s => (s.academic.cgpa ?? 0) >= 7.0 && !allocations.some(a => a.studentId === s.student_id)).length;
+    return {
+      highCgpa,
+      zeroBacklogs,
+      totalAllocatedStudents,
+      readyUnallocated,
+    };
+  }, [students, allocations]);
+
+  // Bulk student selection handlers
+  const handleSelectAllStudents = () => {
+    if (selectedStudentIds.length === filteredTalentList.length) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filteredTalentList.map(item => item.student.student_id));
+    }
+  };
+
+  const handleToggleStudentSelect = (id: string) => {
+    setSelectedStudentIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  // Open Give Opportunity for single student
+  const handleOpenGiveOpportunityForSingle = (student: UnifiedStudent) => {
+    setTargetStudentForOpportunity(student);
+    const item = studentTalentDossierList.find(d => d.student.student_id === student.student_id);
+    if (item && item.bestMatch) {
+      setSelectedOpportunityId(item.bestMatch.opportunity.id);
+    }
+    setAllocationStatus('Invited');
+    setTpoCustomNote('');
+    setIsCustomOpportunity(false);
+    setIsGiveOpportunityOpen(true);
+  };
+
+  // Open Give Opportunity for bulk selected students
+  const handleOpenBulkOpportunity = () => {
+    if (selectedStudentIds.length === 0) return;
+    setTargetStudentForOpportunity(null);
+    setAllocationStatus('Invited');
+    setTpoCustomNote('');
+    setIsCustomOpportunity(false);
+    setIsGiveOpportunityOpen(true);
+  };
+
+  // Quick 1-click recommend opportunity
+  const handleQuickRecommend = (student: UnifiedStudent, match: OpportunityMatchResult | null) => {
+    if (!match) return;
+    const opp = match.opportunity;
+    const newAllocation: StudentOpportunityAllocation = {
+      id: `ALLOC-${Date.now().toString().slice(-4)}-${student.student_id.slice(-3)}`,
+      studentId: student.student_id,
+      studentName: student.name,
+      department: student.department,
+      opportunityId: opp.id,
+      opportunityTitle: opp.title,
+      opportunityType: opp.type,
+      companyOrPartner: opp.companyOrPartner,
+      ctcOrStipend: opp.ctcOrStipend,
+      tier: opp.tier,
+      status: 'Invited',
+      allocatedDate: new Date().toISOString().split('T')[0],
+      allocatedBy: `${DEMO_TPO_OFFICER.name} (TPO)`,
+      tpoNote: `Quick AI Match Recommendation (${match.matchScore}% Match). Criteria: CGPA ${student.academic.cgpa?.toFixed(2) ?? 'N/A'}, Coding ${student.placement.coding_score ?? 0}/100.`,
+      matchedCriteria: match.matchReasons,
+    };
+
+    setAllocations(prev => [newAllocation, ...prev]);
+    showToast(`Quick Recommended "${opp.companyOrPartner} - ${opp.title}" to ${student.name}!`);
+  };
+
+  // Confirm opportunity allocation form submit
+  const handleConfirmAllocation = () => {
+    const targetStudents: UnifiedStudent[] = targetStudentForOpportunity
+      ? [targetStudentForOpportunity]
+      : students.filter(s => selectedStudentIds.includes(s.student_id));
+
+    if (targetStudents.length === 0) {
+      showToast('No students selected for opportunity allocation.');
+      return;
+    }
+
+    let oppTitle = '';
+    let oppCompany = '';
+    let oppType: OpportunityType = 'Campus Placement Drive';
+    let oppCtc = '';
+    let oppTier: PlacementTier | undefined = undefined;
+
+    if (isCustomOpportunity) {
+      if (!customOppTitle.trim() || !customOppCompany.trim()) {
+        showToast('Please specify both opportunity title and corporate partner/provider.');
+        return;
+      }
+      oppTitle = customOppTitle.trim();
+      oppCompany = customOppCompany.trim();
+      oppType = customOppType;
+      oppCtc = customOppCtc.trim();
+    } else {
+      const chosen = opportunityCatalog.find(o => o.id === selectedOpportunityId) || opportunityCatalog[0];
+      oppTitle = chosen.title;
+      oppCompany = chosen.companyOrPartner;
+      oppType = chosen.type;
+      oppCtc = chosen.ctcOrStipend;
+      oppTier = chosen.tier;
+    }
+
+    const createdAllocations: StudentOpportunityAllocation[] = targetStudents.map(student => ({
+      id: `ALLOC-${Date.now().toString().slice(-4)}-${student.student_id.slice(-3)}`,
+      studentId: student.student_id,
+      studentName: student.name,
+      department: student.department,
+      opportunityId: isCustomOpportunity ? `CUST-${Date.now()}` : selectedOpportunityId,
+      opportunityTitle: oppTitle,
+      opportunityType: oppType,
+      companyOrPartner: oppCompany,
+      ctcOrStipend: oppCtc,
+      tier: oppTier,
+      status: allocationStatus,
+      allocatedDate: new Date().toISOString().split('T')[0],
+      allocatedBy: `${DEMO_TPO_OFFICER.name} (TPO)`,
+      tpoNote: tpoCustomNote.trim() || `TPO Allocated opportunity based on academic performance (CGPA ${student.academic.cgpa?.toFixed(2) ?? 'N/A'}) & coding competency (${student.placement.coding_score ?? 0}/100).`,
+      matchedCriteria: [
+        `CGPA ${student.academic.cgpa?.toFixed(2) ?? 'N/A'}`,
+        `Coding ${student.placement.coding_score ?? 0}/100`,
+        `Backlogs: ${student.academic.backlogs ?? 0}`,
+        `${student.department}`
+      ],
+    }));
+
+    setAllocations(prev => [...createdAllocations, ...prev]);
+    setIsGiveOpportunityOpen(false);
+    setSelectedStudentIds([]);
+    setTargetStudentForOpportunity(null);
+    setTpoCustomNote('');
+    setIsCustomOpportunity(false);
+    setCustomOppTitle('');
+    setCustomOppCompany('');
+
+    if (targetStudents.length === 1) {
+      showToast(`Career opportunity "${oppTitle}" successfully allocated to ${targetStudents[0].name}.`);
+    } else {
+      showToast(`Career opportunity "${oppTitle}" successfully allocated to ${targetStudents.length} selected students.`);
+    }
+  };
+
+  // Export Opportunity Allocation Registry
+  const handleExportAllocationsCSV = () => {
+    const headers = [
+      'Allocation ID',
+      'Student ID',
+      'Student Name',
+      'Department',
+      'Opportunity Title',
+      'Company or Provider',
+      'Opportunity Type',
+      'CTC / Stipend',
+      'Status',
+      'Allocated Date',
+      'Allocated By',
+      'TPO Notes'
+    ];
+    const rows = allocations.map(a => [
+      a.id,
+      a.studentId,
+      `"${a.studentName}"`,
+      `"${a.department}"`,
+      `"${a.opportunityTitle}"`,
+      `"${a.companyOrPartner}"`,
+      `"${a.opportunityType}"`,
+      `"${a.ctcOrStipend || ''}"`,
+      a.status,
+      a.allocatedDate,
+      `"${a.allocatedBy}"`,
+      `"${(a.tpoNote || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `TPO_Career_Opportunity_Registry_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Student Career Opportunity Registry exported successfully to CSV.');
+  };
+
   return (
     <div className="min-h-screen bg-bg text-text flex relative overflow-x-hidden font-sans">
       {/* Mobile backdrop */}
@@ -429,8 +770,9 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
         }`}
       >
         {/* Sticky Top Header */}
-        <header className="sticky top-0 z-30 h-16 bg-bg/85 backdrop-blur-md border-b border-border flex items-center justify-between px-4 sm:px-6 gap-3">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 h-16 bg-bg/85 backdrop-blur-md border-b border-border flex items-center px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden text-text-muted hover:text-text p-1.5 rounded-lg bg-card border border-border"
@@ -502,6 +844,7 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-accent" /> : <Moon className="w-4 h-4 text-accent" />}
             </button>
+          </div>
           </div>
         </header>
 
@@ -779,11 +1122,557 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
                   </button>
                 </div>
               </div>
+
+              {/* Direct Student Academics & Opportunities Discovery Banner */}
+              <div className="spec-card bg-gradient-to-r from-accent/10 via-card to-card border border-accent/30 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-accent text-accent-contrast flex items-center justify-center flex-shrink-0 shadow-md">
+                    <GraduationCap className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-text">Student Academics &amp; Career Opportunities Hub</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">
+                        {allocations.length} Opportunities Awarded
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-muted mt-1 max-w-2xl leading-relaxed">
+                      Deep-dive into every student's semester academics, subject-wise backlogs, and multi-dimensional success scores. Use AI matching to award tailored placement drives, elite internships, and research grants.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={() => setCurrentPage('talent')}
+                    className="btn-spec-primary text-xs py-2.5 px-4 w-full md:w-auto flex items-center justify-center gap-2 whitespace-nowrap shadow-sm hover:scale-[1.02] transition-transform"
+                  >
+                    <span>Inspect Academics &amp; Allocate Opportunities</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
           {/* ══════════════════════════════════════════════════════════════════════
-              PAGE 2: CAMPUS DRIVES RECRUITMENT MANAGEMENT
+              PAGE 2: STUDENT ACADEMICS & CAREER OPPORTUNITIES ALLOCATION HUB
+             ══════════════════════════════════════════════════════════════════════ */}
+          {currentPage === 'talent' && (
+            <div className="space-y-6 animate-fade-up">
+              <SpecPageHeader
+                title="Student Academics &amp; Career Opportunities Hub"
+                semesterChip="Season 2025-26"
+                subtitle="Review every student's semester academic performance, subject backlogs, and multi-dimensional success scores to match and award targeted placement drives, internships, and bootcamps."
+                sessionText={`${students.length} Total Enrolled Students · Central Directorate Intelligence`}
+                standingChip={{
+                  text: `${talentMetrics.totalAllocatedStudents} Students With Awarded Opportunities`,
+                  variant: 'accent',
+                }}
+              />
+
+              {/* 4 SPEC KPI CARDS */}
+              <div className="grid grid-cols-12 gap-4">
+                <SpecKpiCard
+                  icon={<Award className="w-5 h-5 text-accent" />}
+                  statusChip={{ text: `${Math.round((talentMetrics.highCgpa / students.length) * 100)}% of Cohort`, variant: 'success' }}
+                  number={talentMetrics.highCgpa}
+                  caption="Students with CGPA &ge; 8.5"
+                  label="HIGH ACADEMIC DISTINCTION"
+                  onClick={() => setTalentCgpaFilter('8.5+')}
+                />
+
+                <SpecKpiCard
+                  icon={<Shield className="w-5 h-5 text-accent" />}
+                  statusChip={{ text: `${Math.round((talentMetrics.zeroBacklogs / students.length) * 100)}% Eligible`, variant: 'accent' }}
+                  number={talentMetrics.zeroBacklogs}
+                  caption="Zero Active Semester Backlogs"
+                  label="CLEAN ACADEMIC RECORDS"
+                  onClick={() => setTalentBacklogFilter('Zero Backlogs')}
+                />
+
+                <SpecKpiCard
+                  icon={<Briefcase className="w-5 h-5 text-accent" />}
+                  statusChip={{ text: `${allocations.length} Active Slots`, variant: 'neutral' }}
+                  number={talentMetrics.totalAllocatedStudents}
+                  caption="Awarded Drives, Internships & Bootcamps"
+                  label="OPPORTUNITIES ALLOCATED"
+                  onClick={() => setTalentAllocationFilter('Allocated')}
+                />
+
+                <SpecKpiCard
+                  icon={<Zap className="w-5 h-5 text-accent" />}
+                  statusChip={{ text: 'Action Needed', variant: 'warning' }}
+                  number={talentMetrics.readyUnallocated}
+                  caption="CGPA &ge; 7.0 Ready for Placement Allocation"
+                  label="QUALIFIED AWAITING OPPORTUNITY"
+                  onClick={() => setTalentAllocationFilter('Unallocated')}
+                />
+              </div>
+
+              {/* ACTION & FILTER TOOLBAR */}
+              <div className="spec-card p-4 space-y-3.5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-bold text-text uppercase tracking-spec-label">
+                      Candidate Filter &amp; Search Matrix
+                    </span>
+                    <span className="text-[11px] text-text-muted font-mono ml-2">
+                      Showing {filteredTalentList.length} of {students.length} Students
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedStudentIds.length > 0 && (
+                      <button
+                        onClick={handleOpenBulkOpportunity}
+                        className="btn-spec-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Bulk Give Opportunity ({selectedStudentIds.length})</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={handleExportAllocationsCSV}
+                      className="text-xs px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-card-hover text-text flex items-center gap-1.5 transition-colors"
+                      title="Download full Opportunity Allocation Registry as CSV"
+                    >
+                      <Download className="w-3.5 h-3.5 text-accent" />
+                      <span>Export Opportunity Registry</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Controls Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+                  <div className="relative lg:col-span-2">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Search by student name, roll no, email..."
+                      value={talentSearch}
+                      onChange={e => setTalentSearch(e.target.value)}
+                      className="input-spec pl-9 pr-3 py-1.5 text-xs w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <select
+                      value={talentDeptFilter}
+                      onChange={e => setTalentDeptFilter(e.target.value)}
+                      className="input-spec py-1.5 text-xs w-full"
+                    >
+                      <option value="All">All Departments</option>
+                      <option value="Computer Science">Computer Science</option>
+                      <option value="Information Technology">Information Technology</option>
+                      <option value="Electronics & Comm.">Electronics &amp; Comm.</option>
+                      <option value="Mechanical Eng.">Mechanical Eng.</option>
+                      <option value="Civil Eng.">Civil Eng.</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <select
+                      value={talentCgpaFilter}
+                      onChange={e => setTalentCgpaFilter(e.target.value as any)}
+                      className="input-spec py-1.5 text-xs w-full"
+                    >
+                      <option value="All">All CGPA Ranges</option>
+                      <option value="8.5+">&ge; 8.5 (High Distinction)</option>
+                      <option value="7.5-8.5">7.5 – 8.5 (First Class)</option>
+                      <option value="6.5-7.5">6.5 – 7.5 (Standard)</option>
+                      <option value="<6.5">&lt; 6.5 (Needs Boost)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <select
+                      value={talentBacklogFilter}
+                      onChange={e => setTalentBacklogFilter(e.target.value as any)}
+                      className="input-spec py-1.5 text-xs w-full"
+                    >
+                      <option value="All">All Backlog Status</option>
+                      <option value="Zero Backlogs">Zero Backlogs (Clean)</option>
+                      <option value="Has Backlogs">Has Active Backlogs</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <select
+                      value={talentAllocationFilter}
+                      onChange={e => setTalentAllocationFilter(e.target.value as any)}
+                      className="input-spec py-1.5 text-xs w-full"
+                    >
+                      <option value="All">All Allocation Status</option>
+                      <option value="Allocated">Has Opportunity Awarded</option>
+                      <option value="Unallocated">Not Yet Allocated</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Quick Presets & Sorting Row */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-text-muted font-medium mr-1">Quick Filters:</span>
+                    <button
+                      onClick={() => {
+                        setTalentCgpaFilter('8.5+');
+                        setTalentBacklogFilter('Zero Backlogs');
+                      }}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-card border border-border hover:border-accent text-text transition-colors"
+                    >
+                      🌟 Super Dream Ready (CGPA &ge; 8.5)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTalentSortBy('coding');
+                        setTalentSortOrder('desc');
+                      }}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-card border border-border hover:border-accent text-text transition-colors"
+                    >
+                      💻 Top Coders First
+                    </button>
+                    <button
+                      onClick={() => setTalentBacklogFilter('Zero Backlogs')}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-card border border-border hover:border-accent text-text transition-colors"
+                    >
+                      🛡️ Clean Record (0 Backlogs)
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTalentCgpaFilter('7.5-8.5');
+                        setTalentAllocationFilter('Unallocated');
+                      }}
+                      className="text-[11px] px-2.5 py-1 rounded-lg bg-card border border-border hover:border-accent text-text transition-colors"
+                    >
+                      ⚡ Qualified Unallocated
+                    </button>
+                    {(talentSearch || talentDeptFilter !== 'All' || talentCgpaFilter !== 'All' || talentBacklogFilter !== 'All' || talentAllocationFilter !== 'All') && (
+                      <button
+                        onClick={() => {
+                          setTalentSearch('');
+                          setTalentDeptFilter('All');
+                          setTalentCgpaFilter('All');
+                          setTalentSuccessFilter('All');
+                          setTalentBacklogFilter('All');
+                          setTalentAllocationFilter('All');
+                        }}
+                        className="text-[11px] px-2 py-1 rounded-lg text-status-danger hover:underline ml-1"
+                      >
+                        Reset Filters
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-text-muted">Sort By:</span>
+                    <select
+                      value={talentSortBy}
+                      onChange={e => setTalentSortBy(e.target.value as any)}
+                      className="input-spec py-1 px-2 text-[11px]"
+                    >
+                      <option value="cgpa">CGPA</option>
+                      <option value="success">Success Score</option>
+                      <option value="coding">Coding Diagnostic</option>
+                      <option value="name">Student Name</option>
+                    </select>
+                    <button
+                      onClick={() => setTalentSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'))}
+                      className="p-1 rounded-lg border border-border text-text-muted hover:text-text text-[11px]"
+                      title="Toggle Sort Order"
+                    >
+                      {talentSortOrder === 'desc' ? 'High &rarr; Low' : 'Low &rarr; High'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* BULK ACTION BAR */}
+              {selectedStudentIds.length > 0 && (
+                <div className="p-3 rounded-xl bg-accent/15 border border-accent/40 flex items-center justify-between gap-3 text-xs animate-fade-in">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-accent" />
+                    <span className="font-bold text-text">
+                      {selectedStudentIds.length} candidate(s) selected
+                    </span>
+                    <span className="text-text-muted hidden sm:inline">
+                      · Ready for bulk opportunity assignment or recruitment nomination
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleOpenBulkOpportunity}
+                      className="btn-spec-primary text-xs py-1.5 px-3 flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Allocate Opportunity</span>
+                    </button>
+                    <button
+                      onClick={() => setSelectedStudentIds([])}
+                      className="px-2.5 py-1.5 rounded-lg border border-border text-text-muted hover:text-text text-xs"
+                    >
+                      Deselect
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STUDENT ACADEMICS & TALENT TABLE */}
+              <div className="spec-card overflow-x-auto p-0">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-bg/80 border-b border-border text-[11px] uppercase tracking-spec-label text-text-muted">
+                    <tr>
+                      <th className="py-3 px-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={filteredTalentList.length > 0 && selectedStudentIds.length === filteredTalentList.length}
+                          onChange={handleSelectAllStudents}
+                          className="rounded border-border text-accent focus:ring-accent"
+                          title="Select / Deselect all"
+                        />
+                      </th>
+                      <th className="py-3 px-4">Student Identity</th>
+                      <th className="py-3 px-3">Branch &amp; Sem</th>
+                      <th className="py-3 px-3">Academic Performance</th>
+                      <th className="py-3 px-3">Success &amp; Competencies</th>
+                      <th className="py-3 px-3">AI Opportunity Fit</th>
+                      <th className="py-3 px-3">Allocated Opportunities</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredTalentList.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-text-muted">
+                          <Users className="w-8 h-8 mx-auto text-text-muted/50 mb-2" />
+                          <div className="font-bold text-sm text-text">No students match current filters</div>
+                          <p className="text-xs text-text-muted mt-1">Try resetting or broadening your criteria.</p>
+                          <button
+                            onClick={() => {
+                              setTalentSearch('');
+                              setTalentDeptFilter('All');
+                              setTalentCgpaFilter('All');
+                              setTalentBacklogFilter('All');
+                              setTalentAllocationFilter('All');
+                            }}
+                            className="mt-3 btn-spec-primary text-xs py-1.5 px-3"
+                          >
+                            Reset All Filters
+                          </button>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTalentList.map(item => {
+                        const { student, successResult, bestMatch, allocations: studentAllocs } = item;
+                        const cgpa = student.academic.cgpa ?? 0;
+                        const backlogs = student.academic.backlogs ?? 0;
+                        const coding = student.placement.coding_score ?? 0;
+                        const aptitude = student.placement.aptitude_score ?? 0;
+                        const successScore = successResult.final_score ?? 0;
+                        const isSelected = selectedStudentIds.includes(student.student_id);
+
+                        return (
+                          <tr
+                            key={student.student_id}
+                            className={`hover:bg-card-hover transition-colors ${
+                              isSelected ? 'bg-accent/5' : ''
+                            }`}
+                          >
+                            {/* Checkbox */}
+                            <td className="py-3 px-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleStudentSelect(student.student_id)}
+                                className="rounded border-border text-accent focus:ring-accent"
+                              />
+                            </td>
+
+                            {/* Student Identity */}
+                            <td className="py-3 px-4">
+                              <div
+                                onClick={() => {
+                                  setSelectedStudentForDossier(student);
+                                  setDossierActiveTab('academics');
+                                }}
+                                className="font-bold text-text hover:text-accent cursor-pointer transition-colors flex items-center gap-1.5"
+                              >
+                                <span>{student.name}</span>
+                              </div>
+                              <div className="text-[11px] text-text-muted font-mono">{student.student_id}</div>
+                              <div className="text-[10px] text-text-muted truncate max-w-[180px]">{student.email}</div>
+                            </td>
+
+                            {/* Branch & Sem */}
+                            <td className="py-3 px-3">
+                              <div className="font-medium text-text">{student.department}</div>
+                              <div className="text-[11px] text-text-muted">{student.semester} · {student.academic_year}</div>
+                            </td>
+
+                            {/* Academic Performance */}
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-mono font-bold px-2 py-0.5 rounded-md text-xs ${
+                                  cgpa >= 8.5
+                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                    : cgpa >= 7.5
+                                    ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                                    : cgpa >= 6.5
+                                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                    : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                                }`}>
+                                  {cgpa.toFixed(2)} CGPA
+                                </span>
+
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                  backlogs === 0
+                                    ? 'bg-status-success/15 text-status-success'
+                                    : 'bg-status-danger/15 text-status-danger'
+                                }`}>
+                                  {backlogs === 0 ? '0 Backlogs' : `${backlogs} Backlog${backlogs > 1 ? 's' : ''}`}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-text-muted mt-1 flex items-center gap-2">
+                                <span>Attd: <strong>{student.attendance.overall_attendance ?? 0}%</strong></span>
+                                <span>·</span>
+                                <span>Internals: <strong>{student.academic.internal_marks ?? 0}%</strong></span>
+                              </div>
+                            </td>
+
+                            {/* Success & Competencies */}
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs font-bold text-accent">
+                                  {successScore}/100
+                                </div>
+                                <div className="w-14 h-1.5 rounded-full bg-border overflow-hidden">
+                                  <div
+                                    className="h-full bg-accent rounded-full"
+                                    style={{ width: `${successScore}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="text-[10px] text-text-muted mt-1 flex items-center gap-1.5">
+                                <span className={coding >= 65 ? 'text-status-success font-semibold' : 'text-text-muted'}>
+                                  Code: {coding}
+                                </span>
+                                <span>·</span>
+                                <span className={aptitude >= 70 ? 'text-status-success font-semibold' : 'text-text-muted'}>
+                                  Apt: {aptitude}
+                                </span>
+                                {((student.engagement.hackathons ?? 0) > 0 || (student.engagement.certifications ?? 0) > 0) && (
+                                  <>
+                                    <span>·</span>
+                                    <span className="text-amber-400 font-semibold">
+                                      {(student.engagement.hackathons ?? 0) + (student.engagement.certifications ?? 0)} Achv
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* AI Opportunity Fit */}
+                            <td className="py-3 px-3">
+                              {bestMatch ? (
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                      bestMatch.matchScore >= 85
+                                        ? 'bg-status-success/15 text-status-success border-status-success/30'
+                                        : bestMatch.matchScore >= 70
+                                        ? 'bg-accent/15 text-accent border-accent/30'
+                                        : 'bg-status-warning/15 text-status-warning border-status-warning/30'
+                                    }`}>
+                                      {bestMatch.matchScore}% Fit
+                                    </span>
+                                    <span className="font-bold text-text truncate max-w-[130px]" title={bestMatch.opportunity.title}>
+                                      {bestMatch.opportunity.companyOrPartner}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-text-muted truncate max-w-[180px]">
+                                    {bestMatch.opportunity.title}
+                                  </div>
+                                  <button
+                                    onClick={() => handleQuickRecommend(student, bestMatch)}
+                                    className="text-[10px] font-bold text-accent hover:underline flex items-center gap-1"
+                                    title="Immediately invite candidate to this top-matched opportunity"
+                                  >
+                                    <Zap className="w-2.5 h-2.5 text-accent" />
+                                    <span>Quick Award</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-text-muted text-[11px]">—</span>
+                              )}
+                            </td>
+
+                            {/* Allocated Opportunities */}
+                            <td className="py-3 px-3">
+                              {studentAllocs.length === 0 ? (
+                                <span className="text-[11px] text-text-muted italic">
+                                  None allocated yet
+                                </span>
+                              ) : (
+                                <div className="space-y-1 max-w-[180px]">
+                                  {studentAllocs.map(alloc => (
+                                    <div
+                                      key={alloc.id}
+                                      className="text-[10px] px-2 py-0.5 rounded-md bg-card border border-border flex items-center justify-between gap-1 text-text"
+                                      title={`${alloc.opportunityTitle} (${alloc.companyOrPartner}) - Status: ${alloc.status}`}
+                                    >
+                                      <span className="font-bold truncate text-text">{alloc.companyOrPartner}</span>
+                                      <span className={`text-[9px] font-semibold px-1 rounded ${
+                                        alloc.status === 'Offer Extended'
+                                          ? 'bg-status-success/20 text-status-success'
+                                          : alloc.status === 'Shortlisted'
+                                          ? 'bg-blue-500/20 text-blue-400'
+                                          : 'bg-accent/20 text-accent'
+                                      }`}>
+                                        {alloc.status}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Actions Column */}
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => handleOpenGiveOpportunityForSingle(student)}
+                                  className="btn-spec-primary text-[11px] py-1 px-2.5 flex items-center gap-1 shadow-sm whitespace-nowrap"
+                                  title="Give placement drive, internship or bootcamp to this student"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>Give Opportunity</span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedStudentForDossier(student);
+                                    setDossierActiveTab('academics');
+                                  }}
+                                  className="p-1 rounded-lg border border-border hover:border-accent text-text-muted hover:text-text transition-colors"
+                                  title="Inspect Full Academics &amp; Success Dossier"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════════
+              PAGE 3: CAMPUS DRIVES RECRUITMENT MANAGEMENT
              ══════════════════════════════════════════════════════════════════════ */}
           {currentPage === 'drives' && (
             <div className="space-y-6 animate-fade-up">
@@ -1095,12 +1984,22 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
                               </span>
                             </td>
                             <td className="py-3 px-4 text-right">
-                              <button
-                                onClick={() => showToast(`Added ${student.name} to DSA Bootcamp & Mock Interview Clinic.`)}
-                                className="text-[11px] font-semibold text-accent hover:underline"
-                              >
-                                + Bootcamp
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleOpenGiveOpportunityForSingle(student)}
+                                  className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-0.5"
+                                  title="Allocate placement drive, internship or bootcamp to this student"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>Opportunity</span>
+                                </button>
+                                <button
+                                  onClick={() => showToast(`Added ${student.name} to DSA Bootcamp & Mock Interview Clinic.`)}
+                                  className="text-[11px] font-semibold text-text-muted hover:text-text hover:underline"
+                                >
+                                  + Bootcamp
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1997,6 +2896,848 @@ export const TPOPlatform: React.FC<TPOPlatformProps> = ({ onLogout }) => {
           </div>
         </div>
       )}
+
+      {/* ── STUDENT ACADEMIC & SUCCESS DOSSIER MODAL ─────────────────────────── */}
+      {selectedStudentForDossier && (() => {
+        const student = selectedStudentForDossier;
+        const dossierItem = studentTalentDossierList.find(d => d.student.student_id === student.student_id);
+        const successResult = dossierItem ? dossierItem.successResult : calculateStudentSuccessScore(student, weights);
+        const acadRisk = dossierItem ? dossierItem.acadRisk : evaluateAcademicRisk(student, academicThresholds);
+        const placeRisk = dossierItem ? dossierItem.placeRisk : evaluatePlacementRisk(student, placementThresholds);
+        const segment = dossierItem ? dossierItem.segment : assignStudentSegment(student);
+        const studentAllocs = dossierItem ? dossierItem.allocations : allocations.filter(a => a.studentId === student.student_id);
+        const bestMatch = dossierItem?.bestMatch;
+
+        const cgpa = student.academic.cgpa ?? 0;
+        const backlogs = student.academic.backlogs ?? 0;
+        const attendance = student.attendance.overall_attendance ?? 0;
+        const internals = student.academic.internal_marks ?? 0;
+        const coding = student.placement.coding_score ?? 0;
+        const aptitude = student.placement.aptitude_score ?? 0;
+        const mock = student.placement.mock_interview_score ?? 0;
+        const techSkills = student.skills.technical_skill_score ?? 0;
+        const softSkills = student.skills.soft_skill_score ?? 0;
+        const hackathons = student.engagement.hackathons ?? 0;
+        const certs = student.engagement.certifications ?? 0;
+        const successScore = successResult.final_score ?? 0;
+
+        // Subjects list (with realistic defaults if subject_performance not defined)
+        const subjects = student.academic.subject_performance && student.academic.subject_performance.length > 0
+          ? student.academic.subject_performance
+          : [
+              { subject_code: 'CS401', subject_name: 'Advanced Data Structures & Algorithms', internal_mark: Math.round(internals * 0.95), attendance_pct: Math.min(100, attendance + 2), status: backlogs > 0 ? 'Borderline' : 'Pass' as const },
+              { subject_code: 'CS402', subject_name: 'Cloud Computing & Distributed Systems', internal_mark: internals, attendance_pct: attendance, status: 'Pass' as const },
+              { subject_code: 'CS403', subject_name: 'Database Engineering & Concurrency', internal_mark: Math.round(internals * 1.02), attendance_pct: Math.min(100, attendance + 4), status: 'Pass' as const },
+              { subject_code: 'CS404', subject_name: 'Computer Networks & Security Protocols', internal_mark: Math.round(internals * 0.92), attendance_pct: Math.max(65, attendance - 5), status: backlogs > 0 ? 'Fail' : 'Pass' as const },
+              { subject_code: 'CS405', subject_name: 'Full-Stack Software Architecture Lab', internal_mark: Math.round(internals * 1.05), attendance_pct: Math.min(100, attendance + 3), status: 'Pass' as const },
+            ];
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+            <div className="spec-card w-full max-w-3xl max-h-[90vh] flex flex-col p-5 sm:p-6 relative shadow-2xl">
+              <button
+                onClick={() => setSelectedStudentForDossier(null)}
+                className="absolute top-4 right-4 text-text-muted hover:text-text p-1.5 rounded-lg hover:bg-card transition-colors"
+                title="Close Dossier"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Dossier Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-accent/60 text-accent-contrast font-bold text-base flex items-center justify-center flex-shrink-0 shadow-md">
+                    {student.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-bold text-text">{student.name}</h3>
+                      <span className="font-mono text-xs px-2 py-0.5 rounded bg-card border border-border text-text font-bold">
+                        {student.student_id}
+                      </span>
+                    </div>
+                    <div className="text-xs text-text-muted mt-0.5">
+                      {student.department} · {student.academic_year} ({student.semester}) · {student.email}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="text-right sm:pr-3 sm:border-r border-border">
+                    <div className="text-[10px] text-text-muted uppercase font-bold">Success Score</div>
+                    <div className="text-base font-black text-accent">{successScore}/100</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-text-muted uppercase font-bold">CGPA Score</div>
+                    <div className="text-base font-black text-text">{cgpa.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dossier Tab Selector */}
+              <div className="flex items-center gap-2 pt-3 pb-2 border-b border-border text-xs">
+                <button
+                  onClick={() => setDossierActiveTab('academics')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                    dossierActiveTab === 'academics'
+                      ? 'bg-accent text-accent-contrast font-bold shadow-sm'
+                      : 'text-text-muted hover:text-text hover:bg-card'
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Semester Academics &amp; Grades</span>
+                </button>
+
+                <button
+                  onClick={() => setDossierActiveTab('success')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                    dossierActiveTab === 'success'
+                      ? 'bg-accent text-accent-contrast font-bold shadow-sm'
+                      : 'text-text-muted hover:text-text hover:bg-card'
+                  }`}
+                >
+                  <Star className="w-4 h-4" />
+                  <span>Success &amp; Competency Scores</span>
+                </button>
+
+                <button
+                  onClick={() => setDossierActiveTab('opportunities')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors flex items-center gap-1.5 ${
+                    dossierActiveTab === 'opportunities'
+                      ? 'bg-accent text-accent-contrast font-bold shadow-sm'
+                      : 'text-text-muted hover:text-text hover:bg-card'
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span>Awarded Opportunities ({studentAllocs.length})</span>
+                </button>
+              </div>
+
+              {/* Scrollable Dossier Content */}
+              <div className="flex-1 overflow-y-auto py-4 space-y-4">
+                {/* ── TAB 1: ACADEMICS RECORD ── */}
+                {dossierActiveTab === 'academics' && (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Academic Stat Bento */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 rounded-xl bg-card border border-border">
+                        <span className="text-[10px] uppercase font-bold text-text-muted">Cumulative GPA</span>
+                        <div className="text-xl font-black text-text mt-0.5">{cgpa.toFixed(2)} / 10.0</div>
+                        <span className={`text-[10px] font-bold mt-1 inline-block ${
+                          cgpa >= 8.5 ? 'text-status-success' : cgpa >= 7.5 ? 'text-accent' : 'text-status-warning'
+                        }`}>
+                          {cgpa >= 8.5 ? 'Top 10% Percentile' : cgpa >= 7.5 ? 'First Class with Distinction' : 'Satisfactory Grade'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-card border border-border">
+                        <span className="text-[10px] uppercase font-bold text-text-muted">Active Backlogs</span>
+                        <div className={`text-xl font-black mt-0.5 ${backlogs === 0 ? 'text-status-success' : 'text-status-danger'}`}>
+                          {backlogs} Backlog{backlogs !== 1 ? 's' : ''}
+                        </div>
+                        <span className="text-[10px] text-text-muted mt-1 block">
+                          {backlogs === 0 ? 'Clean Transcript Record' : 'Remedial clearing required'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-card border border-border">
+                        <span className="text-[10px] uppercase font-bold text-text-muted">Overall Attendance</span>
+                        <div className="text-xl font-black text-text mt-0.5">{attendance}%</div>
+                        <span className={`text-[10px] font-bold mt-1 inline-block ${
+                          attendance >= 75 ? 'text-status-success' : 'text-status-danger'
+                        }`}>
+                          {attendance >= 75 ? 'Above 75% Minimum' : 'Debarred Warning (<75%)'}
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-card border border-border">
+                        <span className="text-[10px] uppercase font-bold text-text-muted">Internal Marks Avg</span>
+                        <div className="text-xl font-black text-text mt-0.5">{internals}%</div>
+                        <span className="text-[10px] text-text-muted mt-1 block">Continuous Assessment</span>
+                      </div>
+                    </div>
+
+                    {/* Subject-Wise Performance Table */}
+                    <div className="spec-card p-4 space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-border">
+                        <div>
+                          <h4 className="text-xs font-bold text-text uppercase tracking-spec-label">
+                            Semester Coursework &amp; Subject Performance Ledger
+                          </h4>
+                          <p className="text-[11px] text-text-muted">
+                            Official internal scores and attendance compliance per academic subject
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                          {subjects.length} Enrolled Modules
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-bg/80 border-b border-border text-[10px] uppercase tracking-wider text-text-muted">
+                            <tr>
+                              <th className="py-2.5 px-3">Subject Code</th>
+                              <th className="py-2.5 px-3">Course Title</th>
+                              <th className="py-2.5 px-3 text-center">Internals (/100)</th>
+                              <th className="py-2.5 px-3 text-center">Attendance %</th>
+                              <th className="py-2.5 px-3 text-center">Academic Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {subjects.map((sub, sIdx) => (
+                              <tr key={sIdx} className="hover:bg-card-hover transition-colors">
+                                <td className="py-2.5 px-3 font-mono font-bold text-text">{sub.subject_code}</td>
+                                <td className="py-2.5 px-3 text-text font-medium">{sub.subject_name}</td>
+                                <td className="py-2.5 px-3 text-center font-mono font-semibold text-text">
+                                  {sub.internal_mark}%
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className={`font-semibold ${sub.attendance_pct >= 75 ? 'text-status-success' : 'text-status-danger'}`}>
+                                    {sub.attendance_pct}%
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                    sub.status === 'Pass'
+                                      ? 'bg-status-success/15 text-status-success border-status-success/30'
+                                      : sub.status === 'Borderline'
+                                      ? 'bg-status-warning/15 text-status-warning border-status-warning/30'
+                                      : 'bg-status-danger/15 text-status-danger border-status-danger/30'
+                                  }`}>
+                                    {sub.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Academic Standing Directive */}
+                    <div className="p-3.5 rounded-xl bg-card border border-border flex items-start gap-3 text-xs">
+                      <Shield className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-text">TPO Academic Verification Status</div>
+                        <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">
+                          {backlogs === 0
+                            ? `Candidate ${student.name} holds a clear academic record with zero active backlogs. Academic prerequisites for Tier 1 and Tier 2 corporate recruitment drives are fully satisfied.`
+                            : `Candidate ${student.name} currently has ${backlogs} active backlog(s). May require TPO Dean waiver or attendance at Fast-Track Remedial Bootcamp to access Super Dream interview rounds.`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── TAB 2: SUCCESS & COMPETENCY METRICS ── */}
+                {dossierActiveTab === 'success' && (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Overall Success Score Summary */}
+                    <div className="spec-card p-4 space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-border">
+                        <div className="flex items-center gap-2">
+                          <Star className="w-4 h-4 text-accent" />
+                          <h4 className="text-xs font-bold text-text uppercase tracking-spec-label">
+                            EduPulse Multi-Dimensional Success Breakdown
+                          </h4>
+                        </div>
+                        <span className="text-sm font-black text-accent">{successScore}/100 Unified Score</span>
+                      </div>
+
+                      {/* Explainability Bullets */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 rounded-xl bg-status-success/10 border border-status-success/30 space-y-1.5">
+                          <div className="font-bold text-status-success flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Strong Success Indicators</span>
+                          </div>
+                          {successResult.positive_indicators && successResult.positive_indicators.length > 0 ? (
+                            <ul className="space-y-1 text-[11px] text-text-muted list-disc list-inside">
+                              {successResult.positive_indicators.map((ind, i) => (
+                                <li key={i}>{ind}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-[11px] text-text-muted">Maintaining baseline consistency across coursework.</p>
+                          )}
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-status-warning/10 border border-status-warning/30 space-y-1.5">
+                          <div className="font-bold text-status-warning flex items-center gap-1.5">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            <span>Competency Focus Areas</span>
+                          </div>
+                          {successResult.areas_needing_attention && successResult.areas_needing_attention.length > 0 ? (
+                            <ul className="space-y-1 text-[11px] text-text-muted list-disc list-inside">
+                              {successResult.areas_needing_attention.map((att, i) => (
+                                <li key={i}>{att}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-[11px] text-text-muted">No critical deficits detected. Ready for top-tier opportunities.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 5 Placement Diagnostic Gauges */}
+                    <div className="spec-card p-4 space-y-3">
+                      <h4 className="text-xs font-bold text-text uppercase tracking-spec-label pb-2 border-b border-border">
+                        Recruiter Assessment &amp; Skill Diagnostics
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                        <div className="p-3 rounded-xl bg-bg border border-border space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-text-muted font-medium">Coding &amp; DSA Score:</span>
+                            <span className="font-bold text-accent">{coding}/100</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-border overflow-hidden">
+                            <div className="h-full bg-accent rounded-full" style={{ width: `${coding}%` }} />
+                          </div>
+                          <span className="text-[10px] text-text-muted block">HackerRank &amp; LeetCode Benchmark</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-bg border border-border space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-text-muted font-medium">Aptitude &amp; Logic:</span>
+                            <span className="font-bold text-status-success">{aptitude}/100</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-border overflow-hidden">
+                            <div className="h-full bg-status-success rounded-full" style={{ width: `${aptitude}%` }} />
+                          </div>
+                          <span className="text-[10px] text-text-muted block">Cognitive &amp; Speed Math Diagnostic</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-bg border border-border space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-text-muted font-medium">Mock Interview Rating:</span>
+                            <span className="font-bold text-text">{mock}/100</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-border overflow-hidden">
+                            <div className="h-full bg-text rounded-full" style={{ width: `${mock}%` }} />
+                          </div>
+                          <span className="text-[10px] text-text-muted block">1-on-1 Panel Code Pairing Evaluation</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-bg border border-border space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-text-muted font-medium">Technical Depth:</span>
+                            <span className="font-bold text-text">{techSkills}/100</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-border overflow-hidden">
+                            <div className="h-full bg-accent rounded-full" style={{ width: `${techSkills}%` }} />
+                          </div>
+                          <span className="text-[10px] text-text-muted block">System Design, OOP &amp; Core Stacks</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-bg border border-border space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-text-muted font-medium">Soft Skills &amp; GD:</span>
+                            <span className="font-bold text-text">{softSkills}/100</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full bg-border overflow-hidden">
+                            <div className="h-full bg-accent rounded-full" style={{ width: `${softSkills}%` }} />
+                          </div>
+                          <span className="text-[10px] text-text-muted block">Executive Presence &amp; Articulation</span>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-bg border border-border space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-text-muted font-medium">Co-Curricular Honours:</span>
+                            <span className="font-bold text-amber-400">{hackathons + certs} Badges</span>
+                          </div>
+                          <div className="text-[10px] text-text-muted pt-1">
+                            {hackathons} Hackathon(s) · {certs} Certified Module(s)
+                          </div>
+                          <span className="text-[10px] text-text-muted block">Industry &amp; Global Competitions</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Assigned Placement Persona / Segment */}
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-accent/15 via-card to-card border border-accent/30 flex items-center justify-between gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-text-muted">Assigned Student Segment</span>
+                        <div className="text-base font-bold text-accent mt-0.5">{segment.segment}</div>
+                        <p className="text-xs text-text-muted mt-1 max-w-xl leading-relaxed">{segment.primary_reason}</p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 flex-shrink-0">
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap ${
+                          acadRisk.risk_level === 'Low'
+                            ? 'bg-status-success/15 text-status-success border-status-success/30'
+                            : acadRisk.risk_level === 'Moderate'
+                            ? 'bg-status-warning/15 text-status-warning border-status-warning/30'
+                            : 'bg-status-danger/15 text-status-danger border-status-danger/30'
+                        }`}>
+                          Academic Risk: {acadRisk.risk_level}
+                        </span>
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap ${
+                          placeRisk.risk_level === 'Low'
+                            ? 'bg-status-success/15 text-status-success border-status-success/30'
+                            : placeRisk.risk_level === 'Moderate'
+                            ? 'bg-status-warning/15 text-status-warning border-status-warning/30'
+                            : 'bg-status-danger/15 text-status-danger border-status-danger/30'
+                        }`}>
+                          Placement Risk: {placeRisk.risk_level}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── TAB 3: ALLOCATED OPPORTUNITIES ── */}
+                {dossierActiveTab === 'opportunities' && (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Top AI Fit Recommendation Card */}
+                    {bestMatch && (
+                      <div className="p-4 rounded-xl bg-card border border-accent/40 space-y-2 text-xs shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 font-bold text-accent text-sm">
+                            <Sparkles className="w-4 h-4 text-accent" />
+                            <span>AI Opportunity Fit Recommendation</span>
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-success/15 text-status-success border border-status-success/30">
+                            {bestMatch.matchScore}% Compatibility
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                          <div>
+                            <div className="font-bold text-text text-sm">
+                              {bestMatch.opportunity.companyOrPartner} · {bestMatch.opportunity.title}
+                            </div>
+                            <div className="text-text-muted text-[11px] mt-0.5">
+                              {bestMatch.opportunity.type} · {bestMatch.opportunity.ctcOrStipend} · Tier: {bestMatch.opportunity.tier || 'Standard'}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              handleQuickRecommend(student, bestMatch);
+                            }}
+                            className="btn-spec-primary text-xs py-1.5 px-3 flex items-center gap-1.5 self-start sm:self-auto"
+                          >
+                            <Zap className="w-3.5 h-3.5" />
+                            <span>Award This Match Now</span>
+                          </button>
+                        </div>
+
+                        <div className="pt-2 border-t border-border flex flex-wrap gap-1.5">
+                          {bestMatch.matchReasons.map((r, rIdx) => (
+                            <span key={rIdx} className="text-[10px] px-2 py-0.5 rounded-md bg-status-success/10 text-status-success font-medium">
+                              ✓ {r}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Allocated Opportunities List */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-text uppercase tracking-spec-label">
+                          Active Opportunities Given by TPO ({studentAllocs.length})
+                        </h4>
+                        <button
+                          onClick={() => {
+                            setSelectedStudentForDossier(null);
+                            handleOpenGiveOpportunityForSingle(student);
+                          }}
+                          className="text-xs text-accent font-semibold hover:underline flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Give Another Opportunity</span>
+                        </button>
+                      </div>
+
+                      {studentAllocs.length === 0 ? (
+                        <div className="p-8 rounded-xl bg-card border border-dashed border-border text-center text-xs space-y-2">
+                          <Briefcase className="w-8 h-8 mx-auto text-text-muted/50" />
+                          <div className="font-bold text-text">No Opportunities Allocated Yet</div>
+                          <p className="text-text-muted text-[11px] max-w-sm mx-auto">
+                            Candidate meets academic criteria. Grant a placement drive invitation, research internship, or fast-track bootcamp.
+                          </p>
+                          <button
+                            onClick={() => {
+                              setSelectedStudentForDossier(null);
+                              handleOpenGiveOpportunityForSingle(student);
+                            }}
+                            className="btn-spec-primary text-xs py-1.5 px-3.5 mt-2"
+                          >
+                            + Allocate Opportunity Now
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {studentAllocs.map(alloc => (
+                            <div
+                              key={alloc.id}
+                              className="p-3.5 rounded-xl bg-card border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                            >
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-text text-sm">{alloc.companyOrPartner}</span>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                                    {alloc.opportunityType}
+                                  </span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                    alloc.status === 'Offer Extended'
+                                      ? 'bg-status-success/15 text-status-success border-status-success/30'
+                                      : alloc.status === 'Shortlisted'
+                                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                                      : 'bg-accent/15 text-accent border-accent/30'
+                                  }`}>
+                                    {alloc.status}
+                                  </span>
+                                </div>
+                                <div className="text-text font-medium">{alloc.opportunityTitle}</div>
+                                <div className="text-[11px] text-text-muted">
+                                  Compensation: <strong className="text-text">{alloc.ctcOrStipend || 'Standard'}</strong> · Awarded on: {alloc.allocatedDate} by {alloc.allocatedBy}
+                                </div>
+                                {alloc.tpoNote && (
+                                  <p className="text-[11px] text-text-muted italic border-l-2 border-accent pl-2 mt-1">
+                                    "{alloc.tpoNote}"
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 self-end sm:self-center">
+                                <button
+                                  onClick={() => {
+                                    setAllocations(prev => prev.map(a => a.id === alloc.id ? { ...a, status: 'Shortlisted' } : a));
+                                    showToast(`Candidate ${student.name} marked as Shortlisted for ${alloc.companyOrPartner}.`);
+                                  }}
+                                  className="text-[11px] font-semibold text-accent hover:underline"
+                                >
+                                  Mark Shortlisted
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setAllocations(prev => prev.filter(a => a.id !== alloc.id));
+                                    showToast(`Removed allocation for ${student.name}.`);
+                                  }}
+                                  className="text-[11px] font-semibold text-status-danger hover:underline ml-1"
+                                >
+                                  Revoke
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Dossier Footer Actions */}
+              <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
+                <span className="text-text-muted font-mono text-[11px]">
+                  Institutional Placement Record · Verified
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedStudentForDossier(null);
+                      handleOpenGiveOpportunityForSingle(student);
+                    }}
+                    className="btn-spec-primary px-4 py-2 flex items-center gap-1.5 text-xs shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Give Opportunity</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedStudentForDossier(null)}
+                    className="px-4 py-2 rounded-xl border border-border text-text-muted hover:text-text text-xs"
+                  >
+                    Close Dossier
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── GIVE / ALLOCATE OPPORTUNITY MODAL ─────────────────────────────────── */}
+      {isGiveOpportunityOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="spec-card w-full max-w-xl max-h-[88vh] flex flex-col p-5 sm:p-6 relative shadow-2xl">
+            <button
+              onClick={() => setIsGiveOpportunityOpen(false)}
+              className="absolute top-4 right-4 text-text-muted hover:text-text p-1.5 rounded-lg hover:bg-card transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 pb-3 border-b border-border">
+              <div className="w-10 h-10 rounded-xl bg-accent text-accent-contrast flex items-center justify-center flex-shrink-0 shadow-md">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-text">Allocate Career Opportunity</h3>
+                <p className="text-xs text-text-muted">
+                  Assign recruitment drives, elite internships, or fast-track bootcamps based on academic performance
+                </p>
+              </div>
+            </div>
+
+            {/* Target Student Banner */}
+            <div className="mt-4 p-3 rounded-xl bg-accent/10 border border-accent/30 text-xs">
+              <div className="text-[10px] uppercase font-bold text-accent">Selected Candidate(s)</div>
+              {targetStudentForOpportunity ? (
+                <div className="flex items-center justify-between mt-1">
+                  <div>
+                    <span className="font-bold text-text text-sm">{targetStudentForOpportunity.name}</span>
+                    <span className="text-text-muted text-[11px] ml-2">
+                      ({targetStudentForOpportunity.student_id} · {targetStudentForOpportunity.department})
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-text">CGPA: {targetStudentForOpportunity.academic.cgpa?.toFixed(2) ?? 'N/A'}</span>
+                    <span className="text-[10px] text-text-muted block">
+                      Coding: {targetStudentForOpportunity.placement.coding_score ?? 0}/100
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between mt-1">
+                  <span className="font-bold text-text text-sm">
+                    {selectedStudentIds.length} Selected Candidates (Bulk Mode)
+                  </span>
+                  <span className="text-[11px] text-accent font-semibold">
+                    Simultaneous Cohort Nomination
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Form Scroll Area */}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleConfirmAllocation();
+              }}
+              className="flex-1 overflow-y-auto py-3 space-y-3.5 text-xs"
+            >
+              {/* Mode Toggle: Catalog vs Custom */}
+              <div className="flex items-center justify-between pb-1">
+                <label className="label-spec text-[10px]">Select Opportunity Source</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomOpportunity(false)}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                      !isCustomOpportunity ? 'bg-accent text-accent-contrast font-bold' : 'bg-card text-text-muted border border-border'
+                    }`}
+                  >
+                    Active Opportunity Catalog
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomOpportunity(true)}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                      isCustomOpportunity ? 'bg-accent text-accent-contrast font-bold' : 'bg-card text-text-muted border border-border'
+                    }`}
+                  >
+                    + Custom Opportunity
+                  </button>
+                </div>
+              </div>
+
+              {!isCustomOpportunity ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="label-spec text-[10px] block mb-1">Select from Catalog</label>
+                    <select
+                      value={selectedOpportunityId}
+                      onChange={e => setSelectedOpportunityId(e.target.value)}
+                      className="input-spec w-full text-xs font-medium"
+                    >
+                      {opportunityCatalog.map(opp => (
+                        <option key={opp.id} value={opp.id}>
+                          [{opp.type}] {opp.companyOrPartner} — {opp.title} ({opp.ctcOrStipend})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Opportunity Details & Candidate Match Preview */}
+                  {(() => {
+                    const chosen = opportunityCatalog.find(o => o.id === selectedOpportunityId) || opportunityCatalog[0];
+                    const matchInfo = targetStudentForOpportunity ? matchStudentToOpportunity(targetStudentForOpportunity, chosen) : null;
+
+                    return (
+                      <div className="p-3.5 rounded-xl bg-card border border-border space-y-2 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-text text-sm">
+                            {chosen.companyOrPartner} · {chosen.title}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                            {chosen.tier || chosen.type}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-text-muted leading-relaxed">
+                          {chosen.description}
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-border text-[11px]">
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Package:</span>
+                            <strong className="text-accent">{chosen.ctcOrStipend}</strong>
+                          </div>
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Min CGPA:</span>
+                            <strong className="text-text">&ge; {chosen.minCgpa}</strong>
+                          </div>
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Min Coding:</span>
+                            <strong className="text-text">&ge; {chosen.minCodingScore}/100</strong>
+                          </div>
+                          <div>
+                            <span className="text-text-muted block text-[10px]">Backlogs:</span>
+                            <strong className="text-text">Max {chosen.maxBacklogs}</strong>
+                          </div>
+                        </div>
+
+                        {/* If single student selected, show live eligibility preview */}
+                        {matchInfo && (
+                          <div className="pt-2 border-t border-border flex items-center justify-between text-xs">
+                            <span className="text-[11px] font-medium text-text-muted">Compatibility Fit:</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              matchInfo.matchScore >= 80
+                                ? 'bg-status-success/15 text-status-success border-status-success/30'
+                                : 'bg-status-warning/15 text-status-warning border-status-warning/30'
+                            }`}>
+                              {matchInfo.matchScore}% Qualified
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="space-y-3 p-3.5 rounded-xl bg-card border border-border">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="label-spec text-[10px] block mb-1">Corporate Partner / Provider</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Apple, ISRO, Uber, Harvard..."
+                        value={customOppCompany}
+                        onChange={e => setCustomOppCompany(e.target.value)}
+                        className="input-spec w-full text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="label-spec text-[10px] block mb-1">Opportunity Type</label>
+                      <select
+                        value={customOppType}
+                        onChange={e => setCustomOppType(e.target.value as OpportunityType)}
+                        className="input-spec w-full text-xs"
+                      >
+                        <option value="Campus Placement Drive">Campus Placement Drive</option>
+                        <option value="Elite Summer Internship">Elite Summer Internship</option>
+                        <option value="Pre-Placement Fast-track Bootcamp">Pre-Placement Fast-track Bootcamp</option>
+                        <option value="Dean TPO Corporate Referral">Dean TPO Corporate Referral</option>
+                        <option value="Industry Hackathon & Research Sponsorship">Hackathon Sponsorship</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label-spec text-[10px] block mb-1">Role / Designation / Title</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Associate Systems Engineer - Autonomous Platforms"
+                      value={customOppTitle}
+                      onChange={e => setCustomOppTitle(e.target.value)}
+                      className="input-spec w-full text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label-spec text-[10px] block mb-1">Compensation / Stipend</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. ₹22.5 LPA or ₹90,000 / month"
+                      value={customOppCtc}
+                      onChange={e => setCustomOppCtc(e.target.value)}
+                      className="input-spec w-full text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Status Selector */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label-spec text-[10px] block mb-1">Allocation Action / Status</label>
+                  <select
+                    value={allocationStatus}
+                    onChange={e => setAllocationStatus(e.target.value as AllocationStatus)}
+                    className="input-spec w-full text-xs"
+                  >
+                    <option value="Invited">Direct Invitation to Drive</option>
+                    <option value="Directly Nominated">Dean / TPO Direct Nomination</option>
+                    <option value="Shortlisted">Instant Round 1 Shortlist</option>
+                    <option value="Assessment Scheduled">Assessment Scheduled</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="label-spec text-[10px] block mb-1">Authorizing Official</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={`${DEMO_TPO_OFFICER.name} (TPO Cell)`}
+                    className="input-spec w-full text-xs opacity-75 bg-bg/50 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* TPO Officer Recommendation Note */}
+              <div>
+                <label className="label-spec text-[10px] block mb-1">
+                  TPO Officer Rationale &amp; Personalized Remarks (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Nominated for SDE Cloud track based on top 5% DSA performance and 0 backlogs. Fast-track assessment link sent."
+                  value={tpoCustomNote}
+                  onChange={e => setTpoCustomNote(e.target.value)}
+                  className="input-spec w-full text-xs py-2"
+                />
+              </div>
+
+              {/* Form Buttons */}
+              <div className="pt-2 flex justify-end gap-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setIsGiveOpportunityOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-border text-text-muted hover:text-text text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-spec-primary px-5 py-2 text-xs flex items-center gap-1.5 shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Confirm &amp; Allocate Opportunity</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

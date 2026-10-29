@@ -264,18 +264,20 @@
 }
 
 /* Inputs & Selects */
-.input-spec {
-  background-color: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text);
-  padding: 10px 16px;
-  outline: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-.input-spec:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--border-focus);
+@layer components {
+  .input-spec {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    padding: 10px 16px;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .input-spec:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--border-focus);
+  }
 }
 
 /* Typography Helpers */
@@ -323,9 +325,202 @@
   animation: fadeUpIn 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ─── MOTION UI DESIGN SYSTEM ──────────────────────────────────────────────── */
+.motion-card {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 200ms ease,
+              background-color 200ms ease;
+}
+.motion-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px -10px rgba(42, 245, 200, 0.16);
+  border-color: var(--accent);
+}
+
+.motion-pressable {
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease;
+}
+.motion-pressable:hover {
+  transform: translateY(-1.5px);
+}
+.motion-pressable:active {
+  transform: translateY(0.5px) scale(0.98);
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+.animate-float-slow {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(42, 245, 200, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(42, 245, 200, 0);
+  }
+}
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.65;
+  }
+}
+.animate-pulse-dot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes shimmerSweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shimmer-active {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmerSweep 3.2s infinite;
+}
+
 /* Print styles */
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   body { background: white !important; color: black !important; }
 }
+
+/* ==========================================================================
+   WATERMELON UI DESIGN SYSTEM TOKENS & UTILITIES
+   ========================================================================== */
+:root {
+  --watermelon-red: #FF3B5C;
+  --watermelon-pink: #FF6584;
+  --watermelon-coral: #FF4D6D;
+  --watermelon-rind: #059669;
+  --watermelon-mint: #10B981;
+  --watermelon-emerald: #00D68F;
+  --watermelon-seed: #0F172A;
+}
+
+.text-watermelon-gradient {
+  background: linear-gradient(135deg, #FF3B5C 0%, #FF6584 50%, #10B981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-watermelon-gradient {
+  background: linear-gradient(135deg, #FF3B5C 0%, #FF5376 100%);
+}
+
+.bg-watermelon-mint-gradient {
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+}
+
+.watermelon-mesh-bg {
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(255, 59, 92, 0.14) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(255, 101, 132, 0.05) 0%, transparent 60%);
+}
+
+.watermelon-card {
+  background: var(--card);
+  border: 1px solid rgba(255, 59, 92, 0.15);
+  box-shadow: 0 10px 30px -10px rgba(255, 59, 92, 0.1);
+  transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.watermelon-card:hover {
+  border-color: rgba(255, 59, 92, 0.35);
+  box-shadow: 0 16px 40px -12px rgba(255, 59, 92, 0.22);
+  transform: translateY(-2px);
+}
+
+.watermelon-glass {
+  background: rgba(28, 31, 33, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 59, 92, 0.18);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .watermelon-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 59, 92, 0.2);
+  box-shadow: 0 12px 32px rgba(255, 59, 92, 0.08);
+}
+
+.watermelon-pill {
+  background: rgba(255, 59, 92, 0.12);
+  border: 1px solid rgba(255, 59, 92, 0.28);
+  color: #FF3B5C;
+}
+
+[data-theme="light"] .watermelon-pill {
+  background: rgba(255, 59, 92, 0.08);
+  border: 1px solid rgba(255, 59, 92, 0.24);
+  color: #E11D48;
+}
+
+.btn-watermelon {
+  background: linear-gradient(135deg, #FF3B5C 0%, #FF5376 100%);
+  color: #FFFFFF;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 10px 22px;
+  box-shadow: 0 4px 18px rgba(255, 59, 92, 0.35);
+  transition: all 200ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-watermelon:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 24px rgba(255, 59, 92, 0.5);
+  filter: brightness(1.05);
+}
+.btn-watermelon:active {
+  transform: translateY(0);
+}
+
+.btn-watermelon-mint {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  color: #10B981;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 10px 20px;
+  transition: all 200ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-watermelon-mint:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10B981;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.25);
+}
+

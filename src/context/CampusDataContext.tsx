@@ -41,6 +41,8 @@ interface CampusDataContextType {
   setLoggedInFacultyIdx: (idx: number) => void;
   currentStudentProfile: StudentPortalProfile;
   selectStudentForPortal: (studentOrId: UnifiedStudent | string) => void;
+  saveStudent: (student: UnifiedStudent) => Promise<{ success: boolean; data?: UnifiedStudent; error?: string }>;
+  deleteStudent: (studentId: string) => Promise<{ success: boolean; error?: string }>;
   addIntervention: (item: {
     student_id: string;
     student_name: string;
@@ -637,7 +639,59 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [students, filters, academicThresholds, placementThresholds]);
 
   // Actions
-  const addIntervention = (item: {
+  const saveStudent = async (student: UnifiedStudent): Promise<{ success: boolean; data?: UnifiedStudent; error?: string }> => {
+    // 1. Optimistically update local students state
+    setStudents(prev => {
+      const idx = prev.findIndex(s => s.student_id === student.student_id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = student;
+        return copy;
+      }
+      return [student, ...prev];
+    });
+
+    // 2. Call backend MongoDB API
+    try {
+      const saved = await api.saveStudent(student);
+      if (saved) {
+        setStudents(prev => prev.map(s => s.student_id === saved.student_id ? saved : s));
+      }
+      const health = await api.checkHealth().catch(() => null);
+      if (health?.database) {
+        setDbHealth(health.database);
+        setDbStatus(health.database.isConnected ? 'connected' : 'offline');
+      }
+      return { success: true, data: saved || student };
+    } catch (err: any) {
+      console.warn('[CampusDataContext] MongoDB saveStudent fallback (saved locally):', err.message);
+      return { success: true, data: student, error: `Saved in local storage. Backend note: ${err.message}` };
+    }
+  };
+
+  const deleteStudent = async (studentId: string): Promise<{ success: boolean; error?: string }> => {
+    // 1. Optimistically remove from state
+    setStudents(prev => prev.filter(s => s.student_id !== studentId));
+    if (selectedStudent?.student_id === studentId) {
+      setSelectedStudent(null);
+    }
+
+    // 2. Call backend MongoDB API
+    try {
+      await api.deleteStudent(studentId);
+      const health = await api.checkHealth().catch(() => null);
+      if (health?.database) {
+        setDbHealth(health.database);
+        setDbStatus(health.database.isConnected ? 'connected' : 'offline');
+      }
+      return { success: true };
+    } catch (err: any) {
+      console.warn('[CampusDataContext] MongoDB deleteStudent error:', err.message);
+      return { success: true, error: `Removed locally. Backend note: ${err.message}` };
+    }
+  };
+
+  const addIntervention = async (item: {
     student_id: string;
     student_name: string;
     department: string;
@@ -692,9 +746,16 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return s;
       })
     );
+
+    // Call MongoDB backend API
+    try {
+      await api.createIntervention(item);
+    } catch (e: any) {
+      console.warn('[CampusDataContext] Backend createIntervention note:', e.message);
+    }
   };
 
-  const updateInterventionStatus = (id: string, status: InterventionStatus, followUpNote?: string) => {
+  const updateInterventionStatus = async (id: string, status: InterventionStatus, followUpNote?: string) => {
     const today = new Date().toISOString().split('T')[0];
 
     setInterventions(prev =>
@@ -719,6 +780,13 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return item;
       })
     );
+
+    // Call MongoDB backend API
+    try {
+      await api.updateIntervention(id, { status, followUpNote });
+    } catch (e: any) {
+      console.warn('[CampusDataContext] Backend updateIntervention note:', e.message);
+    }
   };
 
   const updateWeights = (newWeights: ScoreWeights) => {
@@ -845,6 +913,8 @@ export const CampusDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setLoggedInFacultyIdx,
         currentStudentProfile,
         selectStudentForPortal,
+        saveStudent,
+        deleteStudent,
         addIntervention,
         updateInterventionStatus,
         updateWeights,

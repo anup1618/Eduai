@@ -27,6 +27,17 @@ export default {
           cream: '#F8F3F0',
         },
 
+        // Watermelon UI Palette
+        watermelon: {
+          red: '#FF3B5C',
+          pink: '#FF6584',
+          coral: '#FF4D6D',
+          rind: '#059669',
+          mint: '#10B981',
+          emerald: '#00D68F',
+          seed: '#0F172A',
+        },
+
         // Status Colors
         status: {
           success: '#10B981',

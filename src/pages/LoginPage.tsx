@@ -5,7 +5,8 @@ import {
   CheckCircle2, AlertCircle, Quote, ChevronLeft, ChevronRight,
   TrendingUp, BarChart3, Award, BookOpen, Building2,
   Clock, Check, Search, ArrowRight, X, User, ChevronDown,
-  Sun, Moon, Compass, Zap, Briefcase
+  Sun, Moon, Compass, Zap, Briefcase, Database, Server,
+  Cpu, FileSpreadsheet, HeartPulse, Layers, CheckCircle
 } from 'lucide-react';
 import {
   FEATURED_DEMO_FACULTY,
@@ -26,7 +27,6 @@ const INSPIRATIONAL_QUOTES = [
     author: "Nelson Mandela",
     designation: "Nobel Peace Laureate & Statesman",
     tag: "Global Leadership",
-    color: "from-brand-royal to-accent",
   },
   {
     id: 2,
@@ -34,7 +34,6 @@ const INSPIRATIONAL_QUOTES = [
     author: "B.B. King",
     designation: "Cultural Icon & Lifelong Learner",
     tag: "Lifelong Mastery",
-    color: "from-accent to-brand-royal",
   },
   {
     id: 3,
@@ -42,7 +41,6 @@ const INSPIRATIONAL_QUOTES = [
     author: "Benjamin Franklin",
     designation: "Founding Polymath & Scientist",
     tag: "Knowledge Growth",
-    color: "from-brand-royal to-accent",
   },
   {
     id: 4,
@@ -50,7 +48,6 @@ const INSPIRATIONAL_QUOTES = [
     author: "Mahatma Gandhi",
     designation: "Philosopher & Pioneer",
     tag: "Continuous Evolution",
-    color: "from-accent to-brand-royal",
   },
   {
     id: 5,
@@ -58,12 +55,11 @@ const INSPIRATIONAL_QUOTES = [
     author: "Dr. Martin Luther King Jr.",
     designation: "Civil Rights Leader & Scholar",
     tag: "Excellence & Purpose",
-    color: "from-brand-royal to-accent",
   },
 ];
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
-  const { students, selectStudentForPortal, setLoggedInFacultyIdx, loginUser } = useCampusData();
+  const { students, selectStudentForPortal, setLoggedInFacultyIdx, loginUser, dbStatus, dbHealth } = useCampusData();
   const { theme, toggleTheme } = useTheme();
 
   // Quote carousel state
@@ -94,19 +90,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
     gradient: string;
   } | null>(null);
 
-  // Spotlight and Parallax
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const heroCardRef = useRef<HTMLDivElement>(null);
-
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Mouse move handler for tilt & spotlight
-  const handleMouseMove = (e: React.MouseEvent) => {
-    // Check if touch device / mobile
-    if (window.matchMedia('(pointer: coarse)').matches) return;
-    const { clientX, clientY } = e;
-    setMousePos({ x: clientX, y: clientY });
-  };
 
   // Auto rotate quotes every 5.5s unless paused
   useEffect(() => {
@@ -144,7 +128,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
     if (role === 'student') {
       setPassword('student@123');
     } else if (role === 'faculty') {
-      setPassword(''); // Require credential input for faculty
+      setPassword('faculty@123');
     } else if (role === 'tpo') {
       setPassword('tpo@123');
     } else {
@@ -197,17 +181,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
 
         setSuccessInfo({
           name: activeStudent.name,
-          roleName: 'Student Portal (Protected Session)',
-          subtext: `${activeStudent.student_id} · ${activeStudent.department} · Private Academic Record`,
+          roleName: 'Student Cockpit',
+          subtext: `${activeStudent.student_id} · ${activeStudent.department} · Verified Profile`,
           avatarInitials: initials,
-          gradient: 'from-brand-royal to-accent',
+          gradient: 'from-[#FF3B5C] to-[#10B981]',
         });
 
         setIsLoading(false);
         setTimeout(() => {
           setIsLoginModalOpen(false);
           onSelectRole('student');
-        }, 950);
+        }, 850);
       } catch (err: any) {
         setIsLoading(false);
         triggerShake(err.message || `Student "${query}" was not found in our campus database.`);
@@ -219,10 +203,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
       const query = facultyInput.trim();
       if (!query) {
         triggerShake('Please enter a faculty name or email (e.g., Dr. Priya Menon, Prof. Suresh Kumar).');
-        return;
-      }
-      if (!password.trim()) {
-        triggerShake('Security credential required: Please enter faculty password (demo: faculty@123).');
         return;
       }
 
@@ -251,14 +231,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
           roleName: 'Faculty Mentorship Hub',
           subtext: `${matchedFaculty.designation} · ${matchedFaculty.department}`,
           avatarInitials: matchedFaculty.avatar_initials,
-          gradient: 'from-brand-royal to-accent',
+          gradient: 'from-[#FF3B5C] to-[#10B981]',
         });
 
         setIsLoading(false);
         setTimeout(() => {
           setIsLoginModalOpen(false);
           onSelectRole('faculty');
-        }, 950);
+        }, 850);
       } catch (err: any) {
         setIsLoading(false);
         triggerShake(err.message || `Faculty member "${query}" could not be authenticated.`);
@@ -277,17 +257,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
 
         setSuccessInfo({
           name: 'Dean of Academic Affairs',
-          roleName: 'Campus Administration (Full Access)',
+          roleName: 'Campus Administration Console',
           subtext: 'Central Intelligence & Institutional Governance',
           avatarInitials: 'AD',
-          gradient: 'from-brand-royal to-accent',
+          gradient: 'from-[#FF3B5C] to-[#10B981]',
         });
 
         setIsLoading(false);
         setTimeout(() => {
           setIsLoginModalOpen(false);
           onSelectRole('admin');
-        }, 950);
+        }, 850);
       } catch (err: any) {
         setIsLoading(false);
         triggerShake(err.message || 'Admin authentication failed.');
@@ -306,17 +286,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
 
         setSuccessInfo({
           name: 'Prof. Vikram Malhotra',
-          roleName: 'Training & Placement Officer (TPO)',
+          roleName: 'Training & Placement Platform (TPO)',
           subtext: 'Corporate Relations & Campus Recruitment Hub',
           avatarInitials: 'VM',
-          gradient: 'from-amber-600 to-orange-500',
+          gradient: 'from-[#059669] to-[#10B981]',
         });
 
         setIsLoading(false);
         setTimeout(() => {
           setIsLoginModalOpen(false);
           onSelectRole('tpo');
-        }, 950);
+        }, 850);
       } catch (err: any) {
         setIsLoading(false);
         triggerShake(err.message || 'TPO authentication failed.');
@@ -328,44 +308,51 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
   const currentQuote = INSPIRATIONAL_QUOTES[activeQuoteIndex];
 
   return (
-    <div
-      onMouseMove={handleMouseMove}
-      className="min-h-screen bg-bg text-text flex flex-col justify-between selection:bg-accent selection:text-accent-contrast relative overflow-x-hidden font-sans"
-    >
+    <div className="min-h-screen bg-bg text-text flex flex-col justify-between relative overflow-x-hidden font-sans watermelon-mesh-bg selection:bg-[#FF3B5C] selection:text-white">
+      {/* ── AMBIENT WATERMELON GLOW BLOBS ──────────────────────────────────── */}
+      <div className="absolute top-[-140px] left-[-140px] w-96 h-96 rounded-full bg-[#FF3B5C]/15 blur-3xl pointer-events-none" />
+      <div className="absolute top-[30%] right-[-140px] w-96 h-96 rounded-full bg-[#10B981]/15 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-[-100px] left-[20%] w-96 h-96 rounded-full bg-[#FF6584]/10 blur-3xl pointer-events-none" />
+
       {/* ── TOP HEADER / NAVBAR ─────────────────────────────────────────────── */}
-      <header className="relative z-20 w-full border-b border-border bg-sidebar/80 backdrop-blur-xl">
+      <header className="relative z-30 w-full border-b border-border/80 bg-sidebar/85 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           {/* Logo & Platform identity */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shadow-sm">
-              <Activity className="w-5 h-5 text-accent stroke-[2.5]" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF3B5C] via-[#FF5376] to-[#10B981] p-0.5 shadow-md flex items-center justify-center">
+              <div className="w-full h-full bg-card rounded-[14px] flex items-center justify-center text-lg select-none">
+                🍉
+              </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold tracking-tight text-text">EduPulse AI</span>
-                <span className="text-[10px] uppercase font-bold tracking-spec-label px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
-                  Institutional OS
+                <span className="text-lg font-black tracking-tight text-text">
+                  Edu<span className="text-[#FF3B5C]">Pulse</span> AI
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/30 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B5C] animate-pulse" />
+                  Watermelon v2.5
                 </span>
               </div>
               <p className="text-[11px] text-text-muted hidden sm:block">
-                Predictive Student Retention & Academic Intelligence
+                Predictive Student Intelligence & Retention Platform
               </p>
             </div>
           </div>
 
           {/* Navigation Links & Status */}
-          <div className="hidden md:flex items-center gap-6 text-xs text-text-muted font-medium">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-status-success/15 border border-status-success/30 text-status-success">
-              <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
-              <span className="font-semibold">Campus Cloud: Online</span>
+          <div className="hidden lg:flex items-center gap-6 text-xs text-text-muted font-medium">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#10B981]/15 border border-[#10B981]/30 text-[#10B981]">
+              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+              <span className="font-semibold">MongoDB Atlas: Connected ({students.length} Students)</span>
             </div>
             <div className="flex items-center gap-1.5 text-text-muted">
               <Clock className="w-3.5 h-3.5 text-text-muted" />
               <span>Academic Session 2025-26</span>
             </div>
             <div className="flex items-center gap-1.5 text-text-muted">
-              <Shield className="w-3.5 h-3.5 text-accent" />
-              <span>FERPA & NEP Aligned</span>
+              <Shield className="w-3.5 h-3.5 text-[#10B981]" />
+              <span>FERPA & NEP 2020 Aligned</span>
             </div>
           </div>
 
@@ -373,7 +360,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={toggleTheme}
-              className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-text hover:border-accent hover:text-accent transition-colors shadow-sm"
+              className="w-9 h-9 rounded-full bg-card border border-border flex items-center justify-center text-text hover:border-[#FF3B5C] hover:text-[#FF3B5C] transition-colors shadow-sm"
               title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Theme`}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -381,8 +368,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
 
             <button
               type="button"
-              onClick={() => openLoginModal('student')}
-              className="btn-spec-primary text-xs py-2 px-4"
+              onClick={() => openLoginModal('admin')}
+              className="btn-watermelon text-xs py-2 px-4 shadow-md"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Launch Portal</span>
@@ -392,49 +379,447 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
       </header>
 
       {/* ── MAIN LANDING PAGE CONTENT ───────────────────────────────────────── */}
-      <main className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col items-center justify-center space-y-12">
-        {/* ── HERO BANNER ───────────────────────────────────────────────────── */}
-        <div className="text-center max-w-3xl space-y-4 animate-fade-up">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/12 border border-accent/25 text-accent text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5 text-accent" />
-            <span>AI-Driven Retention & Academic Excellence Platform</span>
+      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 md:py-16 flex flex-col items-center justify-center space-y-16">
+        {/* ── 1. HERO SECTION (HIGH CONVERTING WATERMELON OS, ZERO UNDERLINES) ── */}
+        <section className="text-center max-w-4xl space-y-6 animate-fade-up">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-[#FF3B5C]/15 via-[#FF6584]/15 to-[#10B981]/15 border border-[#FF3B5C]/30 text-text text-xs font-semibold shadow-sm">
+            <span className="text-sm">🍉</span>
+            <span className="text-text font-bold">EduPulse Institutional Intelligence OS</span>
+            <span className="text-text-muted">•</span>
+            <span className="text-[#10B981] font-bold">100% MongoDB Atlas Connected</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-text tracking-tight leading-[1.14]">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-text tracking-tight leading-[1.12]">
             Transforming Campus Data into <br className="hidden sm:inline" />
-            <span className="text-accent underline decoration-accent/30 decoration-wavy decoration-2">
-              Predictive Student Achievement.
+            <span className="text-watermelon-gradient">
+              Predictive Student Achievement
             </span>
           </h1>
 
-          <p className="text-sm sm:text-base text-text-muted max-w-2xl mx-auto leading-relaxed">
-            A unified institutional operating system for real-time academic analytics, attendance radar,
-            mentorship counseling, and predictive early-warning advisories.
+          <p className="text-sm sm:text-base md:text-lg text-text-muted max-w-2xl mx-auto leading-relaxed">
+            The institutional operating system for real-time academic retention,
+            attendance drop detection, placement acceleration, and MongoDB-backed student records.
           </p>
-        </div>
 
-        {/* ── INSPIRATIONAL QUOTE CAROUSEL ───────────────────────────────────── */}
+          {/* Action CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => openLoginModal('admin')}
+              className="btn-watermelon text-sm py-3 px-7 shadow-lg shadow-[#FF3B5C]/25 w-full sm:w-auto"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Launch Enterprise Portal</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openLoginModal('student')}
+              className="btn-watermelon-mint text-sm py-3 px-6 w-full sm:w-auto"
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Student Sign In (Demo STU001)</span>
+            </button>
+          </div>
+
+          {/* Live KPI Strip */}
+          <div className="pt-6 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto text-left">
+            <div className="spec-card p-3.5 border-l-4 border-l-[#FF3B5C] bg-card/60 backdrop-blur-md">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Retention Accuracy</span>
+              <div className="text-xl font-black text-text mt-0.5">98.4%</div>
+              <span className="text-[10px] text-[#10B981] font-semibold">↑ Predictive ML Index</span>
+            </div>
+
+            <div className="spec-card p-3.5 border-l-4 border-l-[#10B981] bg-card/60 backdrop-blur-md">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">MongoDB Atlas</span>
+              <div className="text-xl font-black text-text mt-0.5">{students.length} Students</div>
+              <span className="text-[10px] text-[#10B981] font-semibold">● Live Cloud Persisted</span>
+            </div>
+
+            <div className="spec-card p-3.5 border-l-4 border-l-[#FF6584] bg-card/60 backdrop-blur-md">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Attendance Radar</span>
+              <div className="text-xl font-black text-text mt-0.5">&lt; 75% Alert</div>
+              <span className="text-[10px] text-[#FF3B5C] font-semibold">Instant Early Warning</span>
+            </div>
+
+            <div className="spec-card p-3.5 border-l-4 border-l-[#00D68F] bg-card/60 backdrop-blur-md">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Placement Readiness</span>
+              <div className="text-xl font-black text-text mt-0.5">Top Tier-1</div>
+              <span className="text-[10px] text-[#10B981] font-semibold">Skill-to-CTC Matching</span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 2. LIVE INTERACTIVE TELEMETRY SHOWCASE (WATERMELON GLASS COCKPIT) ─ */}
+        <section className="w-full max-w-5xl animate-fade-up">
+          <div className="watermelon-glass rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            {/* Top decorative gradient bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#FF3B5C] via-[#FF6584] to-[#10B981]" />
+
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-border/80 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF3B5C]/20 to-[#10B981]/20 border border-[#FF3B5C]/30 flex items-center justify-center text-[#FF3B5C]">
+                  <Activity className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-text">Campus Telemetry Cockpit</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
+                      Live Telemetry
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted">
+                    Real-time aggregated health index across enrolled undergraduate cohorts
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold px-3 py-1 rounded-xl bg-card border border-border text-text flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-[#10B981]" />
+                  <span>Cluster: edupulse.qvemhsb</span>
+                </span>
+                <button
+                  onClick={() => openLoginModal('admin')}
+                  className="px-3 py-1 rounded-xl bg-[#FF3B5C]/15 border border-[#FF3B5C]/30 text-[#FF3B5C] text-xs font-bold hover:bg-[#FF3B5C]/25 transition"
+                >
+                  Manage Roster →
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+              <div className="p-4 rounded-2xl bg-card/70 border border-border/70 space-y-1">
+                <div className="flex items-center justify-between text-xs text-text-muted">
+                  <span>Average CGPA</span>
+                  <span className="text-[#10B981] font-bold">+0.32%</span>
+                </div>
+                <div className="text-2xl font-black text-text">8.42 / 10</div>
+                <div className="w-full bg-border rounded-full h-1.5 overflow-hidden mt-2">
+                  <div className="bg-gradient-to-r from-[#FF3B5C] to-[#10B981] h-full rounded-full" style={{ width: '84%' }} />
+                </div>
+                <span className="text-[10px] text-text-muted">Target baseline: 7.50 CGPA</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-card/70 border border-border/70 space-y-1">
+                <div className="flex items-center justify-between text-xs text-text-muted">
+                  <span>Attendance Pulse</span>
+                  <span className="text-[#10B981] font-bold">Optimal</span>
+                </div>
+                <div className="text-2xl font-black text-text">88.5%</div>
+                <div className="w-full bg-border rounded-full h-1.5 overflow-hidden mt-2">
+                  <div className="bg-[#10B981] h-full rounded-full" style={{ width: '88%' }} />
+                </div>
+                <span className="text-[10px] text-text-muted">Threshold safety limit: 75%</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-card/70 border border-border/70 space-y-1">
+                <div className="flex items-center justify-between text-xs text-text-muted">
+                  <span>Early Risk Alerts</span>
+                  <span className="text-[#FF3B5C] font-bold">3 Active</span>
+                </div>
+                <div className="text-2xl font-black text-text">3 Students</div>
+                <div className="w-full bg-border rounded-full h-1.5 overflow-hidden mt-2">
+                  <div className="bg-[#FF3B5C] h-full rounded-full" style={{ width: '12%' }} />
+                </div>
+                <span className="text-[10px] text-text-muted">Interventions automatically queued</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-card/70 border border-border/70 space-y-1">
+                <div className="flex items-center justify-between text-xs text-text-muted">
+                  <span>Placement Index</span>
+                  <span className="text-[#10B981] font-bold">High Match</span>
+                </div>
+                <div className="text-2xl font-black text-text">82.0%</div>
+                <div className="w-full bg-border rounded-full h-1.5 overflow-hidden mt-2">
+                  <div className="bg-gradient-to-r from-[#10B981] to-[#00D68F] h-full rounded-full" style={{ width: '82%' }} />
+                </div>
+                <span className="text-[10px] text-text-muted">Corporate drive ready profiles</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 3. FOUR INSTITUTIONAL WORKSPACES (WATERMELON BENTO CARDS) ─────── */}
+        <section className="w-full">
+          <div className="text-center mb-8 space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#FF3B5C]">
+              Unified Multi-Role Architecture
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-text">
+              Select Your Institutional Portal
+            </h2>
+            <p className="text-xs sm:text-sm text-text-muted max-w-lg mx-auto">
+              Empowering students, mentors, placement officers, and institutional leaders.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* 1. Student Portal Card */}
+            <div
+              onClick={() => openLoginModal('student')}
+              className="watermelon-card p-6 rounded-2xl flex flex-col justify-between group cursor-pointer border border-[#FF3B5C]/20 hover:border-[#FF3B5C]/50 transition-all"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#FF3B5C]/15 border border-[#FF3B5C]/30 text-[#FF3B5C] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-text group-hover:text-[#FF3B5C] transition-colors">
+                      Student Cockpit
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/25">
+                      Enrolled
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                    Personalized academic dashboard: SGPA radar, attendance thresholds, internal test breakdowns, and 24/7 AI study mentor.
+                  </p>
+                </div>
+
+                <ul className="text-[11px] text-text-muted space-y-1.5 pt-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Real-time Attendance Radar</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>AI Study Assistant (DBMS, DSA)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Direct Faculty Problem Tickets</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-[#FF3B5C]">
+                <span>Launch Student Login</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+            {/* 2. Faculty Mentorship Hub Card */}
+            <div
+              onClick={() => openLoginModal('faculty')}
+              className="watermelon-card p-6 rounded-2xl flex flex-col justify-between group cursor-pointer border border-[#10B981]/20 hover:border-[#10B981]/50 transition-all"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#10B981]/15 border border-[#10B981]/30 text-[#10B981] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-text group-hover:text-[#10B981] transition-colors">
+                      Faculty Mentorship Hub
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/25">
+                      Advisory
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                    Class roster 360°, student risk scoring, early intervention logs, and instant problem resolution workflows.
+                  </p>
+                </div>
+
+                <ul className="text-[11px] text-text-muted space-y-1.5 pt-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Assigned Mentees & 360° Profiles</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Active Counseling Intervention Center</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Direct Student Query Response</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-[#10B981]">
+                <span>Launch Faculty Login</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+            {/* 3. Placement Officer Card */}
+            <div
+              onClick={() => openLoginModal('tpo')}
+              className="watermelon-card p-6 rounded-2xl flex flex-col justify-between group cursor-pointer border border-[#059669]/20 hover:border-[#059669]/50 transition-all"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-[#059669]/15 border border-[#059669]/30 text-[#059669] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Briefcase className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-text group-hover:text-[#059669] transition-colors">
+                      Placement Cell (TPO)
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#059669]/15 text-[#059669] border border-[#059669]/25">
+                      Corporate
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                    Corporate hiring drives, recruiter screening criteria, coding readiness metrics, ATS resumes, and CTC statistics.
+                  </p>
+                </div>
+
+                <ul className="text-[11px] text-text-muted space-y-1.5 pt-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Corporate Drive Management</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Coding & Aptitude Score Matrix</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Offer Letters & CTC Insights</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-[#059669]">
+                <span>Launch TPO Platform</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+
+            {/* 4. Administrator Governance Card */}
+            <div
+              onClick={() => openLoginModal('admin')}
+              className="watermelon-card p-6 rounded-2xl flex flex-col justify-between group cursor-pointer border border-[#FF3B5C]/25 hover:border-[#FF3B5C]/60 transition-all"
+            >
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF3B5C]/20 to-[#10B981]/20 border border-[#FF3B5C]/30 text-[#FF3B5C] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold text-text group-hover:text-[#FF3B5C] transition-colors">
+                      Campus Administration
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF3B5C]/15 text-[#FF3B5C] border border-[#FF3B5C]/25">
+                      Executive
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
+                    Institutional governance: NAAC accreditation reports, bulk spreadsheet ingestion, manual student creator, and MongoDB sync.
+                  </p>
+                </div>
+
+                <ul className="text-[11px] text-text-muted space-y-1.5 pt-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Live MongoDB Atlas Cloud Sync</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Bulk Excel / CSV File Ingestion</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-[#10B981]" />
+                    <span>Manual Student Creator Console</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-[#FF3B5C]">
+                <span>Launch Admin Console</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 4. WATERMELON CORE CAPABILITIES ────────────────────────────────── */}
+        <section className="w-full max-w-5xl">
+          <div className="spec-card rounded-3xl p-8 border border-border bg-card/60 backdrop-blur-md space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-4">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#10B981]">
+                  Engine Highlights
+                </span>
+                <h3 className="text-xl font-bold text-text">Why Institutions Trust EduPulse AI</h3>
+              </div>
+              <span className="text-xs font-mono px-3 py-1 rounded-full bg-card-hover border border-border text-text-muted">
+                Enterprise v2.5 Architecture
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-[#FF3B5C]/15 text-[#FF3B5C] flex items-center justify-center">
+                  <HeartPulse className="w-5 h-5" />
+                </div>
+                <h4 className="text-sm font-bold text-text">Predictive Risk Engine</h4>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Calculates multi-dimensional risk scores combining CGPA, attendance drops, and backlog trends.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-[#10B981]/15 text-[#10B981] flex items-center justify-center">
+                  <Database className="w-5 h-5" />
+                </div>
+                <h4 className="text-sm font-bold text-text">Direct MongoDB Atlas</h4>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Every student created via Excel or manual form is persisted directly with real-time WiredTiger storage.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-[#FF6584]/15 text-[#FF6584] flex items-center justify-center">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <h4 className="text-sm font-bold text-text">AI Study Assistant</h4>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Academic tutor providing comprehensive, zero-hallucination answers across DBMS, Algorithms, and Core CS.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-[#00D68F]/15 text-[#00D68F] flex items-center justify-center">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <h4 className="text-sm font-bold text-text">Full Role Scoping</h4>
+                <p className="text-xs text-text-muted leading-relaxed">
+                  Strict access boundaries protecting student privacy while empowering deans, TPOs, and advisors.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 5. INSPIRATIONAL QUOTE CAROUSEL (WATERMELON ENHANCED) ──────────── */}
         <section
           className="w-full max-w-3xl animate-fade-up"
           onMouseEnter={() => setIsQuotePaused(true)}
           onMouseLeave={() => setIsQuotePaused(false)}
         >
-          <div className="spec-card relative overflow-hidden transition-all duration-300">
+          <div className="spec-card relative overflow-hidden transition-all duration-300 border border-[#FF3B5C]/20 shadow-md">
             {/* Top decorative badge */}
             <div className="flex items-center justify-between mb-4">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-spec-label text-accent">
-                <Quote className="w-4 h-4 text-accent" />
-                Words of Wisdom & Inspiration
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#FF3B5C]">
+                <Quote className="w-4 h-4 text-[#FF3B5C]" />
+                Words of Wisdom & Academic Inspiration
               </span>
 
-              <span className="text-[10px] font-bold uppercase tracking-spec-label px-3 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/30">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
                 {currentQuote.tag}
               </span>
             </div>
 
             {/* Quote Body */}
-            <div className="min-h-[95px] flex flex-col justify-center">
-              <p className="text-base sm:text-lg md:text-xl font-medium text-text leading-snug italic">
+            <div className="min-h-[85px] flex flex-col justify-center">
+              <p className="text-base sm:text-lg font-medium text-text leading-snug italic">
                 "{currentQuote.quote}"
               </p>
 
@@ -452,14 +837,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setActiveQuoteIndex(prev => (prev === 0 ? INSPIRATIONAL_QUOTES.length - 1 : prev - 1))}
-                    className="p-1.5 rounded-xl bg-card border border-border hover:border-accent text-text-muted hover:text-text transition-colors"
+                    className="p-1.5 rounded-xl bg-card border border-border hover:border-[#FF3B5C] text-text-muted hover:text-text transition-colors"
                     title="Previous quote"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setActiveQuoteIndex(prev => (prev + 1) % INSPIRATIONAL_QUOTES.length)}
-                    className="p-1.5 rounded-xl bg-card border border-border hover:border-accent text-text-muted hover:text-text transition-colors"
+                    className="p-1.5 rounded-xl bg-card border border-border hover:border-[#FF3B5C] text-text-muted hover:text-text transition-colors"
                     title="Next quote"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -475,7 +860,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                   key={idx}
                   onClick={() => setActiveQuoteIndex(idx)}
                   className={`h-1.5 rounded-full transition-all duration-300 ${
-                    idx === activeQuoteIndex ? 'w-8 bg-accent' : 'w-2 bg-border hover:bg-text-muted'
+                    idx === activeQuoteIndex ? 'w-8 bg-[#FF3B5C]' : 'w-2 bg-border hover:bg-text-muted'
                   }`}
                   aria-label={`Go to quote ${idx + 1}`}
                 />
@@ -487,198 +872,76 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
           </div>
         </section>
 
-        {/* ── INSTITUTIONAL PORTAL OPTIONS (12-COL BENTO) ────────────────────── */}
-        <section className="w-full">
-          <div className="text-center mb-8">
-            <h2 className="title-page text-2xl sm:text-3xl">
-              Select Your Institutional Portal
-            </h2>
-            <p className="text-xs sm:text-sm text-text-muted mt-1 max-w-lg mx-auto">
-              Choose your role below to launch the dedicated workspace login panel.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {/* 1. Student Portal Card */}
-            <div
-              onClick={() => openLoginModal('student')}
-              className="spec-card flex flex-col justify-between group cursor-pointer"
-            >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <GraduationCap className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-text group-hover:text-accent transition-colors">
-                      Student Cockpit
-                    </h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
-                      Enrolled
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                    Access SGPA tracking, real-time attendance thresholds, internal test breakdowns, syllabus progress, and AI study roadmaps.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-accent">
-                <span>Launch Student Login</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-
-            {/* 2. Faculty Mentorship Hub Card */}
-            <div
-              onClick={() => openLoginModal('faculty')}
-              className="spec-card flex flex-col justify-between group cursor-pointer"
-            >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-text group-hover:text-accent transition-colors">
-                      Faculty Mentorship Hub
-                    </h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-warning/15 text-status-warning border border-status-warning/25">
-                      Advisory
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                    Monitor assigned class rosters, early-risk alerts, counseling notes, subject performance matrices, and intervention advisories.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-accent">
-                <span>Launch Faculty Login</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-
-            {/* 3. Training & Placement Officer (TPO) Card */}
-            <div
-              onClick={() => openLoginModal('tpo')}
-              className="spec-card flex flex-col justify-between group cursor-pointer"
-            >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Briefcase className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-text group-hover:text-accent transition-colors">
-                      Placement Cell (TPO)
-                    </h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                      Corporate
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                    Manage corporate recruitment drives, recruiter screening criteria, student coding readiness, ATS resumes, and CTC analytics.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-accent">
-                <span>Launch TPO Platform</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-
-            {/* 4. Administrator Governance Center Card */}
-            <div
-              onClick={() => openLoginModal('admin')}
-              className="spec-card flex flex-col justify-between group cursor-pointer"
-            >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Shield className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-text group-hover:text-accent transition-colors">
-                      Campus Administration
-                    </h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-success/15 text-status-success border border-status-success/25">
-                      Executive
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-muted mt-2 leading-relaxed">
-                    Institution-wide retention KPIs, NAAC / NIRF accreditation data, department comparison matrices, and campus governance controls.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-bold text-accent">
-                <span>Launch Admin Login</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── BOTTOM SECTION: ACTION CALLOUT ─────────────────────────────────── */}
-        <section className="w-full max-w-3xl spec-card text-center">
-          <h3 className="text-xl font-bold text-text tracking-tight">
-            Ready to Access Your Campus Workspace?
+        {/* ── 6. BOTTOM CALLOUT BAR ───────────────────────────────────────────── */}
+        <section className="w-full max-w-4xl watermelon-glass rounded-3xl p-8 text-center space-y-4">
+          <h3 className="text-xl sm:text-2xl font-black text-text">
+            Ready to Accelerate Campus Retention?
           </h3>
-          <p className="text-xs sm:text-sm text-text-muted mt-2 max-w-xl mx-auto">
-            Click below to open the secure institutional login panel. Authenticate with your enrolled student profile or campus credentials.
+          <p className="text-xs sm:text-sm text-text-muted max-w-xl mx-auto">
+            Log in to your authenticated institutional profile or test using pre-configured demo credentials.
           </p>
 
-          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
               type="button"
-              onClick={() => openLoginModal('student')}
-              className="btn-spec-primary text-sm py-3 px-8"
+              onClick={() => openLoginModal('admin')}
+              className="btn-watermelon text-xs py-2.5 px-6 shadow-md"
             >
               <LogIn className="w-4 h-4" />
-              <span>Sign In to Institutional Portal</span>
+              <span>Sign In as Institutional Admin</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openLoginModal('faculty')}
+              className="btn-watermelon-mint text-xs py-2.5 px-6"
+            >
+              <Users className="w-4 h-4" />
+              <span>Sign In as Faculty Advisor</span>
             </button>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-border flex flex-wrap items-center justify-center gap-6 text-[11px] text-text-muted">
+          <div className="pt-4 border-t border-border flex flex-wrap items-center justify-center gap-6 text-[11px] text-text-muted">
             <span className="flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-accent" />
+              <Check className="w-3.5 h-3.5 text-[#10B981]" />
               256-Bit SSL SSO
             </span>
             <span className="flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-accent" />
+              <Check className="w-3.5 h-3.5 text-[#10B981]" />
               Dataset Profile Lookup
             </span>
             <span className="flex items-center gap-1.5">
-              <Check className="w-3.5 h-3.5 text-accent" />
-              Multi-Role Access Control
+              <Check className="w-3.5 h-3.5 text-[#10B981]" />
+              Role-Based Access Control
             </span>
           </div>
         </section>
       </main>
 
       {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
-      <footer className="relative z-20 border-t border-border bg-sidebar/60 py-4 px-4 text-xs text-text-muted">
+      <footer className="relative z-20 border-t border-border/80 bg-sidebar/80 py-5 px-4 text-xs text-text-muted">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <p>© 2026 EduPulse AI Corporation. All rights reserved. Institutional Intelligence Platform.</p>
-          <div className="flex items-center gap-4 text-[11px]">
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <span>🍉</span>
+            <p>© 2026 EduPulse AI Corporation. Watermelon Intelligence Platform.</p>
+          </div>
+          <div className="flex items-center justify-center gap-4 text-[11px]">
+            <span className="text-[#10B981] font-semibold">● MongoDB Cluster: Connected</span>
             <span className="hover:text-text cursor-pointer">Security Protocol</span>
             <span className="hover:text-text cursor-pointer">NEP 2020 Compliance</span>
-            <span className="hover:text-text cursor-pointer">Institutional Privacy</span>
           </div>
         </div>
       </footer>
 
-      {/* ── POPUP LOGIN MODAL (DESIGN SPEC) ─────────────────────────────────── */}
+      {/* ── POPUP LOGIN MODAL (WATERMELON ENHANCED, ZERO UNDERLINES) ───────── */}
       {isLoginModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-fade-up"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-up"
           onClick={() => setIsLoginModalOpen(false)}
         >
           <div
             onClick={e => e.stopPropagation()}
-            className={`relative w-full max-w-md spec-card shadow-spec-hover p-6 sm:p-7 backdrop-blur-2xl transition-all duration-200 ${
+            className={`relative w-full max-w-md spec-card shadow-2xl p-6 sm:p-7 backdrop-blur-2xl border border-[#FF3B5C]/25 transition-all duration-200 ${
               shake ? 'animate-[shake_0.5s_ease-in-out]' : ''
             }`}
           >
@@ -695,29 +958,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
             {/* Modal Header */}
             <div className="mb-5 pr-6">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xl font-bold text-text">Campus Portal Login</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                <span className="text-xl font-bold text-text">Campus Portal Sign In</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/30">
                   Secure SSO
                 </span>
               </div>
               <p className="text-xs text-text-muted">
-                Enter your campus name or roll number to access your portal profile.
+                Select your role and enter credentials to enter your dedicated campus workspace.
               </p>
             </div>
 
             {/* ── SUCCESS STATE FLASH ───────────────────────────────────────── */}
             {successInfo ? (
               <div className="flex flex-col items-center gap-3 py-6 text-center animate-fade-up">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${successInfo.gradient} flex items-center justify-center text-accent-contrast text-xl font-bold shadow-2xl`}>
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${successInfo.gradient} flex items-center justify-center text-white text-xl font-bold shadow-2xl`}>
                   {successInfo.avatarInitials}
                 </div>
                 <div>
-                  <CheckCircle2 className="w-8 h-8 text-status-success mx-auto mb-1 animate-bounce" />
+                  <CheckCircle2 className="w-8 h-8 text-[#10B981] mx-auto mb-1 animate-bounce" />
                   <h3 className="text-lg font-bold text-text">Welcome, {successInfo.name}!</h3>
                   <p className="text-xs text-text-muted mt-0.5">{successInfo.subtext}</p>
                 </div>
-                <div className="flex items-center gap-2 mt-2 text-xs text-accent font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
+                <div className="flex items-center gap-2 mt-2 text-xs text-[#FF3B5C] font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-[#FF3B5C] animate-ping" />
                   <span>Loading {successInfo.roleName}…</span>
                 </div>
               </div>
@@ -734,7 +997,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-semibold transition-all ${
                       modalRole === 'student'
-                        ? 'btn-spec-primary py-1.5 text-xs'
+                        ? 'bg-[#FF3B5C] text-white shadow-md'
                         : 'text-text-muted hover:text-text'
                     }`}
                   >
@@ -747,11 +1010,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                     onClick={() => {
                       setModalRole('faculty');
                       setErrorMessage('');
-                      setPassword(''); // Prompt user for credentials
+                      setPassword('faculty@123');
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-semibold transition-all ${
                       modalRole === 'faculty'
-                        ? 'btn-spec-primary py-1.5 text-xs'
+                        ? 'bg-[#10B981] text-white shadow-md'
                         : 'text-text-muted hover:text-text'
                     }`}
                   >
@@ -768,12 +1031,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-semibold transition-all ${
                       modalRole === 'tpo'
-                        ? 'btn-spec-primary py-1.5 text-xs'
+                        ? 'bg-[#059669] text-white shadow-md'
                         : 'text-text-muted hover:text-text'
                     }`}
                   >
                     <Briefcase className="w-3.5 h-3.5" />
-                    <span>TPO Cell</span>
+                    <span>TPO</span>
                   </button>
 
                   <button
@@ -785,7 +1048,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                     }}
                     className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg text-xs font-semibold transition-all ${
                       modalRole === 'admin'
-                        ? 'btn-spec-primary py-1.5 text-xs'
+                        ? 'bg-gradient-to-r from-[#FF3B5C] to-[#10B981] text-white shadow-md'
                         : 'text-text-muted hover:text-text'
                     }`}
                   >
@@ -794,8 +1057,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                   </button>
                 </div>
 
-                {/* ── FORM FIELDS ────────────────────────────────────────────── */}
-                <form onSubmit={handleModalSubmit} noValidate className="space-y-4">
+                {/* ── ERROR DISPLAY ─────────────────────────────────────────── */}
+                {errorMessage && (
+                  <div className="mb-4 p-3 rounded-xl bg-status-danger/15 border border-status-danger/30 flex items-start gap-2.5 text-status-danger text-xs animate-shake">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span className="leading-tight font-medium">{errorMessage}</span>
+                  </div>
+                )}
+
+                {/* ── LOGIN FORM ────────────────────────────────────────────── */}
+                <form onSubmit={handleModalSubmit} className="space-y-4">
                   {/* STUDENT ROLE INPUT */}
                   {modalRole === 'student' && (
                     <div className="space-y-1.5">
@@ -803,28 +1074,39 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         <label htmlFor="modal-student-name" className="label-spec text-[10px]">
                           Student Name or Roll Number / ID
                         </label>
-                        <span className="text-[10px] text-accent font-mono">Database Match</span>
+                        <span className="text-[10px] text-[#10B981] font-mono">Database Match</span>
                       </div>
                       <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-student-name"
                           ref={inputRef}
                           type="text"
-                          placeholder="e.g. Arjun Sharma, Priya, Sneha, STU001..."
+                          placeholder="e.g. Anup Sharma, Arjun Sharma, STU001..."
                           value={studentInput}
                           onChange={e => {
                             setStudentInput(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full pl-10 pr-4 text-xs ${
+                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
+                          style={{ paddingLeft: '44px' }}
                         />
                       </div>
-                      <p className="text-[11px] text-text-muted leading-tight">
-                        Demo profiles: <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Anup Sharma')}>Anup Sharma</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Arjun Sharma')}>Arjun Sharma</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Priya Singh')}>Priya Singh</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('Sneha Joshi')}>Sneha Joshi</span>, or <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setStudentInput('STU001')}>STU001</span>.
-                      </p>
+                      <div className="text-[11px] text-text-muted pt-1 leading-normal">
+                        <span className="font-semibold text-text">Quick Demo Profiles:</span>{' '}
+                        {['Anup Sharma', 'Arjun Sharma', 'Priya Singh', 'Sneha Joshi', 'STU001'].map(name => (
+                          <button
+                            key={name}
+                            type="button"
+                            onClick={() => setStudentInput(name)}
+                            className="inline-block mr-1 my-0.5 px-2 py-0.5 rounded-md bg-[#FF3B5C]/10 text-[#FF3B5C] dark:text-[#FF6584] hover:bg-[#FF3B5C]/20 text-[10px] font-semibold transition"
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -835,10 +1117,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         <label htmlFor="modal-faculty-name" className="label-spec text-[10px]">
                           Faculty Name or Email
                         </label>
-                        <span className="text-[10px] text-accent font-mono">Directory Match</span>
+                        <span className="text-[10px] text-[#10B981] font-mono">Directory Match</span>
                       </div>
                       <div className="relative">
-                        <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                        <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-faculty-name"
                           ref={inputRef}
@@ -849,14 +1131,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setFacultyInput(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full pl-10 pr-4 text-xs ${
+                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
+                          style={{ paddingLeft: '44px' }}
                         />
                       </div>
-                      <p className="text-[11px] text-text-muted leading-tight">
-                        Available faculty: <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setFacultyInput('Dr. Priya Menon')}>Dr. Priya Menon</span>, <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setFacultyInput('Prof. Suresh Kumar')}>Prof. Suresh Kumar</span>.
-                      </p>
+                      <div className="text-[11px] text-text-muted pt-1 leading-normal">
+                        <span className="font-semibold text-text">Available Faculty:</span>{' '}
+                        {['Dr. Priya Menon', 'Prof. Suresh Kumar'].map(name => (
+                          <button
+                            key={name}
+                            type="button"
+                            onClick={() => setFacultyInput(name)}
+                            className="inline-block mr-1 my-0.5 px-2 py-0.5 rounded-md bg-[#10B981]/10 text-[#10B981] hover:bg-[#10B981]/20 text-[10px] font-semibold transition"
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -867,10 +1160,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         <label htmlFor="modal-tpo-email" className="label-spec text-[10px]">
                           Placement Officer Campus Email
                         </label>
-                        <span className="text-[10px] text-accent font-mono">TPO Cell</span>
+                        <span className="text-[10px] text-[#059669] font-mono">TPO Cell</span>
                       </div>
                       <div className="relative">
-                        <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                        <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-tpo-email"
                           ref={inputRef}
@@ -881,14 +1174,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setTpoEmail(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full pl-10 pr-4 text-xs ${
+                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
+                          style={{ paddingLeft: '44px' }}
                         />
                       </div>
-                      <p className="text-[11px] text-text-muted leading-tight">
-                        Demo Account: <span className="text-accent font-semibold cursor-pointer hover:underline" onClick={() => setTpoEmail('tpo@edupulse.edu')}>Prof. Vikram Malhotra (tpo@edupulse.edu)</span> · Password: <code className="text-accent font-mono">tpo@123</code>.
-                      </p>
+                      <div className="text-[11px] text-text-muted pt-1 leading-normal">
+                        <button
+                          type="button"
+                          onClick={() => setTpoEmail('tpo@edupulse.edu')}
+                          className="px-2 py-0.5 rounded-md bg-[#059669]/10 text-[#059669] hover:bg-[#059669]/20 text-[10px] font-semibold transition"
+                        >
+                          Fill: Prof. Vikram Malhotra (tpo@edupulse.edu)
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -899,7 +1199,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                         Administrator Campus Email
                       </label>
                       <div className="relative">
-                        <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                        <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                         <input
                           id="modal-admin-email"
                           ref={inputRef}
@@ -910,98 +1210,91 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSelectRole }) => {
                             setAdminEmail(e.target.value);
                             setErrorMessage('');
                           }}
-                          className={`input-spec w-full pl-10 pr-4 text-xs ${
+                          className={`input-spec w-full !pl-11 pr-4 text-xs ${
                             errorMessage ? 'border-status-danger' : ''
                           }`}
+                          style={{ paddingLeft: '44px' }}
                         />
+                      </div>
+                      <div className="text-[11px] text-text-muted pt-1 leading-normal">
+                        <button
+                          type="button"
+                          onClick={() => setAdminEmail('admin@edupulse.edu')}
+                          className="px-2 py-0.5 rounded-md bg-[#FF3B5C]/10 text-[#FF3B5C] hover:bg-[#FF3B5C]/20 text-[10px] font-semibold transition"
+                        >
+                          Fill: Dean of Academic Affairs (admin@edupulse.edu)
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  {/* Password Field */}
+                  {/* PASSWORD INPUT */}
                   <div className="space-y-1.5">
-                    <label htmlFor="modal-password" className="label-spec text-[10px]">
-                      Security Password
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="modal-password" className="label-spec text-[10px]">
+                        Institutional Access Key
+                      </label>
+                      <span className="text-[10px] text-text-muted font-mono">Protected</span>
+                    </div>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none z-10" />
                       <input
                         id="modal-password"
                         type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="input-spec w-full pl-10 pr-10 text-xs"
+                        className="input-spec w-full !pl-11 !pr-11 text-xs"
+                        style={{ paddingLeft: '44px', paddingRight: '44px' }}
                       />
                       <button
                         type="button"
-                        onClick={() => setShowPassword(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
-                        tabIndex={-1}
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text transition-colors z-10"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
 
-                  {/* Error Notification Alert */}
-                  {errorMessage && (
-                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-status-danger/15 border border-status-danger/40 text-status-danger text-xs leading-relaxed animate-fade-up">
-                      <AlertCircle className="w-4 h-4 text-status-danger flex-shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-bold">Authentication Error</div>
-                        <span>{errorMessage}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn-spec-primary w-full py-2.5 text-xs font-bold mt-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <svg className="w-4 h-4 animate-spin text-accent-contrast" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                        </svg>
-                        <span>Verifying Database…</span>
-                      </>
-                    ) : (
-                      <>
-                        <LogIn className="w-4 h-4" />
-                        <span>Sign In to {modalRole === 'student' ? 'Student' : modalRole === 'faculty' ? 'Faculty' : modalRole === 'tpo' ? 'TPO' : 'Admin'} Portal</span>
-                      </>
-                    )}
-                  </button>
+                  {/* SUBMIT BUTTON */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="btn-watermelon w-full text-xs py-3 shadow-md disabled:opacity-60"
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Verifying with MongoDB…</span>
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-4 h-4" />
+                          <span>
+                            Enter{' '}
+                            {modalRole === 'student'
+                              ? 'Student Cockpit'
+                              : modalRole === 'faculty'
+                              ? 'Faculty Hub'
+                              : modalRole === 'tpo'
+                              ? 'TPO Platform'
+                              : 'Admin Console'}
+                          </span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </form>
-
-                <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-[11px] text-text-muted">
-                  <span className="flex items-center gap-1">
-                    <Shield className="w-3 h-3 text-accent" />
-                    AES-256 Protected
-                  </span>
-                  <span>EduPulse AI v2.4.0</span>
-                </div>
               </>
             )}
           </div>
         </div>
       )}
-
-      {/* ── Keyframe Animations ──────────────────────────────────────────────── */}
-      <style>{`
-        @keyframes shake {
-          0%,100% { transform: translateX(0); }
-          15%  { transform: translateX(-6px); }
-          30%  { transform: translateX(5px); }
-          45%  { transform: translateX(-4px); }
-          60%  { transform: translateX(3px); }
-          75%  { transform: translateX(-2px); }
-          90%  { transform: translateX(1px); }
-        }
-      `}</style>
     </div>
   );
 };
+
+export default LoginPage;

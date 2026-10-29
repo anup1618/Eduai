@@ -8,6 +8,7 @@ import { Badge } from '../components/common/Badge';
 import { ScoreBreakdownModal } from '../components/student/ScoreBreakdownModal';
 import { WhatIfSimulatorModal } from '../components/student/WhatIfSimulatorModal';
 import { CreateInterventionModal } from '../components/intervention/CreateInterventionModal';
+import { StudentFormModal } from '../components/student/StudentFormModal';
 import { UnifiedStudent } from '../types/student';
 import {
   Search,
@@ -21,19 +22,26 @@ import {
   ArrowUpDown,
   Eye,
   CheckCircle2,
+  UserPlus,
+  Edit2,
+  Trash2,
 } from 'lucide-react';
 
 export const StudentIntelligencePage: React.FC = () => {
-  const { filteredStudents, weights, academicThresholds, placementThresholds, setSelectedStudent } = useCampusData();
+  const { filteredStudents, weights, academicThresholds, placementThresholds, setSelectedStudent, deleteStudent } = useCampusData();
 
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [sortField, setSortField] = useState<'score' | 'cgpa' | 'attendance' | 'placement' | 'completeness'>('score');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
 
   // Modal states for direct actions
   const [targetStudentForScore, setTargetStudentForScore] = useState<UnifiedStudent | null>(null);
   const [targetStudentForWhatIf, setTargetStudentForWhatIf] = useState<UnifiedStudent | null>(null);
   const [targetStudentForIntervention, setTargetStudentForIntervention] = useState<UnifiedStudent | null>(null);
+
+  // Student Form Modal state (Create & Edit)
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [studentToEdit, setStudentToEdit] = useState<UnifiedStudent | null>(null);
 
   // Sorting
   const sortedStudents = useMemo(() => {
@@ -86,6 +94,18 @@ export const StudentIntelligencePage: React.FC = () => {
 
         {/* Sorting controls & view toggle */}
         <div className="flex items-center gap-3">
+          {/* Add Student Button */}
+          <button
+            onClick={() => {
+              setStudentToEdit(null);
+              setIsFormModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent text-accent-contrast text-xs font-bold hover:opacity-90 transition shadow-sm"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Add Student</span>
+          </button>
+
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <span>Sort by:</span>
             <select
@@ -267,6 +287,27 @@ export const StudentIntelligencePage: React.FC = () => {
                       <td className="py-3 px-3 text-right" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button
+                            onClick={() => {
+                              setStudentToEdit(student);
+                              setIsFormModalOpen(true);
+                            }}
+                            title="Edit Student in MongoDB"
+                            className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/15 rounded-lg transition"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm(`Are you sure you want to delete student "${student.name}" (${student.student_id}) from MongoDB?`)) {
+                                await deleteStudent(student.student_id);
+                              }
+                            }}
+                            title="Delete Student from MongoDB"
+                            className="p-1.5 text-text-muted hover:text-status-danger hover:bg-status-danger/15 rounded-lg transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
                             onClick={() => setTargetStudentForScore(student)}
                             title="Why this score?"
                             className="p-1.5 text-text-muted hover:text-accent hover:bg-accent/15 rounded-lg transition"
@@ -357,6 +398,27 @@ export const StudentIntelligencePage: React.FC = () => {
 
                   <div className="flex items-center gap-1">
                     <button
+                      onClick={() => {
+                        setStudentToEdit(student);
+                        setIsFormModalOpen(true);
+                      }}
+                      className="p-1 text-text-muted hover:text-accent rounded-lg"
+                      title="Edit in MongoDB"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to delete student "${student.name}" (${student.student_id}) from MongoDB?`)) {
+                          await deleteStudent(student.student_id);
+                        }
+                      }}
+                      className="p-1 text-text-muted hover:text-status-danger rounded-lg"
+                      title="Delete from MongoDB"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
                       onClick={() => setTargetStudentForScore(student)}
                       className="p-1 text-text-muted hover:text-accent rounded-lg"
                       title="Why this score?"
@@ -384,6 +446,16 @@ export const StudentIntelligencePage: React.FC = () => {
           })}
         </div>
       )}
+
+      {/* Student Add/Edit Modal with MongoDB persistence */}
+      <StudentFormModal
+        isOpen={isFormModalOpen}
+        onClose={() => {
+          setIsFormModalOpen(false);
+          setStudentToEdit(null);
+        }}
+        initialData={studentToEdit}
+      />
 
       {/* Sub-modals launched directly from table/grid */}
       <ScoreBreakdownModal

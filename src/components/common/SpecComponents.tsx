@@ -17,7 +17,7 @@ interface SpecKpiCardProps {
     text: string;
     variant?: 'success' | 'warning' | 'danger' | 'accent' | 'neutral';
   };
-  number: string | number;
+  number: React.ReactNode;
   caption: string;
   label: string;
   percent?: number;
@@ -52,7 +52,7 @@ export const SpecKpiCard: React.FC<SpecKpiCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`spec-card col-span-12 sm:col-span-6 lg:col-span-3 flex flex-col justify-between group cursor-pointer ${className}`}
+      className={`spec-card motion-card col-span-12 sm:col-span-6 lg:col-span-3 flex flex-col justify-between group cursor-pointer ${className}`}
     >
       {/* Top Row: Icon Badge & Status Chip */}
       <div className="flex items-center justify-between mb-4">

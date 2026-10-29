@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCampusData } from '../context/CampusDataContext';
 import { calculateStudentSuccessScore } from '../engine/scoringEngine';
 import { evaluateAcademicRisk } from '../engine/academicRiskEngine';
 import { evaluatePlacementRisk } from '../engine/placementRiskEngine';
 import { SpecKpiCard, SpecPageHeader } from '../components/common/SpecComponents';
+import { CampusIntelligence3D } from '../components/3d/CampusIntelligence3D';
 import {
   Users,
   GraduationCap,
@@ -184,6 +185,9 @@ export const OverviewPage: React.FC = () => {
         sessionText="Campus Executive View"
         standingChip={{ text: `${totalStudents} Active Cohort`, variant: 'accent' }}
       />
+
+      {/* 3D Campus AI Neural Digital Twin & Risk Telemetry Visualization */}
+      <CampusIntelligence3D />
 
       {/* 12-Column Bento Grid: 4 Top KPI Cards */}
       <div className="grid grid-cols-12 gap-4">

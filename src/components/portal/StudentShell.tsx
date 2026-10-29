@@ -234,10 +234,10 @@ export const StudentShell: React.FC<StudentShellProps> = ({
                   onNavigate(item.id);
                   setMobileOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all duration-150 relative group ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-sm font-medium transition-all duration-200 relative group motion-pressable ${
                   isActive
-                    ? 'bg-accent/15 text-accent font-semibold border-l-[3px] border-accent pl-2.5'
-                    : 'text-text-muted hover:text-text hover:bg-card-hover hover:translate-x-0.5'
+                    ? 'bg-accent/15 text-accent font-semibold border-l-[3px] border-accent pl-2.5 shadow-sm'
+                    : 'text-text-muted hover:text-text hover:bg-card-hover hover:translate-x-1'
                 }`}
                 title={collapsed ? item.label : undefined}
               >
@@ -307,13 +307,14 @@ export const StudentShell: React.FC<StudentShellProps> = ({
         }`}
       >
         {/* Top Bar (DESIGN SPEC) */}
-        <header className="sticky top-0 z-30 h-16 bg-bg/80 backdrop-blur-md border-b border-border flex items-center px-4 sm:px-6 gap-4">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="lg:hidden text-text-muted hover:text-text p-1.5 rounded-lg bg-card border border-border"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+        <header className="sticky top-0 z-30 h-16 bg-bg/80 backdrop-blur-md border-b border-border flex items-center px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto w-full flex items-center gap-4">
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden text-text-muted hover:text-text p-1.5 rounded-lg bg-card border border-border"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
           {/* Left: Rounded "Student Portal" pill with accent dot + Academic Session text */}
           <div className="flex items-center gap-3">
@@ -479,6 +480,7 @@ export const StudentShell: React.FC<StudentShellProps> = ({
                 </div>
               )}
             </div>
+          </div>
           </div>
         </header>
 

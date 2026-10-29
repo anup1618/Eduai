@@ -54,8 +54,9 @@ export const FilterBar: React.FC = () => {
     filters.searchQuery.trim() !== '';
 
   return (
-    <div className="bg-bg/95 border-b border-border px-4 sm:px-6 py-3 space-y-3">
-      {/* Top Search & Filter Summary */}
+    <div className="bg-bg/95 border-b border-border px-4 sm:px-6 py-3">
+      <div className="max-w-7xl mx-auto w-full space-y-3">
+        {/* Top Search & Filter Summary */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Search input */}
         <div className="relative flex-1 min-w-[220px] max-w-md">
@@ -204,6 +205,7 @@ export const FilterBar: React.FC = () => {
             ))}
           </select>
         </div>
+      </div>
       </div>
     </div>
   );

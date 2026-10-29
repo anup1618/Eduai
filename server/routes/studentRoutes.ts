@@ -83,9 +83,9 @@ router.get('/:id', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/students/upload - Secure Backend Spreadsheet Ingestion (Admin Only)
+// POST /api/students/upload - Secure Backend Spreadsheet Ingestion (Admin, Faculty, TPO)
 // Parses Excel (.xlsx, .xls) or CSV on backend, validates, and persists to MongoDB Atlas
-router.post('/upload', requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+router.post('/upload', requireAuth, requireRole(['admin', 'faculty', 'tpo']), async (req: Request, res: Response) => {
   try {
     const { fileName, fileData, format, conflictMode = 'merge' } = req.body;
 
@@ -194,14 +194,9 @@ router.post('/upload', requireAuth, requireRole(['admin']), async (req: Request,
           student_satisfaction: parseNum(row['student_satisfaction'], 1, 5),
           faculty_feedback: row['faculty_feedback'] ? String(row['faculty_feedback']).trim() : null,
         },
-        data_quality: {
-          available_fields: 10,
-          total_fields: 13,
-          missing_fields: [],
-          data_completeness_percentage: 80,
-          has_minimum_evidence: true,
-        },
       };
+
+      studentDoc.data_quality = calculateDataQuality(studentDoc);
 
       bulkOps.push({
         updateOne: {
@@ -245,6 +240,45 @@ router.post('/upload', requireAuth, requireRole(['admin']), async (req: Request,
   }
 });
 
+// Helper to calculate student data quality metrics
+function calculateDataQuality(doc: any) {
+  const fieldsToCheck = [
+    doc.academic?.cgpa,
+    doc.academic?.internal_marks,
+    doc.academic?.backlogs,
+    doc.attendance?.overall_attendance,
+    doc.lms?.lms_logins,
+    doc.lms?.assignment_completion,
+    doc.engagement?.events_participated,
+    doc.placement?.aptitude_score,
+    doc.placement?.coding_score,
+    doc.placement?.mock_interview_score,
+    doc.skills?.technical_skill_score,
+    doc.skills?.soft_skill_score,
+    doc.feedback?.student_satisfaction,
+  ];
+
+  const missingLabels: string[] = [];
+  if (doc.academic?.cgpa === null || doc.academic?.cgpa === undefined) missingLabels.push('Academic CGPA');
+  if (doc.attendance?.overall_attendance === null || doc.attendance?.overall_attendance === undefined) missingLabels.push('Attendance');
+  if (doc.lms?.assignment_completion === null || doc.lms?.assignment_completion === undefined) missingLabels.push('LMS Assignments');
+  if (doc.placement?.aptitude_score === null || doc.placement?.aptitude_score === undefined) missingLabels.push('Placement Aptitude');
+  if (doc.placement?.coding_score === null || doc.placement?.coding_score === undefined) missingLabels.push('Placement Coding');
+  if (doc.skills?.technical_skill_score === null || doc.skills?.technical_skill_score === undefined) missingLabels.push('Technical Skills');
+
+  const availableCount = fieldsToCheck.filter((f) => f !== null && f !== undefined).length;
+  const totalCount = fieldsToCheck.length;
+  const completeness = Math.round((availableCount / totalCount) * 100);
+
+  return {
+    available_fields: availableCount,
+    total_fields: totalCount,
+    missing_fields: missingLabels,
+    data_completeness_percentage: completeness,
+    has_minimum_evidence: completeness >= 50,
+  };
+}
+
 // POST create or upsert single student (Admin & Faculty Only)
 router.post('/', requireAuth, requireRole(['admin', 'faculty']), async (req: Request, res: Response) => {
   try {
@@ -256,6 +290,22 @@ router.post('/', requireAuth, requireRole(['admin', 'faculty']), async (req: Req
       });
     }
 
+    // Normalize student_id uppercase
+    studentData.student_id = studentData.student_id.trim().toUpperCase();
+
+    // Fill defaults for nested sections if missing
+    studentData.academic = studentData.academic || { cgpa: null, internal_marks: null, backlogs: null, subject_performance: [] };
+    studentData.attendance = studentData.attendance || { overall_attendance: null, subject_attendance: {} };
+    studentData.lms = studentData.lms || { lms_logins: null, assignment_completion: null };
+    studentData.engagement = studentData.engagement || { events_participated: 0, club_participation: 0, hackathons: 0, certifications: 0 };
+    studentData.placement = studentData.placement || { aptitude_score: null, coding_score: null, mock_interview_score: null, placement_preparation_participation: null };
+    studentData.skills = studentData.skills || { technical_skill_score: null, soft_skill_score: null };
+    studentData.feedback = studentData.feedback || { student_satisfaction: null, faculty_feedback: null };
+    studentData.interventions = studentData.interventions || [];
+
+    // Automatically recalculate data_quality
+    studentData.data_quality = calculateDataQuality(studentData);
+
     const updated = await Student.findOneAndUpdate(
       { student_id: studentData.student_id },
       studentData,
@@ -264,13 +314,14 @@ router.post('/', requireAuth, requireRole(['admin', 'faculty']), async (req: Req
 
     return res.status(201).json({
       success: true,
-      message: 'Student saved successfully',
+      message: 'Student saved successfully to MongoDB',
       data: updated,
     });
   } catch (error: any) {
+    console.error('Failed to save student:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to save student',
+      message: 'Failed to save student to MongoDB',
       error: error.message,
     });
   }
@@ -319,28 +370,46 @@ router.post('/bulk', requireAuth, requireRole(['admin', 'faculty']), async (req:
 // PUT update student by student_id (Admin & Faculty Only)
 router.put('/:id', requireAuth, requireRole(['admin', 'faculty']), async (req: Request, res: Response) => {
   try {
-    const updated = await Student.findOneAndUpdate(
-      { student_id: req.params.id },
-      { $set: req.body },
-      { new: true }
-    );
-
-    if (!updated) {
+    const sId = req.params.id.trim().toUpperCase();
+    const existing = await Student.findOne({ student_id: sId });
+    if (!existing) {
       return res.status(404).json({
         success: false,
-        message: `Student with ID ${req.params.id} not found`,
+        message: `Student with ID ${sId} not found in MongoDB`,
       });
     }
 
+    const updates = req.body;
+    // Deep merge updates onto existing
+    const merged = {
+      ...existing.toObject(),
+      ...updates,
+      academic: { ...(existing.academic || {}), ...(updates.academic || {}) },
+      attendance: { ...(existing.attendance || {}), ...(updates.attendance || {}) },
+      lms: { ...(existing.lms || {}), ...(updates.lms || {}) },
+      engagement: { ...(existing.engagement || {}), ...(updates.engagement || {}) },
+      placement: { ...(existing.placement || {}), ...(updates.placement || {}) },
+      skills: { ...(existing.skills || {}), ...(updates.skills || {}) },
+      feedback: { ...(existing.feedback || {}), ...(updates.feedback || {}) },
+    };
+
+    merged.data_quality = calculateDataQuality(merged);
+
+    const updated = await Student.findOneAndUpdate(
+      { student_id: sId },
+      { $set: merged },
+      { new: true }
+    );
+
     return res.json({
       success: true,
-      message: 'Student updated successfully',
+      message: 'Student record updated successfully in MongoDB',
       data: updated,
     });
   } catch (error: any) {
     return res.status(500).json({
       success: false,
-      message: 'Failed to update student',
+      message: 'Failed to update student in MongoDB',
       error: error.message,
     });
   }

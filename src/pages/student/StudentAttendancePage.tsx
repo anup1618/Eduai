@@ -12,6 +12,7 @@ import {
 } from '../../data/portalData';
 import { useCurrentStudent } from '../../context/CampusDataContext';
 import { SpecKpiCard, SpecPageHeader, SpecProgressBar } from '../../components/common/SpecComponents';
+import { MotionCounter } from '../../components/common/MotionCounter';
 
 const CHART_TOOLTIP_STYLE = {
   contentStyle: {
@@ -78,7 +79,7 @@ export function StudentAttendancePage() {
             text: s.overall_attendance >= 75 ? 'Compliant' : 'Shortage',
             variant: s.overall_attendance >= 75 ? 'success' : 'danger',
           }}
-          number={`${s.overall_attendance}%`}
+          number={<MotionCounter value={s.overall_attendance} suffix="%" />}
           caption="Mandatory 75% threshold required"
           label="OVERALL ATTENDANCE"
           percent={s.overall_attendance}
@@ -86,7 +87,7 @@ export function StudentAttendancePage() {
         <SpecKpiCard
           icon={<CheckCircle className="w-5 h-5 text-status-success" />}
           statusChip={{ text: 'Verified', variant: 'success' }}
-          number={s.classes_attended}
+          number={<MotionCounter value={s.classes_attended} />}
           caption="Total sessions physically attended"
           label="CLASSES ATTENDED"
           percent={(s.classes_attended / s.classes_conducted) * 100}
@@ -94,14 +95,14 @@ export function StudentAttendancePage() {
         <SpecKpiCard
           icon={<Clock className="w-5 h-5 text-text-muted" />}
           statusChip={{ text: 'Conducted', variant: 'neutral' }}
-          number={s.classes_conducted}
+          number={<MotionCounter value={s.classes_conducted} />}
           caption="Delivered across all subjects"
           label="TOTAL CLASSES"
         />
         <SpecKpiCard
           icon={<AlertTriangle className="w-5 h-5 text-status-danger" />}
           statusChip={{ text: 'Missed', variant: 'danger' }}
-          number={s.classes_conducted - s.classes_attended}
+          number={<MotionCounter value={s.classes_conducted - s.classes_attended} />}
           caption="Absences recorded to date"
           label="CLASSES MISSED"
         />

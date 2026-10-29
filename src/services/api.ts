@@ -160,6 +160,14 @@ export const api = {
     return res.data;
   },
 
+  async updateStudent(id: string, updates: Partial<UnifiedStudent>): Promise<UnifiedStudent> {
+    const res = await request<{ success: boolean; data: UnifiedStudent }>(`/students/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+    return res.data;
+  },
+
   async bulkUpsertStudents(students: UnifiedStudent[]): Promise<any> {
     return request('/students/bulk', {
       method: 'POST',

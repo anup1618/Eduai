@@ -6,6 +6,7 @@ import {
 import { RECOMMENDATIONS } from '../../data/portalData';
 import { useCurrentStudent } from '../../context/CampusDataContext';
 import { SpecKpiCard, SpecPageHeader, SpecProgressBar } from '../../components/common/SpecComponents';
+import { MotionCounter } from '../../components/common/MotionCounter';
 
 export function StudentProgressTrackerPage() {
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'recommendations' | 'history' | 'email'>('weekly');
@@ -71,7 +72,7 @@ export function StudentProgressTrackerPage() {
         <SpecKpiCard
           icon={<Brain className="w-5 h-5 text-accent" />}
           statusChip={{ text: 'Calculated', variant: 'accent' }}
-          number={`${totalCalculated}/100`}
+          number={<MotionCounter value={totalCalculated} suffix="/100" />}
           caption="Composite Multi-Factor Metric"
           label="OVERALL SUCCESS SCORE"
           percent={totalCalculated}

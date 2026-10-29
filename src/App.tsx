@@ -52,6 +52,7 @@ const AdminPortalContent: React.FC<{ onSwitchPortal: () => void }> = ({ onSwitch
   const { selectedStudent, setSelectedStudent } = useCampusData();
 
   const [currentPage, setCurrentPage] = useState<NavigationPage>('overview');
+  const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isAnalystOpen, setIsAnalystOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
@@ -97,10 +98,16 @@ const AdminPortalContent: React.FC<{ onSwitchPortal: () => void }> = ({ onSwitch
         setMobileOpen={setMobileNavOpen}
         onOpenAnalyst={() => setIsAnalystOpen(true)}
         onLogout={onSwitchPortal}
+        collapsed={collapsed}
+        onToggleCollapse={() => setCollapsed(!collapsed)}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen relative z-10">
+      <div
+        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 relative z-10 ${
+          collapsed ? 'lg:pl-[96px]' : 'lg:pl-[284px]'
+        }`}
+      >
         {/* Header */}
         <Header
           currentPage={currentPage}
